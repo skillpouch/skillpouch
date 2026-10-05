@@ -206,7 +206,13 @@ export const SnapshotPage = z.object({
 export const Conflict = z.object({
 	id: Uuid,
 	artifact_id: Uuid.nullable(),
-	type: z.enum(['update_update', 'edit_delete', 'delete_edit', 'name_collision', 'local_projection']),
+	type: z.enum([
+		'update_update',
+		'edit_delete',
+		'delete_edit',
+		'name_collision',
+		'local_projection',
+	]),
 	base_revision_id: Uuid.nullable(),
 	server_revision_id: Uuid.nullable(),
 	incoming_revision_id: Uuid.nullable(),

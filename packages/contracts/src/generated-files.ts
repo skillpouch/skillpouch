@@ -34,7 +34,9 @@ function renderErrorDocs(): string {
 		'| ---- | ---- | --------- | ------- |',
 	];
 	for (const [code, def] of Object.entries(ErrorCodes)) {
-		lines.push(`| \`${code}\` | ${def.status} | ${def.retryable ? 'yes' : 'no'} | ${def.message} |`);
+		lines.push(
+			`| \`${code}\` | ${def.status} | ${def.retryable ? 'yes' : 'no'} | ${def.message} |`,
+		);
 	}
 	return `${lines.join('\n')}\n`;
 }

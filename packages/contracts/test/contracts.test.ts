@@ -35,7 +35,9 @@ describe('error registry (17 §3)', () => {
 	it('has committed generated files that match the registry', () => {
 		for (const [relativePath, content] of Object.entries(renderGeneratedFiles())) {
 			const committed = readFileSync(join(packageRoot, relativePath), 'utf8');
-			expect(committed, `${relativePath} is stale; run pnpm contracts:generate`).toBe(content);
+			expect(committed, `${relativePath} is stale; run pnpm contracts:generate`).toBe(
+				content,
+			);
 		}
 	});
 });
