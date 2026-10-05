@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.log
+.env
+.env.*
+!.env.example
+/data/
+# engram: only the portable graph + report are committed (docs/maintainers/engram.md)
+.engram/*
+!.engram/graph.json
+!.engram/GRAPH_REPORT.md

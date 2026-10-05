@@ -1,0 +1,24 @@
+{
+	"name": "@skillpouch/db",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Postgres schema (Drizzle), SQL migrations and the migration runner.",
+	"license": "AGPL-3.0-only",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc -p tsconfig.json",
+		"test": "vitest run",
+		"migrate": "tsx src/migrate-cli.ts"
+	},
+	"dependencies": {
+		"@skillpouch/contracts": "workspace:*",
+		"drizzle-orm": "^0.45.3",
+		"pg": "^8.23.1"
+	},
+	"devDependencies": {
+		"@types/pg": "^8.23.1"
+	}
+}

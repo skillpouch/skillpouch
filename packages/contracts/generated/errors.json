@@ -1,0 +1,290 @@
+{
+	"unauthenticated": {
+		"status": 401,
+		"retryable": false,
+		"message": "Sign in required.",
+		"docs_url": "https://docs.skillpouch.net/errors/unauthenticated"
+	},
+	"session_unbound": {
+		"status": 401,
+		"retryable": false,
+		"message": "Bind this browser session to its key first.",
+		"docs_url": "https://docs.skillpouch.net/errors/session_unbound"
+	},
+	"session_already_bound": {
+		"status": 409,
+		"retryable": false,
+		"message": "This session is already bound to a key.",
+		"docs_url": "https://docs.skillpouch.net/errors/session_already_bound"
+	},
+	"token_invalid": {
+		"status": 401,
+		"retryable": false,
+		"message": "Invalid or expired access token.",
+		"docs_url": "https://docs.skillpouch.net/errors/token_invalid"
+	},
+	"refresh_invalid": {
+		"status": 401,
+		"retryable": false,
+		"message": "Invalid refresh token.",
+		"docs_url": "https://docs.skillpouch.net/errors/refresh_invalid"
+	},
+	"refresh_reused": {
+		"status": 401,
+		"retryable": false,
+		"message": "Refresh token reuse detected; this device was revoked.",
+		"docs_url": "https://docs.skillpouch.net/errors/refresh_reused"
+	},
+	"device_revoked": {
+		"status": 401,
+		"retryable": false,
+		"message": "This device was revoked.",
+		"docs_url": "https://docs.skillpouch.net/errors/device_revoked"
+	},
+	"device_suspended": {
+		"status": 403,
+		"retryable": false,
+		"message": "This device is suspended.",
+		"docs_url": "https://docs.skillpouch.net/errors/device_suspended"
+	},
+	"account_suspended": {
+		"status": 403,
+		"retryable": false,
+		"message": "This account is suspended.",
+		"docs_url": "https://docs.skillpouch.net/errors/account_suspended"
+	},
+	"dpop_invalid": {
+		"status": 401,
+		"retryable": false,
+		"message": "Invalid proof of possession.",
+		"docs_url": "https://docs.skillpouch.net/errors/dpop_invalid"
+	},
+	"dpop_nonce_required": {
+		"status": 401,
+		"retryable": true,
+		"message": "Retry with the server nonce.",
+		"docs_url": "https://docs.skillpouch.net/errors/dpop_nonce_required"
+	},
+	"dpop_replay": {
+		"status": 401,
+		"retryable": false,
+		"message": "Proof of possession was replayed.",
+		"docs_url": "https://docs.skillpouch.net/errors/dpop_replay"
+	},
+	"signature_invalid": {
+		"status": 401,
+		"retryable": false,
+		"message": "Request signature is invalid.",
+		"docs_url": "https://docs.skillpouch.net/errors/signature_invalid"
+	},
+	"csrf_rejected": {
+		"status": 403,
+		"retryable": false,
+		"message": "Cross-site request rejected.",
+		"docs_url": "https://docs.skillpouch.net/errors/csrf_rejected"
+	},
+	"step_up_required": {
+		"status": 403,
+		"retryable": false,
+		"message": "Sign in again to continue.",
+		"docs_url": "https://docs.skillpouch.net/errors/step_up_required"
+	},
+	"forbidden": {
+		"status": 403,
+		"retryable": false,
+		"message": "Not allowed.",
+		"docs_url": "https://docs.skillpouch.net/errors/forbidden"
+	},
+	"cli_auth_expired": {
+		"status": 410,
+		"retryable": false,
+		"message": "This login request expired.",
+		"docs_url": "https://docs.skillpouch.net/errors/cli_auth_expired"
+	},
+	"cli_auth_denied": {
+		"status": 403,
+		"retryable": false,
+		"message": "This login request was denied.",
+		"docs_url": "https://docs.skillpouch.net/errors/cli_auth_denied"
+	},
+	"cli_auth_final": {
+		"status": 409,
+		"retryable": false,
+		"message": "This login request was already handled.",
+		"docs_url": "https://docs.skillpouch.net/errors/cli_auth_final"
+	},
+	"pkce_invalid": {
+		"status": 401,
+		"retryable": false,
+		"message": "PKCE verification failed.",
+		"docs_url": "https://docs.skillpouch.net/errors/pkce_invalid"
+	},
+	"roster_exists": {
+		"status": 409,
+		"retryable": false,
+		"message": "This account is already initialized.",
+		"docs_url": "https://docs.skillpouch.net/errors/roster_exists"
+	},
+	"roster_missing": {
+		"status": 409,
+		"retryable": false,
+		"message": "Finish account setup in the browser first.",
+		"docs_url": "https://docs.skillpouch.net/errors/roster_missing"
+	},
+	"roster_conflict": {
+		"status": 409,
+		"retryable": true,
+		"message": "The roster changed; fetch it and retry.",
+		"docs_url": "https://docs.skillpouch.net/errors/roster_conflict"
+	},
+	"roster_invalid": {
+		"status": 422,
+		"retryable": false,
+		"message": "Roster statement is malformed.",
+		"docs_url": "https://docs.skillpouch.net/errors/roster_invalid"
+	},
+	"member_inactive": {
+		"status": 403,
+		"retryable": false,
+		"message": "The signing member is not an active member.",
+		"docs_url": "https://docs.skillpouch.net/errors/member_inactive"
+	},
+	"key_gen_invalid": {
+		"status": 422,
+		"retryable": false,
+		"message": "Invalid key generation.",
+		"docs_url": "https://docs.skillpouch.net/errors/key_gen_invalid"
+	},
+	"join_request_closed": {
+		"status": 409,
+		"retryable": false,
+		"message": "This join request is no longer open.",
+		"docs_url": "https://docs.skillpouch.net/errors/join_request_closed"
+	},
+	"not_found": {
+		"status": 404,
+		"retryable": false,
+		"message": "Not found.",
+		"docs_url": "https://docs.skillpouch.net/errors/not_found"
+	},
+	"pouch_limit_reached": {
+		"status": 403,
+		"retryable": false,
+		"message": "Pouch limit reached for your plan.",
+		"docs_url": "https://docs.skillpouch.net/errors/pouch_limit_reached"
+	},
+	"pouch_read_only": {
+		"status": 409,
+		"retryable": false,
+		"message": "This pouch is read-only.",
+		"docs_url": "https://docs.skillpouch.net/errors/pouch_read_only"
+	},
+	"quota_exceeded": {
+		"status": 413,
+		"retryable": false,
+		"message": "Storage quota exceeded.",
+		"docs_url": "https://docs.skillpouch.net/errors/quota_exceeded"
+	},
+	"precondition_failed": {
+		"status": 412,
+		"retryable": false,
+		"message": "Base revision is out of date.",
+		"docs_url": "https://docs.skillpouch.net/errors/precondition_failed"
+	},
+	"epoch_mismatch": {
+		"status": 409,
+		"retryable": false,
+		"message": "Server restored; rebase required.",
+		"docs_url": "https://docs.skillpouch.net/errors/epoch_mismatch"
+	},
+	"cursor_expired": {
+		"status": 410,
+		"retryable": false,
+		"message": "History expired; rebase required.",
+		"docs_url": "https://docs.skillpouch.net/errors/cursor_expired"
+	},
+	"operation_id_reused": {
+		"status": 409,
+		"retryable": false,
+		"message": "Operation ID reused with a different body.",
+		"docs_url": "https://docs.skillpouch.net/errors/operation_id_reused"
+	},
+	"blob_missing": {
+		"status": 422,
+		"retryable": false,
+		"message": "Referenced blob not uploaded.",
+		"docs_url": "https://docs.skillpouch.net/errors/blob_missing"
+	},
+	"blob_too_large": {
+		"status": 413,
+		"retryable": false,
+		"message": "Blob exceeds the size limit.",
+		"docs_url": "https://docs.skillpouch.net/errors/blob_too_large"
+	},
+	"ciphertext_hash_mismatch": {
+		"status": 422,
+		"retryable": true,
+		"message": "Upload corrupted in transit.",
+		"docs_url": "https://docs.skillpouch.net/errors/ciphertext_hash_mismatch"
+	},
+	"envelope_invalid": {
+		"status": 422,
+		"retryable": false,
+		"message": "Encrypted payload is malformed.",
+		"docs_url": "https://docs.skillpouch.net/errors/envelope_invalid"
+	},
+	"snapshot_expired": {
+		"status": 410,
+		"retryable": false,
+		"message": "Snapshot lease expired; start again.",
+		"docs_url": "https://docs.skillpouch.net/errors/snapshot_expired"
+	},
+	"billing_unavailable": {
+		"status": 503,
+		"retryable": false,
+		"message": "Billing is not configured.",
+		"docs_url": "https://docs.skillpouch.net/errors/billing_unavailable"
+	},
+	"webhook_invalid": {
+		"status": 401,
+		"retryable": false,
+		"message": "Webhook signature invalid.",
+		"docs_url": "https://docs.skillpouch.net/errors/webhook_invalid"
+	},
+	"last_admin": {
+		"status": 409,
+		"retryable": false,
+		"message": "The last admin cannot be demoted.",
+		"docs_url": "https://docs.skillpouch.net/errors/last_admin"
+	},
+	"validation_failed": {
+		"status": 400,
+		"retryable": false,
+		"message": "Invalid request.",
+		"docs_url": "https://docs.skillpouch.net/errors/validation_failed"
+	},
+	"payload_too_large": {
+		"status": 413,
+		"retryable": false,
+		"message": "Request body too large.",
+		"docs_url": "https://docs.skillpouch.net/errors/payload_too_large"
+	},
+	"rate_limited": {
+		"status": 429,
+		"retryable": true,
+		"message": "Too many requests.",
+		"docs_url": "https://docs.skillpouch.net/errors/rate_limited"
+	},
+	"maintenance_write_pause": {
+		"status": 503,
+		"retryable": true,
+		"message": "Brief maintenance, retrying.",
+		"docs_url": "https://docs.skillpouch.net/errors/maintenance_write_pause"
+	},
+	"internal_error": {
+		"status": 500,
+		"retryable": true,
+		"message": "Something went wrong.",
+		"docs_url": "https://docs.skillpouch.net/errors/internal_error"
+	}
+}

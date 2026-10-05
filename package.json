@@ -1,0 +1,37 @@
+{
+	"name": "skillpouch",
+	"private": true,
+	"description": "SkillPouch monorepo: API, web app, shared contracts and database schema.",
+	"license": "AGPL-3.0-only",
+	"type": "module",
+	"packageManager": "pnpm@10.18.0",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"build": "turbo run build",
+		"typecheck": "turbo run typecheck",
+		"lint": "eslint .",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"test": "turbo run test",
+		"test:unit": "turbo run test:unit",
+		"dev:db": "docker compose -f deploy/compose.dev.yaml up -d postgres",
+		"dev:api": "pnpm --filter @skillpouch/api dev",
+		"db:migrate": "pnpm --filter @skillpouch/db migrate",
+		"contracts:generate": "pnpm --filter @skillpouch/contracts generate",
+		"engram": "node scripts/engram-update.mjs"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.5",
+		"@types/node": "^24.19.1",
+		"eslint": "^9.39.5",
+		"globals": "^16.5.0",
+		"prettier": "^3.9.9",
+		"tsx": "^4.23.15",
+		"turbo": "^2.11.7",
+		"typescript": "~6.0.3",
+		"typescript-eslint": "^8.71.1",
+		"vitest": "^5.0.3"
+	}
+}
