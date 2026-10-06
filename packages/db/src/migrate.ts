@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Migration runner (plan 10 §5.2).
+ * Migration runner.
  *
  * - Applies `migrations/*.sql` in file-name order, each in its own transaction
  *   (files whose header contains `-- no-transaction` run outside one, for

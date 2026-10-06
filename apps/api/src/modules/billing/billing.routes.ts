@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Billing routes (plan 06 §3, 18 §4): checkout, customer portal, subscription, webhooks. */
+/** Billing routes: checkout, customer portal, subscription, webhooks. */
 import { BillingCheckout, BillingUrl, Timestamp } from '@skillpouch/contracts';
 import { plans, subscriptions } from '@skillpouch/db';
 import { and, desc, eq } from 'drizzle-orm';

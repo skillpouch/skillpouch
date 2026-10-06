@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `POST /v1/pouches/:pouchId/operations` — commit (plan 04 §3). */
+/** `POST /v1/pouches/:pouchId/operations` — commit. */
 import { CommitRequest, CommitResponse, PouchParam, canonicalDigest } from '@skillpouch/contracts';
 import type { Deps } from '../../deps';
 import { principalOf } from '../../http/principal';

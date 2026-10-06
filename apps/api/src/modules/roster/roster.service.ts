@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The account roster (plan 15 §7): an append-only, signed hash chain of
+ * The account roster: an append-only, signed hash chain of
  * membership and pouch statements. This service performs the *structural*
  * checks (contiguous seq, prev_hash link, canonical JSON, signer is an active
  * member and really signed it) and applies each statement's effect on the
@@ -328,7 +328,7 @@ async function applyEffect(
 /**
  * After every append the account has exactly one active `password` and one
  * active `recovery` member: they can be replaced (add new + remove old in one
- * batch) but never just dropped (15 §7.1 rule 3).
+ * batch) but never just dropped.
  */
 function assertMembershipInvariants(members: Map<string, MemberRow>): void {
 	for (const kind of ['password', 'recovery'] as const) {

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Limits } from '../limits';
 import { B64Url, BlobId, Hash32, Timestamp, Uuid, b64urlMax } from './common';
 
-// ---- blobs (04 §3.2) ---------------------------------------------------------
+// ---- blobs ---------------------------------------------------------
 
 export const BlobCheckRequest = z.strictObject({
 	blobs: z
@@ -27,7 +27,7 @@ export const BlobFetchRequest = z.strictObject({
 
 export const BlobBatchResponse = z.object({ stored: z.array(BlobId) });
 
-// ---- operations (04 §3.1) ----------------------------------------------------
+// ---- operations ----------------------------------------------------
 
 export const OperationType = z.enum(['create', 'update', 'rename', 'delete', 'restore', 'resolve']);
 export type OperationType = z.infer<typeof OperationType>;
@@ -131,7 +131,7 @@ export const RevisionsQuery = z.object({
 		.pipe(z.array(Uuid).min(1).max(Limits.pageMax)),
 });
 
-// ---- events (04 §4) ------------------------------------------------------------
+// ---- events ------------------------------------------------------------
 
 export const EventType = z.enum([
 	'artifact.created',
@@ -171,7 +171,7 @@ export const EventsResponse = z.object({
 	epoch: Uuid,
 });
 
-/** Account-level events pushed on the SSE stream (04 §4.2). */
+/** Account-level events pushed on the SSE stream. */
 export const AccountEventType = z.enum([
 	'roster.changed',
 	'browser.trusted',
@@ -183,7 +183,7 @@ export const AccountEventType = z.enum([
 	'cli_auth.approved',
 ]);
 
-// ---- snapshots (04 §6) -----------------------------------------------------------
+// ---- snapshots -----------------------------------------------------------
 
 export const SnapshotCreated = z.object({
 	snapshot_id: Uuid,
@@ -203,7 +203,7 @@ export const SnapshotPage = z.object({
 	),
 });
 
-// ---- conflicts (04 §7) -----------------------------------------------------------
+// ---- conflicts -----------------------------------------------------------
 
 export const Conflict = z.object({
 	id: Uuid,

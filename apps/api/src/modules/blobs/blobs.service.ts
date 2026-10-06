@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Encrypted blob storage (plan 04 §3.2, 06 §6, 09 §2–3).
+ * Encrypted blob storage.
  *
  *   check → reserve quota for missing blobs (`pending`), reject over quota
  *           before any byte is uploaded;
  *   put   → verify BLAKE3(body) == Skillpouch-Ciphertext-Hash and the sealed
  *           header, store atomically, move bytes from pending to used.
  *
- * Blob IDs are keyed per pouch (15 §5.1): the server cannot link equal
+ * Blob IDs are keyed per pouch: the server cannot link equal
  * content across pouches or users.
  */
 import { Limits, fromBase64Url, parseSealedHeader, toBase64Url } from '@skillpouch/contracts';
@@ -199,7 +199,7 @@ export async function getBlob(
 }
 
 /**
- * Batch framing (16 §10). Upload frames: `id(32) ‖ ciphertext_hash(32) ‖ u32_be len ‖ bytes`;
+ * Batch framing. Upload frames: `id(32) ‖ ciphertext_hash(32) ‖ u32_be len ‖ bytes`;
  * download frames: `id(32) ‖ u32_be len ‖ bytes`.
  */
 export function parseUploadFrames(body: Buffer): { id: Buffer; hash: Buffer; bytes: Buffer }[] {

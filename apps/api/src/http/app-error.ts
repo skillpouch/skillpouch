@@ -2,7 +2,7 @@
 import { ErrorCodes, type ErrorCode } from '@skillpouch/contracts';
 
 /**
- * The only way route and service code fails (plan 17 §2). The error-handler
+ * The only way route and service code fails. The error-handler
  * plugin turns it into the error envelope; the HTTP status comes from the
  * central registry, so it can never disagree with the code.
  */

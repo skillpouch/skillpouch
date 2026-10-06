@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Realtime fan-out (plan 06 §5, 16 §10). Each API instance holds ONE
+ * Realtime fan-out. Each API instance holds ONE
  * dedicated `LISTEN` connection and fans notifications out in memory, so
  * long-polls and SSE streams cost a socket, not a database connection.
  *

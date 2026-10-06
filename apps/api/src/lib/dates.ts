@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** RFC 3339 UTC strings for responses (17 §4). */
+/** RFC 3339 UTC strings for responses. */
 export function iso(date: Date): string;
 export function iso(date: Date | null): string | null;
 export function iso(date: Date | null): string | null {

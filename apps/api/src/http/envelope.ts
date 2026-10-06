@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Response envelope + global error handler (plan 17 §2).
+ * Response envelope + global error handler.
  *
  * Handlers return plain data; `preSerialization` wraps it as
  * `{ ok: true, data, meta }`. Failures are `AppError`s (or framework errors),

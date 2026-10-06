@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * DPoP-bound access tokens for CLI devices (plan 08 §3.2): EdDSA JWTs, 5 min
+ * DPoP-bound access tokens for CLI devices: EdDSA JWTs, 5 min
  * lifetime, bound to the device key via `cnf.jkt`, carrying the device's
  * `token_version` (`ver`) so revocation is effective on the next request.
  */

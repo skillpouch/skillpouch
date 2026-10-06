@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The commit transaction — the heart of sync (plan 04 §3.3, 06 §4).
+ * The commit transaction — the heart of sync.
  *
  * One Postgres transaction (READ COMMITTED) with a fixed lock order
  * storage_account → pouch → artifacts (sorted by id), so concurrent commits
@@ -10,7 +10,7 @@
  * key generation, sealed-envelope header, the member signature, blob
  * presence, blind name-index uniqueness and the base revision. A stale base
  * never overwrites: the incoming revision is stored (non-head) and a
- * conflict is recorded, so nothing anyone wrote is lost (04 §7).
+ * conflict is recorded, so nothing anyone wrote is lost.
  *
  * Idempotency: the response is stored in `operation_receipts`; a retry with
  * the same `operation_id` and body gets the same response, a different body
@@ -187,7 +187,7 @@ export async function commitOperations(
 						used: storageAccounts.usedBytes,
 						quota: storageAccounts.quotaBytes,
 					});
-				// Deletes always go through, even over quota: they are how users get back under it (09 §3).
+				// Deletes always go through, even over quota: they are how users get back under it.
 				if (account && account.used > account.quota && !deletesOnly) {
 					throw new AppError('quota_exceeded', {
 						quota_bytes: account.quota,
@@ -328,7 +328,7 @@ async function insertRevision(
 		authorDeviceId: ctx.principal.kind === 'device' ? ctx.principal.deviceId : null,
 		authorUserId: ctx.principal.userId,
 		origin: op.type === 'resolve' ? 'resolve' : ctx.origin,
-		// Conflict revisions are pinned (no expiry) until the conflict is resolved (03 §7).
+		// Conflict revisions are pinned (no expiry) until the conflict is resolved.
 		expiresAt: null,
 	});
 	if (blobIds.length > 0) {
@@ -573,7 +573,7 @@ async function applyOperation(
 	return applied(ctx, op, deviceId);
 }
 
-/** A revision stays pinned while an open conflict references it (03 §7). */
+/** A revision stays pinned while an open conflict references it. */
 function notPinnedByConflict(revisionId: string) {
 	return sql`NOT EXISTS (SELECT 1 FROM conflicts c WHERE c.state = 'open' AND (c.server_revision_id = ${revisionId} OR c.incoming_revision_id = ${revisionId} OR c.base_revision_id = ${revisionId}))`;
 }

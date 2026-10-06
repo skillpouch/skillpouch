@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Structural view of client-encrypted objects (15 §5.1, §5.3):
+ * Structural view of client-encrypted objects:
  *
  *   sealed = format(1 byte = 0x01) ‖ u32_be(key_gen) ‖ nonce(24) ‖ ciphertext ‖ tag(16)
  *

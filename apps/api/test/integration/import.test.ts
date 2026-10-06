@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `GET /v1/import/github/scan` (plan 16 §8) against a fake GitHub: only
+ * `GET /v1/import/github/scan` against a fake GitHub: only
  * fixed GitHub hosts are contacted, results are cached per commit, inputs
  * that could steer requests elsewhere are rejected.
  */

@@ -1,5 +1,5 @@
 -- phase: expand
--- Seed plans (18 §3.1). Editable afterwards in the admin dashboard.
+-- Seed plans. Editable afterwards in the admin dashboard.
 INSERT INTO plans (slug, name, description, price_cents, currency, interval, pouch_limit, storage_bytes, is_default, sort)
 VALUES
 	('free', 'Free', 'Everything, for everyone.', 0, 'usd', NULL, 1, 104857600, true, 0),

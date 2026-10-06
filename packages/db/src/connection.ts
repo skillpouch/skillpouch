@@ -3,7 +3,7 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import * as schema from './schema/index';
 
-/** The database roles of plan 08 §4.2. */
+/** The runtime database roles. */
 export type DbRole = 'sp_app' | 'sp_worker' | 'sp_maintenance' | 'sp_admin';
 
 export type Database = NodePgDatabase<typeof schema>;

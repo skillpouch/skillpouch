@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Tamper-evident audit log (plan 08 §10): each row stores the previous row's
+ * Tamper-evident audit log: each row stores the previous row's
  * hash, `row_hash = BLAKE3(prev_hash ‖ canonical row)`, forming one chain per
  * storage account. Appends are serialized per account with an advisory lock.
  */

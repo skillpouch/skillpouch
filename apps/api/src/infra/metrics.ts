@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Prometheus metrics (plan 06 §8, 10 §8), served on an internal port that
+ * Prometheus metrics, served on an internal port that
  * the reverse proxy never exposes. Route labels use the route *pattern*
  * (`/v1/pouches/:pouchId/operations`), never raw URLs, so cardinality is
  * bounded and no IDs leak into metrics.

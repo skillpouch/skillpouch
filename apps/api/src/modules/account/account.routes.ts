@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Account-level routes: who am I, plans, security page data, account
- * deletion and the "lost everything" encrypted-data reset (15 §9).
+ * deletion and the "lost everything" encrypted-data reset.
  */
 import {
 	ClientSecurityReport,
@@ -208,7 +208,7 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 			schema: {
 				tags: ['account'],
 				summary:
-					'Client-reported E2EE verification failure (should never happen; pages the operator, 08 §9)',
+					'Client-reported E2EE verification failure (should never happen; pages the operator)',
 				body: ClientSecurityReport,
 				response: { 200: Empty },
 			},
@@ -298,7 +298,7 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'session', stepUp: true },
 			schema: {
 				tags: ['account'],
-				summary: 'Lost every unlock method: wipe all encrypted data after 7 days (15 §9)',
+				summary: 'Lost every unlock method: wipe all encrypted data after 7 days',
 				body: z.strictObject({ confirm: z.literal('RESET MY ENCRYPTED DATA') }),
 				response: { 200: z.object({ reset_after: z.string().nullable() }) },
 			},

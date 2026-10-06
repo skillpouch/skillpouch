@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Unlock pepper sealing (plan 15 §4.1).
+ * Unlock pepper sealing.
  *
  * Every account has a random 32-byte pepper that the browser mixes into the
  * Argon2id output of the master password. The database only ever holds it
@@ -49,7 +49,7 @@ export class PepperBox {
 
 	open(storageAccountId: string, sealed: SealedPepper): Buffer {
 		if (sealed.keyId !== this.keyId) {
-			// Rotation re-seals every row before the old key is dropped (10 §6).
+			// Rotation re-seals every row before the old key is dropped.
 			throw new AppError('internal_error', { reason: 'unknown pepper key id' });
 		}
 		const nonce = sealed.ciphertext.subarray(0, 24);

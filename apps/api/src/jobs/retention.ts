@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Retention jobs (plan 03 §7, 06 §7). Cross-tenant, fixed SQL on the
+ * Retention jobs. Cross-tenant, fixed SQL on the
  * maintenance pool. Every job is idempotent and safe to run concurrently:
  * rows are claimed with `FOR UPDATE SKIP LOCKED` in bounded batches.
  */

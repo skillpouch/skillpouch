@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Plans, billing and the admin dashboard (plan 09 §4, 18): Polar checkout +
+ * Plans, billing and the admin dashboard (18): Polar checkout +
  * signed webhooks → entitlements, reconcile, admin grants/overrides/roles/
  * suspension, step-up and audit. Polar's HTTP API is replaced by a recorder;
  * signature verification is the real code.

@@ -13,7 +13,7 @@ import {
 } from './common';
 
 /**
- * Account roster (15 §7). Statements are signed canonical JSON. The API stores
+ * Account roster. Statements are signed canonical JSON. The API stores
  * them verbatim and performs only *structural* checks: chain links, sizes,
  * signer is an active member, effects on membership/pouch tables. Clients are
  * the ones that decide trust.
@@ -21,7 +21,7 @@ import {
 export const MemberKind = z.enum(['password', 'browser', 'device', 'recovery', 'passkey']);
 export type MemberKind = z.infer<typeof MemberKind>;
 
-/** Member kinds whose keys are derived from a secret (15 §4) and carry a `member_salt`. */
+/** Member kinds whose keys are derived from a secret and carry a `member_salt`. */
 export const SECRET_MEMBER_KINDS: readonly MemberKind[] = ['password', 'recovery', 'passkey'];
 
 export const RosterMember = z.object({

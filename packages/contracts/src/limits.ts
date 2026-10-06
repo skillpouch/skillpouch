@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Protocol limits and timings — the single source of truth (plan 04 §9, 03 §4).
+ * Protocol limits and timings — the single source of truth.
  * The CLI mirrors these in Rust (`limits.rs`); `scripts/generate.ts` emits
  * `generated/limits.json` so a contract test can compare both sides.
  */
@@ -39,36 +39,36 @@ export const Limits = {
 	welcomeMaxBytes: 256 * KiB,
 	/** Encrypted binding payload size. */
 	bindingPayloadMaxBytes: 16 * KiB,
-	/** "Authorize CLI" request lifetime in seconds (08 §6.2). */
+	/** "Authorize CLI" request lifetime in seconds. */
 	cliAuthTtlSeconds: 600,
-	/** Unlock pepper releases per account (15 §4.1). */
+	/** Unlock pepper releases per account. */
 	pepperReleasesPerHour: 10,
 	pepperReleasesPerDay: 30,
 	/** How long a proven unlock secret lets this session fetch that member's envelopes. */
 	unlockGrantSeconds: 600,
 	/** WebAuthn challenge lifetime. */
 	webauthnChallengeSeconds: 300,
-	/** Consecutive wrong master passwords that notify other devices (15 §8.6). */
+	/** Consecutive wrong master passwords that notify other devices. */
 	unlockFailedStreakAlert: 5,
-	/** Trusted-browser window (15 §8.2): default and allowed range in days. */
+	/** Trusted-browser window: default and allowed range in days. */
 	browserTrustDaysDefault: 30,
 	browserTrustDaysMin: 7,
 	browserTrustDaysMax: 90,
-	/** Access token lifetime in seconds (08 §3.2). */
+	/** Access token lifetime in seconds. */
 	accessTokenTtlSeconds: 300,
 	/** Accepted DPoP `iat` skew in seconds. */
 	dpopIatWindowSeconds: 60,
 	/** DPoP nonce bucket length in seconds. */
 	dpopNonceBucketSeconds: 300,
-	/** Step-up freshness (fresh OAuth sign-in) in seconds (08 §5.3). */
+	/** Step-up freshness (fresh OAuth sign-in) in seconds. */
 	stepUpMaxAgeSeconds: 600,
-	/** Retention (03 §7). */
+	/** Retention. */
 	revisionRetentionDays: 30,
 	eventRetentionDays: 90,
 	receiptRetentionDays: 30,
 	blobGcGraceHours: 24,
 	pendingBlobTtlMinutes: 60,
-	/** Pouch delete / account reset undo window (15 §9). */
+	/** Pouch delete / account reset undo window. */
 	undoWindowDays: 7,
 } as const;
 

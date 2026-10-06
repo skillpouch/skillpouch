@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Postgres token-bucket rate limiter (plan 06 §8): one upsert per check keeps
+ * Postgres token-bucket rate limiter: one upsert per check keeps
  * the API stateless across replicas.
  */
 import type { Database } from '@skillpouch/db';

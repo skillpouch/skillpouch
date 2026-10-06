@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Who is calling (plan 06 §2.1). The tenant (`storageAccountId`) always comes
- * from the authenticated credential, never from the request (08 §1 rule 1).
+ * Who is calling. The tenant (`storageAccountId`) always comes
+ * from the authenticated credential, never from the request.
  */
 export interface DevicePrincipal {
 	kind: 'device';
@@ -26,7 +26,7 @@ export interface SessionPrincipal {
 	jkt: string | null;
 	/** The browser's roster member, if this browser is enrolled. */
 	memberId: string | null;
-	/** Set when this browser's member exists but its trust window lapsed (15 §8.2). */
+	/** Set when this browser's member exists but its trust window lapsed. */
 	trustExpiredMemberId: string | null;
 	stepUpAt: Date | null;
 }

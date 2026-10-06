@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Operational tables: rate limits, audit log, security events, settings (03 §5.14). */
+/** Operational tables: rate limits, audit log, security events, settings. */
 import { doublePrecision, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, tstz } from './columns';
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Every background job, its schedule and handler (plan 06 §7). The worker
+ * Every background job, its schedule and handler. The worker
  * process registers them with pg-boss; tests call the handlers directly.
  * Handlers are idempotent and safe to run concurrently on several workers.
  */

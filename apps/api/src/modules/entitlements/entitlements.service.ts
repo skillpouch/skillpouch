@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Loads the inputs for `resolveEntitlements`, caches the result on the
- * storage account and applies the consequences (18 §3.3): pouches beyond the
+ * storage account and applies the consequences: pouches beyond the
  * limit become read-only (newest first) and come back when the limit allows.
  * Nothing is ever deleted.
  */
@@ -124,7 +124,7 @@ export async function refreshEntitlementsInTx(
 }
 
 /**
- * Keeps at most `limit` pouches active; the rest become `locked` (18 §3.3).
+ * Keeps at most `limit` pouches active; the rest become `locked`.
  * Pouches that are active now win (so the user's "Make active" choice
  * survives a recompute), then the oldest. Raising the limit unlocks the
  * oldest locked pouches again. Nothing is ever deleted here.
@@ -177,7 +177,7 @@ export function refreshEntitlements(db: Database, storageAccountId: string) {
 	);
 }
 
-/** Number of pouches counting toward the limit (archived count, deleted don't — 15 §7.5). */
+/** Number of pouches counting toward the limit (archived count, deleted don't). */
 export async function countedPouches(tx: TenantTx): Promise<number> {
 	const rows = await tx
 		.select({ id: pouches.id })

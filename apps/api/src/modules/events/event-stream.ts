@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Account-wide SSE stream (plan 16 §10, 04 §4.3).
+ * Account-wide SSE stream.
  *
  * On connect the server replays events after the client's per-pouch cursors,
  * then forwards new events as they are committed (listen hub). Frame ids are

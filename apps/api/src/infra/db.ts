@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Database pools, one per role (plan 06 §2.1, 08 §4.2):
+ * Database pools, one per role:
  *   app          — API requests (RLS enforced, tenant via withTenantTx)
  *   maintenance  — cross-tenant worker jobs (BYPASSRLS, fixed SQL only)
  *   admin        — /v1/admin routes (metadata grants only)

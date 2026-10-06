@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Pouches and the sync data model (03 §5.3–5.12). */
+/** Pouches and the sync data model. */
 import { integer, jsonb, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, int8, tenantColumn, tstz } from './columns';
 

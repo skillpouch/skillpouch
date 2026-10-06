@@ -21,7 +21,7 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 				description: [
 					'End-to-end encrypted sync for AI harness skills and instructions.',
 					'',
-					'Every JSON response uses the envelope `{ ok, data | error, meta }` (plan 17 §2).',
+					'Every JSON response uses the envelope `{ ok, data | error, meta }`.',
 					'Error codes: https://docs.skillpouch.net/errors.',
 					'',
 					'**Authentication.** CLI devices send `Authorization: DPoP <access token>` plus a',
@@ -48,7 +48,7 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 			tags: [
 				{ name: 'health' },
 				{ name: 'session', description: 'Browser session binding and DPoP nonces' },
-				{ name: 'cli-auth', description: '“Authorize CLI” login (08 §6)' },
+				{ name: 'cli-auth', description: '“Authorize CLI” login' },
 				{ name: 'devices', description: 'CLIs and browsers, refresh, revoke' },
 				{
 					name: 'account',
@@ -56,15 +56,14 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 				},
 				{
 					name: 'unlock',
-					description:
-						'Master password, passkeys, Recovery Key, trusted browsers (15 §8)',
+					description: 'Master password, passkeys, Recovery Key, trusted browsers',
 				},
 				{ name: 'pouches' },
 				{ name: 'sync', description: 'Blobs, operations, events, snapshots' },
 				{ name: 'artifacts' },
 				{ name: 'billing', description: 'Plans, Polar checkout/portal, webhooks' },
 				{ name: 'admin', description: 'Admin dashboard (role admin + step-up)' },
-				{ name: 'import', description: 'Public GitHub repository scan (16 §8)' },
+				{ name: 'import', description: 'Public GitHub repository scan' },
 			],
 		},
 		transform: envelopeJsonSchemaTransform,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Bootstrap / snapshot-rebase (plan 04 §6).
+ * Bootstrap / snapshot-rebase.
  *
  * `POST …/snapshots` records the pouch's current `(epoch, seq = R)`; pages of
  * artifact heads follow, then the client pulls events after R. Pages read the

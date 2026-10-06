@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Devices (CLIs) and browser members: list, refresh, revoke, reports (06 §3, 08 §6.4). */
+/** Devices (CLIs) and browser members: list, refresh, revoke, reports. */
 import {
 	ActivePouchReport,
 	CursorReport,
@@ -182,7 +182,7 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'device' },
 			schema: {
 				tags: ['devices'],
-				summary: 'Report the active pouch (display only, 16 §9)',
+				summary: 'Report the active pouch (display only)',
 				body: ActivePouchReport,
 				response: { 200: Empty },
 			},

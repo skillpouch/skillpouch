@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The central error-code registry (plan 17 §3). This object is the single
+ * The central error-code registry. This object is the single
  * source of truth for every error the API can return:
  *
  * - wire codes are `lower_snake_case` and are never renamed or reused;
@@ -54,7 +54,7 @@ export const ErrorCodes = {
 	step_up_required: { status: 403, retryable: false, message: 'Sign in again to continue.' },
 	forbidden: { status: 403, retryable: false, message: 'Not allowed.' },
 
-	// --- CLI authorization (08 §6) --------------------------------------------
+	// --- CLI authorization --------------------------------------------
 	cli_auth_expired: { status: 410, retryable: false, message: 'This login request expired.' },
 	cli_auth_denied: { status: 403, retryable: false, message: 'This login request was denied.' },
 	cli_auth_final: {
@@ -201,7 +201,7 @@ export function isErrorCode(value: string): value is ErrorCode {
 	return Object.hasOwn(ErrorCodes, value);
 }
 
-/** Public documentation page for an error code (17 §3). */
+/** Public documentation page for an error code. */
 export function errorDocsUrl(code: ErrorCode): string {
 	return `https://docs.skillpouch.net/errors/${code}`;
 }

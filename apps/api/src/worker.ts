@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Background worker (plan 06 §7): the same codebase and image as the API,
+ * Background worker: the same codebase and image as the API,
  * started with `API_ROLE=worker`. pg-boss keeps schedules as singletons, so
  * any number of workers can run; every job is idempotent.
  */

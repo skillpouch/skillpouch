@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Stateless DPoP nonces (08 §3.2): `<bucket>.<HMAC(secret, bucket)>`, where a
+ * Stateless DPoP nonces: `<bucket>.<HMAC(secret, bucket)>`, where a
  * bucket is a fixed time window. Valid for the current and the previous
  * bucket, so every API replica accepts every other replica's nonces without
  * shared state.

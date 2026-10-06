@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Admin dashboard back end (plan 18 §2–3).
+ * Admin dashboard back end.
  *
  * Reads and metadata writes go through the `sp_admin` pool, which has grants
  * on metadata tables only — never on ciphertext tables. E2EE still holds for

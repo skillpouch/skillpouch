@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Environment configuration (plan 06 §8). Validated with Zod at boot; the
+ * Environment configuration. Validated with Zod at boot; the
  * process exits on invalid configuration.
  *
  * Secrets are resolved in this order (first hit wins):
@@ -39,11 +39,11 @@ const EnvSchema = z
 
 		/** Public origin of the API (DPoP `htu`, OAuth callbacks). */
 		API_PUBLIC_URL: z.url().default('http://localhost:8080'),
-		/** The web app origin — the only CORS origin (17 §1). */
+		/** The web app origin — the only CORS origin. */
 		WEB_ORIGIN: z.url().default('http://localhost:5173'),
 
 		DATABASE_URL: z.string().min(1),
-		/** Optional per-role login URLs for production (08 §4.2). */
+		/** Optional per-role login URLs for production. */
 		DATABASE_URL_MAINTENANCE: z.string().optional(),
 		DATABASE_URL_ADMIN: z.string().optional(),
 		MIGRATION_DATABASE_URL: z.string().optional(),
@@ -56,7 +56,7 @@ const EnvSchema = z
 		GITHUB_CLIENT_SECRET: z.string().optional(),
 		GOOGLE_CLIENT_ID: z.string().optional(),
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
-		/** Comma-separated verified emails promoted to admin on sign-in (18 §1). */
+		/** Comma-separated verified emails promoted to admin on sign-in. */
 		ADMIN_EMAILS: z.string().default(''),
 
 		/** Production: directory searched for secrets not set explicitly (see header). */
@@ -67,7 +67,7 @@ const EnvSchema = z
 		DPOP_NONCE_SECRET: z.string().min(32),
 		IP_HASH_SECRET: z.string().min(32),
 		/**
-		 * Seals each account's unlock pepper (15 §4.1). 32 bytes, base64url.
+		 * Seals each account's unlock pepper. 32 bytes, base64url.
 		 * Lives only in the secrets directory — never in the DB or its backups.
 		 */
 		PEPPER_KEY: z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'must be 32 bytes base64url'),

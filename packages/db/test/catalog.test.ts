@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Tenant isolation catalog checks (03 §5.0, 08 §4.2–4.3). These run against the
+ * Tenant isolation catalog checks. These run against the
  * live catalog, so a new tenant table without RLS or with a non-composite
  * foreign key fails CI.
  */

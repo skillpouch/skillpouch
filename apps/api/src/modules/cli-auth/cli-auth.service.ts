@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * "Authorize CLI" login (plan 08 §6, 15 §7.3A) — browser first, CLI second.
+ * "Authorize CLI" login — browser first, CLI second.
  *
  *   1. CLI: POST /v1/cli-auth/requests with its public keys, a PKCE challenge
  *      and a DPoP proof made by its signing key.

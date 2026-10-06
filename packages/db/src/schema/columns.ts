@@ -14,5 +14,5 @@ export const tstz = (name: string) => timestamp(name, { withTimezone: true, mode
 /** `bigint` as JS number — every bigint we store stays far below 2^53. */
 export const int8 = (name: string) => bigint(name, { mode: 'number' });
 
-/** The tenant column every tenant table carries (03 §5.0). */
+/** The tenant column every tenant table carries. */
 export const tenantColumn = () => uuid('storage_account_id').notNull();

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Envelope-aware Zod serialization (plan 17 §2).
+ * Envelope-aware Zod serialization.
  *
  * Routes declare the *data* schema of a successful response and handlers
  * return plain data, so handler types stay simple. This module makes the

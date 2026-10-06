@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Small periodic jobs (plan 06 §7): expiring login requests and browser
+ * Small periodic jobs: expiring login requests and browser
  * trust, purging short-lived security tables, usage drift checks, blob
  * integrity sampling and the nightly entitlement refresh.
  */
@@ -26,7 +26,7 @@ export async function expireCliAuthRequests(
 
 /**
  * `browsers.trust-expire`: browser members unused longer than their account's
- * trust window (default 30 days, 7–90) stop receiving key envelopes (15 §8.2).
+ * trust window (default 30 days, 7–90) stop receiving key envelopes.
  * The request path enforces the same rule; this job makes it visible on the
  * Devices page even for browsers that never come back.
  */

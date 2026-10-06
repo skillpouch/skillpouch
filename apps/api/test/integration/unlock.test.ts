@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Unlocking content in a new browser (plan 15 §4.1, §7.3B, §8): master
+ * Unlocking content in a new browser: master
  * password (pepper, throttling, grants), Recovery Key, passkey PRF unlockers,
  * trusted-browser enrollment and expiry, roster invariants, password change.
  */

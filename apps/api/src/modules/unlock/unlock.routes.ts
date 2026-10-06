@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Unlock routes (plan 06 §3, 15 §4.1, §8): master-password parameters and
+ * Unlock routes: master-password parameters and
  * pepper, envelopes for an unlocking browser, trusted-browser enrollment,
  * passkey (PRF) unlockers and the account's security settings.
  */

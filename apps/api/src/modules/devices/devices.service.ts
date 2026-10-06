@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * CLI device credentials (plan 08 §3): DPoP-bound access tokens, rotating
- * refresh secrets with reuse detection, and revocation (08 §6.4, 15 §7.4).
+ * CLI device credentials: DPoP-bound access tokens, rotating
+ * refresh secrets with reuse detection, and revocation.
  */
 import { randomUUID } from 'node:crypto';
 import type { RosterAppendRequest } from '@skillpouch/contracts';
@@ -91,7 +91,7 @@ export async function issueDeviceTokens(
 	};
 }
 
-/** `POST /v1/devices/token`: refresh with rotation + reuse detection (08 §3.3). */
+/** `POST /v1/devices/token`: refresh with rotation + reuse detection. */
 export async function refreshDeviceTokens(deps: Deps, refreshToken: string, jkt: string) {
 	const parsed = parseRefreshToken(refreshToken);
 	const outcome = await withTenantTx(deps.db.app, parsed.storageAccountId, async (tx) => {
@@ -176,10 +176,10 @@ export async function revokeDeviceRow(
 }
 
 /**
- * Revokes a CLI (08 §6.4). The server-side part is immediate. When the caller
+ * Revokes a CLI. The server-side part is immediate. When the caller
  * is an unlocked member it also sends the signed `remove` + `rotate_keys`
  * statements and new key envelopes; otherwise rotation stays pending and the
- * next member that unlocks finishes it (15 §7.4).
+ * next member that unlocks finishes it.
  */
 export async function revokeDevice(
 	deps: Deps,

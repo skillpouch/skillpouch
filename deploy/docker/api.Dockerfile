@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# SkillPouch API + worker image (plan 10 §3). One image, three roles:
+# SkillPouch API + worker image. One image, three roles:
 #   API_ROLE=api (default) · API_ROLE=worker · API_ROLE=migrate
 # Build from the repository root:  docker build -f deploy/docker/api.Dockerfile .
 

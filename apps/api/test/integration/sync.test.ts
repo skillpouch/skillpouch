@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The sync protocol through the HTTP API (plan 04): encrypted blobs, signed
+ * The sync protocol through the HTTP API: encrypted blobs, signed
  * commits with optimistic concurrency, conflicts that never lose data, the
  * event feed (pull + long-poll), snapshots, artifact browsing, bindings and
  * checkpoints — plus tenant isolation on every one of those routes.

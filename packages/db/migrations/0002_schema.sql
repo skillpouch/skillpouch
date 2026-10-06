@@ -1,5 +1,5 @@
 -- phase: expand
--- Initial schema (plan 03 §5, 08 §4, 15, 18). Tenant tables carry
+-- Initial schema (15, 18). Tenant tables carry
 -- storage_account_id, composite foreign keys and row-level security.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -25,8 +25,8 @@ CREATE TABLE sessions (
 	expires_at  timestamptz NOT NULL,
 	ip_address  text,
 	user_agent  text,
-	jkt         text,              -- browser key binding (08 §5.2)
-	step_up_at  timestamptz,       -- last fresh OAuth sign-in (08 §5.3)
+	jkt         text,              -- browser key binding
+	step_up_at  timestamptz,       -- last fresh OAuth sign-in
 	created_at  timestamptz NOT NULL DEFAULT now(),
 	updated_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -60,7 +60,7 @@ CREATE TABLE verifications (
 );
 CREATE INDEX verifications_identifier_idx ON verifications (identifier);
 
--- ---------------------------------------------------------------- plans (18 §3)
+-- ---------------------------------------------------------------- plans
 CREATE TABLE plans (
 	id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 	slug              text NOT NULL UNIQUE,
@@ -81,7 +81,7 @@ CREATE TABLE plans (
 );
 CREATE UNIQUE INDEX plans_one_default ON plans (is_default) WHERE is_default;
 
--- ---------------------------------------------------------------- storage accounts (03 §5.2)
+-- ---------------------------------------------------------------- storage accounts
 -- Not a tenant table itself: it *is* the tenant. Accessed by id from the principal.
 CREATE TABLE storage_accounts (
 	id                 uuid PRIMARY KEY,
@@ -101,7 +101,7 @@ CREATE TABLE storage_accounts (
 	updated_at         timestamptz NOT NULL DEFAULT now()
 );
 
--- ---------------------------------------------------------------- pouches (03 §5.3)
+-- ---------------------------------------------------------------- pouches
 CREATE TABLE pouches (
 	id                     uuid PRIMARY KEY,
 	storage_account_id     uuid NOT NULL REFERENCES storage_accounts (id),
@@ -118,7 +118,7 @@ CREATE TABLE pouches (
 	UNIQUE (storage_account_id, id)
 );
 
--- ---------------------------------------------------------------- devices (03 §5.4)
+-- ---------------------------------------------------------------- devices
 CREATE TABLE devices (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
@@ -157,13 +157,13 @@ CREATE TABLE device_keys (
 );
 CREATE UNIQUE INDEX device_keys_jkt_idx ON device_keys (jkt);
 
--- Pre-tenant: DPoP replay cache (08 §3.2). No content, no RLS.
+-- Pre-tenant: DPoP replay cache. No content, no RLS.
 CREATE UNLOGGED TABLE dpop_replay (
 	jti         text PRIMARY KEY,
 	expires_at  timestamptz NOT NULL
 );
 
--- Pre-tenant: "Authorize CLI" requests (08 §6). Reachable only by unguessable id.
+-- Pre-tenant: "Authorize CLI" requests. Reachable only by unguessable id.
 CREATE TABLE cli_auth_requests (
 	id                  uuid PRIMARY KEY,
 	code_challenge      bytea NOT NULL,
@@ -190,12 +190,12 @@ CREATE TABLE cli_auth_requests (
 CREATE INDEX cli_auth_requests_expires_idx ON cli_auth_requests (expires_at);
 CREATE INDEX cli_auth_requests_ip_idx ON cli_auth_requests (ip_hash) WHERE state = 'open';
 
--- ---------------------------------------------------------------- E2EE membership (03 §5.12a, 15)
+-- ---------------------------------------------------------------- E2EE membership (15)
 CREATE TABLE account_members (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
 	kind                text NOT NULL CHECK (kind IN ('password', 'browser', 'device', 'recovery', 'passkey')),
-	member_salt         bytea,           -- secret-derived kinds: HKDF salt (15 §4)
+	member_salt         bytea,           -- secret-derived kinds: HKDF salt
 	device_id           uuid,
 	session_jkt         text,
 	sign_pub            jsonb NOT NULL,
@@ -206,7 +206,7 @@ CREATE TABLE account_members (
 	removed_seq         bigint,
 	revoked_at          timestamptz,     -- server-side revoke (rotation may still be pending)
 	last_seen_at        timestamptz,
-	trust_expired_at    timestamptz,     -- browser unused longer than the trust window (15 §8.2)
+	trust_expired_at    timestamptz,     -- browser unused longer than the trust window
 	created_at          timestamptz NOT NULL DEFAULT now(),
 	UNIQUE (storage_account_id, id),
 	FOREIGN KEY (storage_account_id, device_id) REFERENCES devices (storage_account_id, id)
@@ -244,7 +244,7 @@ CREATE TABLE key_envelopes (
 );
 CREATE INDEX key_envelopes_member_idx ON key_envelopes (storage_account_id, member_id);
 
--- Master-password unlock parameters (15 §4.1, §8.6). The pepper is sealed with
+-- Master-password unlock parameters. The pepper is sealed with
 -- PEPPER_KEY, an off-database secret: a DB/backup thief cannot start guessing.
 -- `pending_*` holds freshly prepared parameters until genesis / a password change commits them.
 CREATE TABLE account_unlock (
@@ -262,7 +262,7 @@ CREATE TABLE account_unlock (
 	updated_at                 timestamptz NOT NULL DEFAULT now()
 );
 
--- WebAuthn credentials used ONLY for PRF unlock, never for sign-in (15 §8.5).
+-- WebAuthn credentials used ONLY for PRF unlock, never for sign-in.
 CREATE TABLE passkey_unlockers (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
@@ -293,7 +293,7 @@ CREATE INDEX webauthn_challenges_expiry_idx ON webauthn_challenges (expires_at);
 
 -- "This web session proved it holds the secret of member X" (pepper released /
 -- passkey asserted); required before the envelopes of secret-derived members
--- are released to a not-yet-enrolled browser (15 §8.1).
+-- are released to a not-yet-enrolled browser.
 CREATE TABLE unlock_grants (
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
 	session_id          text NOT NULL,
@@ -305,7 +305,7 @@ CREATE TABLE unlock_grants (
 );
 CREATE INDEX unlock_grants_expiry_idx ON unlock_grants (expires_at);
 
--- ---------------------------------------------------------------- sync (03 §5.5–5.12)
+-- ---------------------------------------------------------------- sync
 CREATE TABLE device_cursors (
 	storage_account_id  uuid NOT NULL,
 	device_id           uuid NOT NULL,
@@ -351,7 +351,7 @@ CREATE UNIQUE INDEX artifacts_live_key ON artifacts (pouch_id, name_index) WHERE
 CREATE INDEX artifacts_pouch_idx ON artifacts (pouch_id, id);
 
 -- parent_id / merge_parent_id are deliberately not foreign keys: retention
--- prunes old revisions while their descendants stay (03 §7).
+-- prunes old revisions while their descendants stay.
 CREATE TABLE revisions (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL,
@@ -537,7 +537,7 @@ CREATE TABLE billing_events (
 	PRIMARY KEY (provider, external_id)
 );
 
--- ---------------------------------------------------------------- ops (03 §5.14)
+-- ---------------------------------------------------------------- ops
 CREATE UNLOGGED TABLE rate_limits (
 	key          text PRIMARY KEY,
 	tokens       double precision NOT NULL,

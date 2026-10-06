@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Runtime settings stored in `system_settings` and toggled from the admin
- * dashboard — currently the maintenance write pause (plan 06 §8, 10 §7.1).
+ * dashboard — currently the maintenance write pause.
  * Cached for 2 s per instance.
  */
 import { systemSettings, type Database } from '@skillpouch/db';

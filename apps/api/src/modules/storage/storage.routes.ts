@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Storage usage and "Free up space" routes (plan 09 §3.1). Web only. */
+/** Storage usage and "Free up space" routes. Web only. */
 import {
 	FreeSpaceRequest,
 	FreeSpaceResponse,

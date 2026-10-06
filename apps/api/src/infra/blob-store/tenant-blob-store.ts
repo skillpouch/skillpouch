@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The only way routes reach blobs (plan 06 §2.1): keys are always built from
+ * The only way routes reach blobs: keys are always built from
  * the principal's storage account and an already-authorized pouch.
  */
 import { toHex } from '@skillpouch/contracts';

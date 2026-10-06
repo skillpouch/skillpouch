@@ -1,4 +1,4 @@
-# Deploying SkillPouch (plan 10)
+# Deploying SkillPouch
 
 One host (Hetzner CX32 + volume) runs everything with Docker Compose:
 
@@ -74,7 +74,7 @@ drain the old color (SSE clients receive `event: reconnect`, long-polls wake,
 
 Migrations are SQL files with a `-- phase: expand|contract` header, applied
 under an advisory lock with `lock_timeout` + retries; destructive changes
-ship as a later `contract` migration (plan 10 §5.2).
+ship as a later `contract` migration.
 
 ## Backups and moving hosts
 
@@ -82,4 +82,4 @@ ship as a later `contract` migration (plan 10 §5.2).
 restic. Moving hosts = attach the volume (or rsync blobs + restore the dump)
 on the new machine, copy `deploy/secrets/`, run `deploy.sh`, move the
 Floating IP. For an always-on move use a streaming replica and the admin
-write-pause toggle during switchover (plan 10 §7).
+write-pause toggle during switchover.

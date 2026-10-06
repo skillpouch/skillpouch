@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Downgrades and storage limits (plan 09 §3, 18 §3.3).
+ * Downgrades and storage limits.
  *
  *  - Pouches beyond the plan limit become `locked`: the web can still read
  *    them (and delete items in them); CLI devices can neither sync them nor

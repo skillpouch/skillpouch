@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Billing state machine (plan 09 §4, 18 §3.3–4): webhooks are verified,
+ * Billing state machine: webhooks are verified,
  * stored once in `billing_events` (idempotency) and applied; a daily
  * reconcile pulls every non-terminal subscription from the provider to fix
  * missed webhooks. Entitlements are recomputed after every change; nothing

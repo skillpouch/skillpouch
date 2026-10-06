@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `GET /v1/import/github/scan` (plan 16 §8). */
+/** `GET /v1/import/github/scan`. */
 import { z } from 'zod';
 import type { Deps } from '../../deps';
 import { principalOf } from '../../http/principal';

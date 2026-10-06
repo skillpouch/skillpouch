@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Unlocking content in a browser (15 §4.1, §8): master-password parameters
+ * Unlocking content in a browser: master-password parameters
  * and pepper, passkey (WebAuthn PRF) unlockers, trusted-browser enrollment.
  * Nothing here is a secret the server could use to decrypt: the pepper only
  * slows down guessing, the PRF output never leaves the browser.
@@ -22,7 +22,7 @@ export type KdfParams = z.infer<typeof KdfParams>;
 export const UnlockPrepared = z.object({
 	kdf_salt: b64urlBytes(16),
 	kdf_params: KdfParams,
-	/** 32 random bytes mixed into the Argon2id output (15 §4). */
+	/** 32 random bytes mixed into the Argon2id output. */
 	pepper: b64urlBytes(32),
 });
 
@@ -62,7 +62,7 @@ export const PepperResponse = z.object({
 export const UnlockEnvelopesQuery = z.object({ member_id: Uuid });
 export const UnlockEnvelopesResponse = z.object({ key_envelopes: z.array(KeyEnvelope) });
 
-/** A new browser enrolls itself after unlocking (15 §7.3B). */
+/** A new browser enrolls itself after unlocking. */
 export const BrowserEnrollRequest = z.strictObject({
 	/** First: `add` of this browser, signed by the unlocking member; then optional follow-ups. */
 	statements: z.array(RosterStatementInput).min(1).max(8),
@@ -91,7 +91,7 @@ export const SecuritySettings = z.object({
 });
 export const SecuritySettingsPatch = SecuritySettings.partial().strict();
 
-// ---- passkeys (WebAuthn PRF unlock, 15 §8.5) -----------------------------------
+// ---- passkeys (WebAuthn PRF unlock) -----------------------------------
 
 /** WebAuthn JSON shapes (as produced by @simplewebauthn/browser) are validated by the verifier. */
 const WebAuthnJson = z.record(z.string(), z.unknown());

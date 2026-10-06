@@ -7,7 +7,7 @@
 #   deploy/scripts/init-secrets.sh
 #
 # Afterwards copy pepper_key and jwt_signing_key somewhere offline: secrets
-# are not part of the backups (plan 10 §6).
+# are not part of the backups.
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "$0")/.." && pwd)"

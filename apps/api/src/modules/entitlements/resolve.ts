@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Entitlement resolution — one pure function (plan 18 §3.3):
+ * Entitlement resolution — one pure function:
  *
  *   base plan = highest-ranked of
  *       active paid subscription's plan (active | trialing | past_due within 7 days

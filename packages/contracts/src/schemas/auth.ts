@@ -13,7 +13,7 @@ import {
 } from './common';
 import { KeyEnvelopeInput, RosterStatementInput } from './roster';
 
-/** Token pair issued to a CLI device (08 §3). */
+/** Token pair issued to a CLI device. */
 export const DeviceTokens = z.object({
 	token_type: z.literal('DPoP'),
 	access_token: z.string(),
@@ -63,7 +63,7 @@ export const CliAuthRequestView = z.object({
 export const CliAuthApprove = z.strictObject({
 	/** Roster `add` statement for the CLI member, signed by this browser. */
 	statement: RosterStatementInput,
-	/** HPKE-sealed welcome for the CLI (15 §7.3A). */
+	/** HPKE-sealed welcome for the CLI. */
 	welcome: b64urlMax(Limits.welcomeMaxBytes),
 	key_envelopes: z.array(KeyEnvelopeInput).max(2000),
 });

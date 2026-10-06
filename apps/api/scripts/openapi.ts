@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Writes the OpenAPI 3.1 spec to `packages/contracts/generated/openapi.json`
- * (plan 06 §3): the web app generates its typed client from it, the CLI pins it.
+ *: the web app generates its typed client from it, the CLI pins it.
  *
  *   pnpm --filter @skillpouch/api openapi           # regenerate
  *   pnpm --filter @skillpouch/api openapi --check   # CI: fail if out of date

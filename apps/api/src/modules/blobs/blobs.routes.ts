@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Blob routes (plan 04 §3.2, 06 §3, 16 §10). Bodies are client-encrypted ciphertext. */
+/** Blob routes. Bodies are client-encrypted ciphertext. */
 import {
 	BlobBatchResponse,
 	BlobCheckRequest,

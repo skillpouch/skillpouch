@@ -37,7 +37,7 @@ export async function accountIdOf(harness: Harness, userId: string): Promise<str
 	return rows[0].id as string;
 }
 
-/** Sign in on the web and run onboarding genesis (15 §6). */
+/** Sign in on the web and run onboarding genesis. */
 export async function setupAccount(harness: Harness, email: string): Promise<Account> {
 	const browser = await signIn(harness, email);
 	const accountId = await accountIdOf(harness, browser.userId);
@@ -84,7 +84,7 @@ export async function setupAccount(harness: Harness, email: string): Promise<Acc
 	};
 }
 
-/** `skillpouch login` → browser clicks Authorize → CLI redeems tokens (08 §6.1). */
+/** `skillpouch login` → browser clicks Authorize → CLI redeems tokens. */
 export async function authorizeCli(
 	harness: Harness,
 	account: Account,

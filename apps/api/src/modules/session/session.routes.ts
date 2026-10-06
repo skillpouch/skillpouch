@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Browser session binding (plan 08 §5.2) and DPoP nonces (08 §3.2).
+ * Browser session binding and DPoP nonces.
  *
  * After OAuth sign-in the web app creates a non-extractable P-256 key and
  * calls `POST /v1/session/bind` with a DPoP proof made by it. From then on a

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Pouches: named, separately keyed sync namespaces (plan 16 §1, 15 §7.5).
+ * Pouches: named, separately keyed sync namespaces.
  * Their names are encrypted inside roster statements; the server only knows
  * IDs, state and counters.
  */
@@ -15,7 +15,7 @@ import { countedPouches } from '../entitlements/entitlements.service';
 
 export type PouchRow = typeof pouches.$inferSelect;
 
-/** Throws `pouch_limit_reached` when the account cannot create another pouch (18 §3.3). */
+/** Throws `pouch_limit_reached` when the account cannot create another pouch. */
 export async function assertPouchAllowance(tx: TenantTx, storageAccountId: string): Promise<void> {
 	const [account] = await tx
 		.select({ entitlements: storageAccounts.entitlements })
@@ -57,7 +57,7 @@ export function assertWritable(pouch: PouchRow): void {
 }
 
 /**
- * Who may commit to a pouch (18 §3.3). A locked pouch is read-only on the web
+ * Who may commit to a pouch. A locked pouch is read-only on the web
  * and invisible to the CLI — except that a browser may delete items in it,
  * because deleting is how the user frees space without upgrading.
  */

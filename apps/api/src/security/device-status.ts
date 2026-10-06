@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Device revocation check on every request (plan 08 §3.3, §6.4). Each API
+ * Device revocation check on every request. Each API
  * instance caches a device's state for at most one second; `device_revoked`
  * notifications from the listen hub drop the entry immediately.
  */

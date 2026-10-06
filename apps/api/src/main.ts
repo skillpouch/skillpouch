@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * API process entrypoint (plan 06, 10 §5).
+ * API process entrypoint.
  *
  *   API_ROLE=api      serve HTTP (default)
  *   API_ROLE=migrate  apply pending migrations and exit (deploy step)
  *   API_ROLE=worker   see `worker.ts` (same image, different command)
  *
- * Graceful shutdown on SIGTERM/SIGINT (06 §8): `/readyz` turns 503 so the
+ * Graceful shutdown on SIGTERM/SIGINT: `/readyz` turns 503 so the
  * proxy stops routing here, SSE clients get a jittered `reconnect`,
  * long-polls wake up, in-flight requests get `SHUTDOWN_GRACE_MS` to finish.
  */

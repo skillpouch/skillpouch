@@ -21,7 +21,7 @@ export function b64urlMax(maxBytes: number) {
 
 /** 32-byte hash / keyed BLAKE3 identifier, base64url. */
 export const Hash32 = b64urlBytes(32);
-/** Keyed BLAKE3 blob identifier (15 §5.1). */
+/** Keyed BLAKE3 blob identifier. */
 export const BlobId = Hash32;
 
 export const Timestamp = z.iso.datetime({ offset: true });

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Registers every feature module's routes (plan 06 §2, §3). */
+/** Registers every feature module's routes. */
 import type { Deps } from '../deps';
 import type { ZodApp } from '../http/zod-app';
 import { accountRoutes } from './account/account.routes';

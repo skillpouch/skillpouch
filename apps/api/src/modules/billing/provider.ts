@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Provider-agnostic billing (plan 09 §4, 18 §4). Polar is the only v1
+ * Provider-agnostic billing. Polar is the only v1
  * implementation; tests use a fake. Everything the rest of the API needs is
  * normalized here so no Polar shape leaks outside `polar.ts`.
  */

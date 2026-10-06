@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Account roster, members and key envelopes (plan 15 §6–§7, 06 §3).
+ * Account roster, members and key envelopes.
  */
 import {
 	GenesisRequest,

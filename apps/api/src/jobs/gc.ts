@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Blob garbage collection (plan 06 §6–7, 09 §3).
+ * Blob garbage collection.
  *
  *  gc.blobs   — unreferenced (`ref_count = 0`) for longer than the 24 h grace:
  *               delete the row first (re-checked under lock), then the object.

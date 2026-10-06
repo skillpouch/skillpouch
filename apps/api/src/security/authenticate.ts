@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Authentication & request guards (plan 06 §2.1, 08 §3, §5).
+ * Authentication & request guards.
  *
  * Hook order: request id → write pause → authenticate → step-up → rate limit
  * → route. A route without `config.auth` makes the server refuse to boot.
@@ -60,7 +60,7 @@ export function verifyRequestDpop(
 	});
 }
 
-/** The account's trusted-browser window in days (15 §8.2), clamped to 7–90. */
+/** The account's trusted-browser window in days, clamped to 7–90. */
 export function browserTrustDays(settings: Record<string, unknown> | null | undefined): number {
 	const value = Number(settings?.browser_trust_days ?? Limits.browserTrustDaysDefault);
 	if (!Number.isInteger(value)) return Limits.browserTrustDaysDefault;
@@ -158,7 +158,7 @@ async function authenticateSession(
 			const trustMs = browserTrustDays(row.settings) * 86_400_000;
 			const lastUsed = row.lastSeenAt ?? now;
 			if (!row.trustExpiredAt && now.getTime() - lastUsed.getTime() > trustMs) {
-				// Unused longer than the trust window: unlock again (15 §8.2).
+				// Unused longer than the trust window: unlock again.
 				await tx
 					.update(accountMembers)
 					.set({ trustExpiredAt: now })

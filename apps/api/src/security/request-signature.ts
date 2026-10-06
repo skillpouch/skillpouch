@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Detached device signature over a commit's request digest (plan 08 §3.4):
+ * Detached device signature over a commit's request digest:
  * `Skillpouch-Signature: <protected header>..<signature>` — a compact JWS
  * (ES256) whose payload is base64url(BLAKE3(canonical request body)). Stored
  * in the operation receipt as non-repudiable proof of which device called.

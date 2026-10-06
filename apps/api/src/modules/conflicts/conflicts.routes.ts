@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Conflicts, encrypted bindings and anti-fork checkpoints (plan 04 §7,
- * 03 §5.9, 15 §7.2). Conflict *resolution* is a signed `resolve` operation
+ * Conflicts, encrypted bindings and anti-fork checkpoints. Conflict *resolution* is a signed `resolve` operation
  * through the normal commit path, so it cannot lose concurrent updates.
  */
 import {
@@ -208,8 +207,7 @@ export async function conflictsRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any' },
 			schema: {
 				tags: ['sync'],
-				summary:
-					'Store this member’s signed (seq, roster head) checkpoint (anti-fork, 15 §7.2)',
+				summary: 'Store this member’s signed (seq, roster head) checkpoint (anti-fork)',
 				params: PouchParam,
 				body: CheckpointPut,
 				response: { 200: Empty },

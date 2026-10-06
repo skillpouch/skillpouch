@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Opaque cursor encoding for keyset pagination (17 §4). */
+/** Opaque cursor encoding for keyset pagination. */
 export function encodeCursor(value: string | number): string {
 	return Buffer.from(String(value)).toString('base64url');
 }

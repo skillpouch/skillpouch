@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Unlocking content in a browser (plan 15 §4.1, §8).
+ * Unlocking content in a browser.
  *
  * The server never sees the master password, a passkey's PRF output or the
  * Recovery Key — it cannot: those secrets *derive* member key pairs in the
@@ -60,7 +60,7 @@ import {
 	loadMembers,
 } from '../roster/roster.service';
 
-/** Argon2id defaults (15 §8.6): 64 MiB, 3 passes, 1 lane. Raised over time. */
+/** Argon2id defaults: 64 MiB, 3 passes, 1 lane. Raised over time. */
 export const DEFAULT_KDF_PARAMS: KdfParams = { alg: 'argon2id', m: 65_536, t: 3, p: 1 };
 
 /** Context string of the "renew browser trust" proof signature. */
@@ -199,7 +199,7 @@ export function passkeyView(row: typeof passkeyUnlockers.$inferSelect) {
 	};
 }
 
-/** Records that this web session proved the secret of `memberId` (15 §8.1). */
+/** Records that this web session proved the secret of `memberId`. */
 export async function grantUnlock(
 	tx: TenantTx,
 	principal: SessionPrincipal,
@@ -334,7 +334,7 @@ export async function envelopesForUnlock(
 }
 
 /**
- * A browser that just unlocked enrolls itself (15 §7.3B). Statement #1 must
+ * A browser that just unlocked enrolls itself. Statement #1 must
  * `add` *this* browser (its key is the session's DPoP key) and be signed by
  * an active secret-derived member — producing that signature requires the
  * master password, a passkey or the Recovery Key. Follow-ups (e.g. replacing
@@ -449,7 +449,7 @@ export async function renewBrowserTrust(
 }
 
 /**
- * Master-password change (15 §8.6): the unlocked browser derives the new
+ * Master-password change: the unlocked browser derives the new
  * `password` member from the *prepared* salt + pepper and submits
  * `add(new)` + `remove(old)` (+ `rotate_keys`). Old password stops working
  * in the same transaction.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Reads of artifacts and revisions — opaque IDs + encrypted envelopes (03 §5.7–5.8). */
+/** Reads of artifacts and revisions — opaque IDs + encrypted envelopes. */
 import { toBase64Url } from '@skillpouch/contracts';
 import { revisionBlobs, revisions } from '@skillpouch/db';
 import { inArray } from 'drizzle-orm';

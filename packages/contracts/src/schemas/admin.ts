@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Timestamp, Uuid } from './common';
 import { Entitlements } from './account';
 
-/** Every admin mutation carries a reason, written to the audit log (18 §2). */
+/** Every admin mutation carries a reason, written to the audit log. */
 const Reason = z.string().trim().min(3).max(500);
 
 export const AdminOverview = z.object({

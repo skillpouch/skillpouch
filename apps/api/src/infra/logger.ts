@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * pino JSON logger (plan 06 §8). Secrets and bodies never reach the logs:
+ * pino JSON logger. Secrets and bodies never reach the logs:
  * credentials, cookies, DPoP proofs, signatures and token fields are redacted.
  */
 import pino from 'pino';

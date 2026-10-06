@@ -3,7 +3,7 @@ import { blake3 } from '@noble/hashes/blake3.js';
 
 /**
  * Deterministic JSON: object keys sorted by UTF-16 code unit order, no
- * whitespace, no `undefined`. Used for request digests (04 §3, receipts) and
+ * whitespace, no `undefined`. Used for request digests (receipts) and
  * roster statements so the CLI (Rust), the browser and the API hash the
  * exact same bytes.
  */

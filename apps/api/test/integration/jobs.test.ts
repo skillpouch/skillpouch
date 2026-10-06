@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Background jobs against real data (plan 06 §7, 03 §7): retention, blob GC,
+ * Background jobs against real data: retention, blob GC,
  * quota bookkeeping, integrity sampling, expiries and the delayed purges
  * (pouch delete, encrypted-data reset, account delete). Time is moved by
  * back-dating rows, so every job runs exactly as it would in production.

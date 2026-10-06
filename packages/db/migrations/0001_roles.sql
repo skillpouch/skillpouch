@@ -1,5 +1,5 @@
 -- phase: expand
--- Database roles (plan 08 §4.2). Roles are cluster-wide, so this is idempotent.
+-- Database roles. Roles are cluster-wide, so this is idempotent.
 -- Production login users are created by deploy/postgres/init and are members of these roles.
 DO $$
 BEGIN

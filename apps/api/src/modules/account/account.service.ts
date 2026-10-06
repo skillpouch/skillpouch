@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Storage-account lifecycle: one per user, created on first sign-in (03 §1). */
+/** Storage-account lifecycle: one per user, created on first sign-in. */
 import { AppError } from '../../http/app-error';
 import { storageAccounts, type Database } from '@skillpouch/db';
 import { eq } from 'drizzle-orm';

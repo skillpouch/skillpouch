@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Better Auth: GitHub + Google OAuth and web sessions (plan 08 §5). No
+ * Better Auth: GitHub + Google OAuth and web sessions. No
  * passwords, no 2FA, no device-authorization plugin — CLI login is our own
- * `cli-auth` module (08 §6).
+ * `cli-auth` module.
  *
  * Hooks:
  *  - user created  → storage account with the default plan;
  *  - session created → `step_up_at = now` (every new session is a fresh OAuth
- *    sign-in, which is exactly what step-up requires, 08 §5.3), and admin
- *    bootstrap from ADMIN_EMAILS for verified emails (18 §1).
+ *    sign-in, which is exactly what step-up requires), and admin
+ *    bootstrap from ADMIN_EMAILS for verified emails.
  */
 import { accounts, sessions, users, verifications, type Database } from '@skillpouch/db';
 import { betterAuth, type BetterAuthPlugin } from 'better-auth';

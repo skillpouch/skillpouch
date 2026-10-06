@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
-# Nightly backup (plan 10 §6): logical dump + immutable blobs to restic
+# Nightly backup: logical dump + immutable blobs to restic
 # (e.g. a Hetzner Storage Box). Secrets (PEPPER_KEY, JWT key) are NOT backed
 # up here — they live only in deploy/secrets + the offline copy.
 set -euo pipefail

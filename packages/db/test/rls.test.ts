@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Row-level security behaviour as the app role (08 §4.2, 11 §4). */
+/** Row-level security behaviour as the app role. */
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

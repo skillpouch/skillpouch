@@ -6,9 +6,7 @@ instruction files — across every machine, end-to-end encrypted.
 This monorepo holds the **server side**: the HTTP API + background worker,
 the shared wire contracts and the database schema. The CLI (Rust) lives in
 its own repository and talks to this API only through
-`@skillpouch/contracts`. The design is specified in the plan documents
-(`../plan/00-overview.md` … `18-admin-plans-roles.md`); code comments cite them
-as `plan NN §x`.
+`@skillpouch/contracts`.
 
 | Path                 | What                                                                                   |
 | -------------------- | -------------------------------------------------------------------------------------- |

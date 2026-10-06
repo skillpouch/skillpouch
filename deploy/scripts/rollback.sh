@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
 # Switches traffic back to the previous color (still present, stopped). The
-# schema is expand-only, so the previous build works against it (10 §5.2).
+# schema is expand-only, so the previous build works against it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 COMPOSE=(docker compose --env-file env/stack.env)

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * "Add from GitHub" (plan 16 §8): the API scans a **public** repository and
+ * "Add from GitHub": the API scans a **public** repository and
  * returns what it found — skills, plugins, marketplaces, instruction files,
  * MCP manifests — with their file contents. The browser then encrypts and
  * commits the chosen ones; the server only proxied public data.

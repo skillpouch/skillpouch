@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The per-pouch event log (plan 04 §4). `seq` is assigned by incrementing
+ * The per-pouch event log. `seq` is assigned by incrementing
  * `pouches.event_seq` under the pouch row lock inside the mutation
  * transaction — never a sequence — so it is dense *and* commit-ordered: a
- * reader can never see seq 11 before seq 10 commits (04 §4.1).
+ * reader can never see seq 11 before seq 10 commits.
  */
 import type { EventType } from '@skillpouch/contracts';
 import { events, pouches } from '@skillpouch/db';

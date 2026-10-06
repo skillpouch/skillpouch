@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MIGRATIONS_DIR, loadMigrations, migrate } from '../src/migrate';
 import { createEmptyDatabase, type TestDatabase } from '../src/testing';
 
-describe('migration runner (10 §5.2)', () => {
+describe('migration runner', () => {
 	let db: TestDatabase;
 
 	beforeAll(async () => {

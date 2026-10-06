@@ -11,7 +11,7 @@ export function blake3Hash(data: Uint8Array): Buffer {
 	return Buffer.from(blake3(data));
 }
 
-/** Keyed hash of an IP address: lets us compare IPs without storing them (08 §2). */
+/** Keyed hash of an IP address: lets us compare IPs without storing them. */
 export function hashIp(secret: string, ip: string): Buffer {
 	return createHmac('sha256', secret).update(`ip:${ip}`).digest();
 }

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# CI for the monorepo (plan 10 §4, 11): static checks, the full test suite
+# CI for the monorepo (11): static checks, the full test suite
 # (unit + integration + end-to-end over a real socket) against Postgres 16,
 # a production build smoke test, and the API image.
 name: ci

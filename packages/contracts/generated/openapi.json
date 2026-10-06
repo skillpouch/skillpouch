@@ -3,7 +3,7 @@
 	"info": {
 		"title": "SkillPouch API",
 		"version": "1.0.0",
-		"description": "End-to-end encrypted sync for AI harness skills and instructions.\n\nEvery JSON response uses the envelope `{ ok, data | error, meta }` (plan 17 §2).\nError codes: https://docs.skillpouch.net/errors.\n\n**Authentication.** CLI devices send `Authorization: DPoP <access token>` plus a\n`DPoP` proof (RFC 9449) signed by the device key. Browsers use the session cookie\nplus a DPoP proof from the key bound with `POST /v1/session/bind`, and send\n`Skillpouch-Client: web` on writes. Fetch a nonce from `GET /v1/dpop/nonce`.",
+		"description": "End-to-end encrypted sync for AI harness skills and instructions.\n\nEvery JSON response uses the envelope `{ ok, data | error, meta }`.\nError codes: https://docs.skillpouch.net/errors.\n\n**Authentication.** CLI devices send `Authorization: DPoP <access token>` plus a\n`DPoP` proof (RFC 9449) signed by the device key. Browsers use the session cookie\nplus a DPoP proof from the key bound with `POST /v1/session/bind`, and send\n`Skillpouch-Client: web` on writes. Fetch a nonce from `GET /v1/dpop/nonce`.",
 		"license": {
 			"name": "AGPL-3.0-only",
 			"url": "https://www.gnu.org/licenses/agpl-3.0.html"
@@ -876,7 +876,7 @@
 		},
 		"/v1/security/reports": {
 			"post": {
-				"summary": "Client-reported E2EE verification failure (should never happen; pages the operator, 08 §9)",
+				"summary": "Client-reported E2EE verification failure (should never happen; pages the operator)",
 				"tags": [
 					"account"
 				],
@@ -1117,7 +1117,7 @@
 		},
 		"/v1/account/reset-encryption": {
 			"post": {
-				"summary": "Lost every unlock method: wipe all encrypted data after 7 days (15 §9)",
+				"summary": "Lost every unlock method: wipe all encrypted data after 7 days",
 				"tags": [
 					"account"
 				],
@@ -2999,7 +2999,7 @@
 		},
 		"/v1/devices/me/active-pouch": {
 			"put": {
-				"summary": "Report the active pouch (display only, 16 §9)",
+				"summary": "Report the active pouch (display only)",
 				"tags": [
 					"devices"
 				],
@@ -9582,7 +9582,7 @@
 		},
 		"/v1/pouches/{pouchId}/checkpoints/me": {
 			"put": {
-				"summary": "Store this member’s signed (seq, roster head) checkpoint (anti-fork, 15 §7.2)",
+				"summary": "Store this member’s signed (seq, roster head) checkpoint (anti-fork)",
 				"tags": [
 					"sync"
 				],
@@ -13021,7 +13021,7 @@
 		},
 		"/v1/admin/system/write-pause": {
 			"put": {
-				"summary": "Hold all writes (DB switchover, 10 §7)",
+				"summary": "Hold all writes (DB switchover)",
 				"tags": [
 					"admin"
 				],
@@ -13278,7 +13278,7 @@
 		},
 		{
 			"name": "cli-auth",
-			"description": "“Authorize CLI” login (08 §6)"
+			"description": "“Authorize CLI” login"
 		},
 		{
 			"name": "devices",
@@ -13290,7 +13290,7 @@
 		},
 		{
 			"name": "unlock",
-			"description": "Master password, passkeys, Recovery Key, trusted browsers (15 §8)"
+			"description": "Master password, passkeys, Recovery Key, trusted browsers"
 		},
 		{
 			"name": "pouches"
@@ -13312,7 +13312,7 @@
 		},
 		{
 			"name": "import",
-			"description": "Public GitHub repository scan (16 §8)"
+			"description": "Public GitHub repository scan"
 		}
 	]
 }

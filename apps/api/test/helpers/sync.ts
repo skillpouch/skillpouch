@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Sync-side client behaviour for tests (plan 04): upload sealed blobs, build
+ * Sync-side client behaviour for tests: upload sealed blobs, build
  * signed operations, and commit them — CLI devices additionally send the
  * detached `Skillpouch-Signature` over the canonical request digest.
  */
@@ -41,7 +41,7 @@ export function nameIndex(): string {
 	return b64(randomBytes(32));
 }
 
-/** Builds one signed operation exactly as the client does (15 §5.3). */
+/** Builds one signed operation exactly as the client does. */
 export async function buildOp(writer: Writer, pouchId: string, input: OpInput) {
 	const revisionId = input.revisionId ?? uuidv7();
 	const keyGen = input.keyGen ?? 1;

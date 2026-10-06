@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Better Auth tables (03 §5.1). Property names follow Better Auth's model
+ * Better Auth tables. Property names follow Better Auth's model
  * fields; column names are snake_case. Extra fields: users.role,
  * users.suspended_at, sessions.jkt, sessions.step_up_at.
  */

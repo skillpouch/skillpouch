@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Production stack on one host (plan 10 §1–5). Blue/green API colors behind
+# Production stack on one host. Blue/green API colors behind
 # Caddy; `scripts/deploy.sh` switches colors with zero downtime.
 #
 #   docker compose --env-file env/stack.env up -d postgres caddy worker api-blue
 #
 # Data lives on the mounted volume (/srv/skillpouch): Postgres + blobs. Moving
-# hosts = move that volume (or replicate, 10 §7); nothing else is stateful.
+# hosts = move that volume (or replicate); nothing else is stateful.
 name: skillpouch
 
 x-api: &api

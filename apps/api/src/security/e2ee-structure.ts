@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Structural validation of E2EE payloads (plan 06 §2.1, 15).
+ * Structural validation of E2EE payloads (15).
  *
  * The API never holds content keys and never decrypts. What it *can* check
  * cheaply is that signed objects are well-formed and signed by the claimed
@@ -61,7 +61,7 @@ export function verifyMemberSignature(
 	}
 }
 
-/** Message signed for a revision (15 §5.3). */
+/** Message signed for a revision. */
 export function revisionSignedMessage(
 	pouchId: string,
 	revisionId: string,

@@ -92,7 +92,7 @@ export async function statement(
 	};
 }
 
-/** A well-formed sealed object (15 §5.1): 0x01 ‖ u32 gen ‖ nonce ‖ ciphertext ‖ tag. */
+/** A well-formed sealed object: 0x01 ‖ u32 gen ‖ nonce ‖ ciphertext ‖ tag. */
 export function sealed(keyGen: number, plaintextBytes = 64): Buffer {
 	const header = Buffer.alloc(5);
 	header[0] = 0x01;

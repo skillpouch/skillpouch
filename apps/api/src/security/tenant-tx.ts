@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Tenant-scoped transactions (plan 08 §4.1–4.2). The only way to query tenant
+ * Tenant-scoped transactions. The only way to query tenant
  * tables: `withTenantTx` opens a transaction and sets the transaction-local
  * `app.sa_id`, which every RLS policy checks. `TenantTx` is a branded type so
  * repository functions cannot be called with a plain connection.
@@ -16,7 +16,7 @@ export type TenantTx = Transaction & { readonly [tenantBrand]: string };
 
 export interface TenantTxOptions {
 	isolationLevel?: 'read committed' | 'repeatable read' | 'serializable';
-	/** Retries on deadlock / serialization failure (06 §4). */
+	/** Retries on deadlock / serialization failure. */
 	retries?: number;
 }
 

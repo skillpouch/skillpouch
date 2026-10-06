@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Liveness and readiness (plan 10 §5.1). Not wrapped in the envelope
- * (documented exception, 17 §2). `/readyz` returns 503 while draining so the
+ * Liveness and readiness. Not wrapped in the envelope
+ * (documented exception). `/readyz` returns 503 while draining so the
  * proxy stops routing new requests to this replica.
  */
 import { loadMigrations } from '@skillpouch/db';

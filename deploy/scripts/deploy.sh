@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
-# Zero-downtime blue/green deploy of the API (plan 10 §5.1).
+# Zero-downtime blue/green deploy of the API.
 #
 #   scripts/deploy.sh ghcr.io/skillpouch/api@sha256:…
 #

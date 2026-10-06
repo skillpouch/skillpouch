@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# skillpouch.net — one origin for the SPA and the API (plan 17 §1).
+# skillpouch.net — one origin for the SPA and the API.
 # The live API color is in conf.d/upstreams.caddy, rewritten by scripts/deploy.sh.
 {
 	email ops@skillpouch.net

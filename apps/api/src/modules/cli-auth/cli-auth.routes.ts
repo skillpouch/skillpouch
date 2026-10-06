@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** "Authorize CLI" routes (plan 08 §6, 06 §3). */
+/** "Authorize CLI" routes. */
 import {
 	CliAuthApprove,
 	CliAuthCreate,

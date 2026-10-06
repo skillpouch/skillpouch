@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Delayed purges (plan 06 §7, 15 §9): everything the user scheduled with a
+ * Delayed purges: everything the user scheduled with a
  * 7-day undo window — a deleted pouch, an "I lost everything" encrypted-data
  * reset, a deleted account. Each runs in one transaction per subject and
  * deletes rows in foreign-key order; blob objects are removed after commit.
@@ -59,7 +59,7 @@ export async function recalcAccountUsage(tx: Tx, storageAccountId: string): Prom
 
 /**
  * Purges one deleted pouch right away instead of after the 7-day undo window
- * (`DELETE /v1/pouches/:id?skip_undo=true`, 09 §3.1). The caller has already
+ * (`DELETE /v1/pouches/:id?skip_undo=true`). The caller has already
  * checked ownership and marked the pouch deleted.
  */
 export async function purgePouchNow(
@@ -152,7 +152,7 @@ async function wipeEncryptedData(tx: Tx, storageAccountId: string): Promise<stri
 	return pouchIds;
 }
 
-/** "Lost everything" resets confirmed more than 7 days ago (15 §9). */
+/** "Lost everything" resets confirmed more than 7 days ago. */
 export async function resetEncryptedAccounts(deps: Deps): Promise<number> {
 	const due = rows<{ id: string }>(
 		await deps.db.maintenance.execute(

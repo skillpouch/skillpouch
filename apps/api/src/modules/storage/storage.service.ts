@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Storage usage and "Free up space" (plan 09 §3.1, 18 §3.3).
+ * Storage usage and "Free up space".
  *
  * The server cannot see names or content (E2EE), so it reports sizes per
  * opaque artifact ID and the browser joins them with the names it decrypts.

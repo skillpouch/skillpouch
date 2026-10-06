@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Storage accounts, plans, entitlements and billing (03 §5.2, 09, 18). */
+/** Storage accounts, plans, entitlements and billing (09, 18). */
 import { boolean, integer, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, int8, tstz } from './columns';
 import { users } from './auth';
 
-/** Cached effective entitlements (18 §3.3). */
+/** Cached effective entitlements. */
 export interface EntitlementsJson {
 	plan_slug: string;
 	plan_name: string;

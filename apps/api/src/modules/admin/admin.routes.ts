@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/v1/admin/*` (plan 18 §2). `config.auth = 'admin'`: bound web session +
+ * `/v1/admin/*`. `config.auth = 'admin'`: bound web session +
  * `role = admin`; every mutating method additionally needs a fresh sign-in
  * (step-up, enforced by the authentication hook) and a `reason`.
  */
@@ -393,7 +393,7 @@ export async function adminRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'admin' },
 			schema: {
 				tags,
-				summary: 'Hold all writes (DB switchover, 10 §7)',
+				summary: 'Hold all writes (DB switchover)',
 				body: WritePause,
 				response: { 200: z.object({ write_pause: z.boolean() }) },
 			},

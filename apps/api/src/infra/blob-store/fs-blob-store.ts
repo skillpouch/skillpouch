@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Filesystem blob driver (default, plan 06 §6): content lives at
+ * Filesystem blob driver (default): content lives at
  * `<root>/<sa>/<pouch>/<ab>/<cd>/<blob_id-hex>`. Writes go to `<root>/.tmp`,
  * are fsynced, then renamed into place (atomic), then the directory is fsynced.
  */

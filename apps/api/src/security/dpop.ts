@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * DPoP proof verification, RFC 9449 (plan 08 §3.2, §5.2).
+ * DPoP proof verification, RFC 9449.
  *
  * A proof is a JWT signed by the caller's P-256 key with the public key in the
  * header. We check: algorithm/type, signature, `htm`/`htu` match this request,

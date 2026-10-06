@@ -18,7 +18,7 @@ import { renderGeneratedFiles } from '../src/generated-files';
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-describe('error registry (17 §3)', () => {
+describe('error registry', () => {
 	it('uses lower_snake_case codes and valid HTTP statuses', () => {
 		for (const [code, def] of Object.entries(ErrorCodes)) {
 			expect(code).toMatch(/^[a-z][a-z0-9_]*$/);
@@ -75,7 +75,7 @@ describe('base64url helpers', () => {
 	});
 });
 
-describe('sealed object header (15 §5.1)', () => {
+describe('sealed object header', () => {
 	function sealed(format: number, keyGen: number, bodyBytes = 16): Uint8Array {
 		const bytes = new Uint8Array(1 + 4 + 24 + bodyBytes);
 		bytes[0] = format;

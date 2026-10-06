@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Artifact browsing (plan 06 §3). Everything returned is opaque: names,
+ * Artifact browsing. Everything returned is opaque: names,
  * paths and content are inside the encrypted envelopes; filtering and search
- * happen client-side after decryption (15 §8.3).
+ * happen client-side after decryption.
  */
 import {
 	Artifact,

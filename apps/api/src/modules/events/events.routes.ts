@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Event feed (plan 04 §4.3): pull with long-poll fallback, plus the
- * account-wide SSE stream (16 §10). Correctness never depends on the
+ * Event feed: pull with long-poll fallback, plus the
+ * account-wide SSE stream. Correctness never depends on the
  * stream: clients pull after every (re)connect.
  */
 import { EventsQuery, EventsResponse, PouchParam } from '@skillpouch/contracts';

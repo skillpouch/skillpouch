@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Pouch lifecycle routes (plan 06 §3, 15 §7.5, 16 §1). */
+/** Pouch lifecycle routes. */
 import {
 	Pouch,
 	PouchActivate,
@@ -53,7 +53,7 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 	app.get(
 		'/v1/pouches/:pouchId',
 		{
-			// The CLI must be able to see that a pouch is locked (18 §3.3).
+			// The CLI must be able to see that a pouch is locked.
 			config: { auth: 'any', lockedPouchOk: true },
 			schema: { tags: ['pouches'], params: PouchParam, response: { 200: Pouch } },
 		},

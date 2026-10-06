@@ -77,7 +77,7 @@ export const DeviceList = z.object({
 	browsers: z.array(BrowserMember),
 });
 
-/** Revoke: optional signed `remove` + `rotate_keys` from an unlocked member (15 §7.4). */
+/** Revoke: optional signed `remove` + `rotate_keys` from an unlocked member. */
 export const RevokeRequest = z.strictObject({
 	roster: RosterAppendRequest.optional(),
 	reason: z.string().max(200).optional(),
@@ -115,20 +115,20 @@ export const PouchCreate = z.strictObject({
 
 export const PouchUpdate = z.strictObject({ statement: RosterStatementInput });
 
-/** Query of `DELETE /v1/pouches/:id`: `skip_undo` frees the space right away (09 §3). */
+/** Query of `DELETE /v1/pouches/:id`: `skip_undo` frees the space right away. */
 export const PouchDeleteQuery = z.strictObject({
 	skip_undo: z.enum(['true', 'false']).default('false'),
 });
 
 /**
  * `POST /v1/pouches/:id/activate` — make a locked pouch the active one
- * (18 §3.3). At the pouch limit, `lock_pouch_id` names the active pouch that
+ *. At the pouch limit, `lock_pouch_id` names the active pouch that
  * takes its place as locked.
  */
 export const PouchActivate = z.strictObject({ lock_pouch_id: Uuid.optional() });
 
 /**
- * Storage used by one artifact, for the "Free up space" picker (09 §3.1).
+ * Storage used by one artifact, for the "Free up space" picker.
  * Name and kind are encrypted; the browser joins them by `id`.
  */
 export const ArtifactUsage = z.object({

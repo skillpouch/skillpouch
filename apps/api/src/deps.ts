@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The dependency container (plan 06 §2): one plain object built in `main.ts`
+ * The dependency container: one plain object built in `main.ts`
  * (or by tests) and passed explicitly to routes and services. No DI framework,
  * no module-level singletons.
  */
@@ -27,7 +27,7 @@ export interface Deps {
 	auth: Auth;
 	tokens: AccessTokens;
 	nonces: NonceService;
-	/** Seals/opens per-account unlock peppers with the off-DB PEPPER_KEY (15 §4.1). */
+	/** Seals/opens per-account unlock peppers with the off-DB PEPPER_KEY. */
 	pepper: PepperBox;
 	blobs: BlobStore;
 	hub: ListenHub;
@@ -35,7 +35,7 @@ export interface Deps {
 	settings: SettingsCache;
 	/** Null when no billing provider is configured (self-hosting, dev): billing routes answer `billing_unavailable`. */
 	billing: BillingProvider | null;
-	/** Public GitHub repository scanner (16 §8); tests swap its fetch. */
+	/** Public GitHub repository scanner; tests swap its fetch. */
 	github: GithubImporter;
 	now: () => Date;
 }

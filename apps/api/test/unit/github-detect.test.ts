@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Repository detection for "Add from GitHub" (plan 16 §8) — pure function. */
+/** Repository detection for "Add from GitHub" — pure function. */
 import { describe, expect, it } from 'vitest';
 import { detectItems } from '../../src/modules/import/github.service';
 

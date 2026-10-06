@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `buildServer(deps)` assembles the HTTP API (plan 06). Used by `main.ts` and
+ * `buildServer(deps)` assembles the HTTP API. Used by `main.ts` and
  * by every test, so tests exercise exactly the production wiring.
  */
 import { randomBytes } from 'node:crypto';

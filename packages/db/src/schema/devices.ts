@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** CLI devices, their keys, CLI login requests and DPoP replay cache (03 §5.4, 08 §3, §6). */
+/** CLI devices, their keys, CLI login requests and DPoP replay cache. */
 import { integer, jsonb, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, tenantColumn, tstz } from './columns';
 

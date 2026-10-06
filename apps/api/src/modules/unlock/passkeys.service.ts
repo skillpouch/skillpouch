@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Passkeys as *unlock keys* (plan 15 §8.5) — not for sign-in.
+ * Passkeys as *unlock keys* — not for sign-in.
  *
  * A passkey's WebAuthn PRF output derives a `passkey` member in the browser.
  * The server stores the credential id + public key so it can (1) offer the
@@ -203,7 +203,7 @@ export async function removePasskey(
 			throw new AppError('roster_invalid', { reason: 'remove the passkey member' });
 		}
 		if (!actions.some((body) => body.action === 'rotate_keys')) {
-			// It may have been a lost security key: rotate (15 §8.5).
+			// It may have been a lost security key: rotate.
 			throw new AppError('roster_invalid', { reason: 'removing a passkey rotates keys' });
 		}
 		const result = await appendStatements(tx, input.statements, {

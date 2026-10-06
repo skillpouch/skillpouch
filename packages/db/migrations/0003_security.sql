@@ -1,5 +1,5 @@
 -- phase: expand
--- Row-level security and grants (plan 08 §4.2).
+-- Row-level security and grants.
 --
 -- Every table with a storage_account_id column gets RLS ENABLE + FORCE and the
 -- tenant_isolation policy. current_setting() is called *without* missing_ok,
@@ -16,7 +16,7 @@ BEGIN
 		WHERE c.table_schema = 'public'
 			AND c.column_name = 'storage_account_id'
 			AND tb.table_type = 'BASE TABLE'
-			AND c.table_name <> 'cli_auth_requests'   -- pre-tenant (03 §5.0 rule 1)
+			AND c.table_name <> 'cli_auth_requests'   -- pre-tenant
 	LOOP
 		EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t.table_name);
 		EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t.table_name);
@@ -33,13 +33,13 @@ GRANT USAGE ON SCHEMA public TO sp_app, sp_worker, sp_maintenance, sp_admin;
 
 -- API and tenant-scoped worker jobs.
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO sp_app, sp_worker;
--- Append-only tables: no UPDATE/DELETE for the app (08 §10, 15 §7.1).
+-- Append-only tables: no UPDATE/DELETE for the app.
 REVOKE UPDATE, DELETE ON audit_log, roster_statements FROM sp_app, sp_worker;
 
 -- Cross-tenant maintenance jobs (GC, retention, usage).
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO sp_maintenance;
 
--- Admin dashboard: metadata only — no access to ciphertext tables (18 §2).
+-- Admin dashboard: metadata only — no access to ciphertext tables.
 GRANT SELECT ON users, storage_accounts, devices, pouches, plans, plan_grants,
 	entitlement_overrides, subscriptions, audit_log, security_events, system_settings,
 	account_members, sessions, billing_events TO sp_admin;

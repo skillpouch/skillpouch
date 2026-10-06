@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Authentication end to end through the HTTP API: browser session binding
- * (08 §5.2), account genesis (15 §6), "Authorize CLI" (08 §6), DPoP-bound
- * tokens, refresh rotation + reuse detection (08 §3.3) and web revoke (08 §6.4).
+ *, account genesis, "Authorize CLI", DPoP-bound
+ * tokens, refresh rotation + reuse detection and web revoke.
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

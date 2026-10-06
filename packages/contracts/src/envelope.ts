@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { errorCodeList } from './errors/codes';
 
 /**
- * Response envelope (plan 17 §2). Every JSON response is either
+ * Response envelope. Every JSON response is either
  * `{ ok: true, data, meta }` or `{ ok: false, error, meta }`.
  */
 export const ResponseMeta = z.object({

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Polar (merchant of record) over its REST API (plan 18 §4).
+ * Polar (merchant of record) over its REST API.
  *
  * Webhooks follow the Standard Webhooks spec: `webhook-signature` carries
  * `v1,<base64 HMAC-SHA256(secret, id.timestamp.body)>`; Polar uses the
