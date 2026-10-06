@@ -1,0 +1,147 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/*
+ * Design tokens. Dark only: pitch-black surfaces, one purple accent reserved
+ * for primary actions and the active item, green for "synced", amber for
+ * attention, red for destructive actions and conflicts.
+ */
+@import 'tailwindcss';
+
+@font-face {
+	font-family: 'Geist';
+	src: url('@fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Geist Mono';
+	src: url('@fonts/geist-mono/GeistMono-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@theme {
+	--font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+	--color-bg: #000;
+	--color-surface: #0a0a0a;
+	--color-surface-2: #111;
+	--color-hover: oklch(0.22 0 0);
+	--color-fg: #ededed;
+	--color-muted: #888;
+	--color-meta: #666;
+	--color-border: #1f1f1f;
+	--color-border-soft: #171717;
+	--color-border-strong: #262626;
+
+	--color-accent: #8442d9;
+	--color-accent-hover: #9254e6;
+	--color-accent-text: oklch(0.76 0.14 300);
+	--color-accent-tint: color-mix(in oklab, #8442d9 22%, transparent);
+
+	--color-success: oklch(0.74 0.15 150);
+	--color-warn: oklch(0.8 0.15 80);
+	--color-warn-tint: color-mix(in oklab, oklch(0.8 0.15 80) 10%, transparent);
+	--color-danger: oklch(0.68 0.2 25);
+	--color-danger-solid: oklch(0.55 0.21 27);
+	--color-danger-tint: color-mix(in oklab, oklch(0.68 0.2 25) 12%, transparent);
+
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+
+	--ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+	--animate-fade-in: fade-in 150ms var(--ease-out);
+	--animate-slide-in-right: slide-in-right 200ms var(--ease-out);
+	--animate-slide-in-left: slide-in-left 200ms var(--ease-out);
+	--animate-slide-up: slide-up 200ms var(--ease-out);
+	--animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+	@keyframes slide-in-right {
+		from {
+			transform: translateX(16px);
+			opacity: 0;
+		}
+	}
+	@keyframes slide-in-left {
+		from {
+			transform: translateX(-100%);
+		}
+	}
+	@keyframes slide-up {
+		from {
+			transform: translateY(12px);
+			opacity: 0;
+		}
+	}
+	@keyframes pulse-soft {
+		50% {
+			opacity: 0.4;
+		}
+	}
+}
+
+@layer base {
+	html {
+		color-scheme: dark;
+		background: var(--color-bg);
+		color: var(--color-fg);
+		font-family: var(--font-sans);
+		font-size: 14px;
+		-webkit-font-smoothing: antialiased;
+		-webkit-text-size-adjust: 100%;
+	}
+	body {
+		min-height: 100dvh;
+	}
+	::selection {
+		background: var(--color-accent-tint);
+	}
+	:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+	/* Thin, dark scrollbars on desktop; none on touch devices. */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-border-strong) transparent;
+	}
+	@media (pointer: coarse) {
+		* {
+			scrollbar-width: none;
+		}
+	}
+	/* iOS zooms into inputs below 16px. */
+	@media (max-width: 640px) {
+		input,
+		textarea,
+		select {
+			font-size: 16px;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+}
+
+@keyframes beam {
+	0%,
+	100% {
+		transform: translateY(-35%) rotate(-18deg);
+	}
+	50% {
+		transform: translateY(35%) rotate(-18deg);
+	}
+}

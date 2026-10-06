@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+/**
+ * Web sign-in through Better Auth (GitHub / Google OAuth). Sign-in only
+ * proves who you are; opening your pouches still needs this browser's key or
+ * an unlock secret.
+ */
+export type OAuthProvider = 'github' | 'google';
+
+async function authPost(path: string, body: unknown): Promise<Response> {
+	return fetch(`/v1/auth/${path}`, {
+		method: 'POST',
+		credentials: 'same-origin',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify(body),
+	});
+}
+
+/** Starts the OAuth redirect. `redirect` is an in-app path to return to. */
+export async function startOAuth(provider: OAuthProvider, redirect: string): Promise<void> {
+	const origin = location.origin;
+	const response = await authPost('sign-in/social', {
+		provider,
+		callbackURL: `${origin}${safeRedirect(redirect)}`,
+		errorCallbackURL: `${origin}/sign-in?error=cancelled`,
+		disableRedirect: true,
+	});
+	const body = (await response.json().catch(() => null)) as { url?: string } | null;
+	if (!response.ok || !body?.url) throw new Error('Sign-in isn’t available right now.');
+	location.assign(body.url);
+}
+
+/** Development only: the API exposes `/v1/dev/login` when `DEV_LOGIN=true`. */
+export async function devSignIn(email: string): Promise<void> {
+	const response = await fetch('/v1/dev/login', {
+		method: 'POST',
+		credentials: 'same-origin',
+		headers: { 'content-type': 'application/json', 'skillpouch-client': 'web/dev' },
+		body: JSON.stringify({ email }),
+	});
+	if (!response.ok) throw new Error('Dev sign-in is not enabled on this API.');
+}
+
+/**
+ * A fresh OAuth round trip, required before sensitive actions (revoking a
+ * device, deleting a pouch now). Returns to the current page afterwards.
+ */
+export async function reauthenticate(): Promise<void> {
+	const last = localStorage.getItem(PROVIDER_KEY);
+	if (last?.startsWith('dev:')) {
+		await devSignIn(last.slice(4));
+		location.reload();
+		return;
+	}
+	await startOAuth(
+		last === 'google' ? 'google' : 'github',
+		`${location.pathname}${location.search}`,
+	);
+}
+
+const PROVIDER_KEY = 'skillpouch.provider';
+
+/** Remembers how the user signed in, so a re-authentication uses the same provider. */
+export function rememberProvider(provider: OAuthProvider | `dev:${string}`): void {
+	localStorage.setItem(PROVIDER_KEY, provider);
+}
+
+/** Only same-app paths; never an absolute URL (open-redirect protection). */
+export function safeRedirect(value: string | null | undefined): string {
+	if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+		return '/app';
+	}
+	return value;
+}
