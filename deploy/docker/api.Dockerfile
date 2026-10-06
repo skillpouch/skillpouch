@@ -26,7 +26,7 @@ ENV NODE_ENV=production \
 	PORT=8080 \
 	METRICS_PORT=9464
 WORKDIR /app
-RUN apk add --no-cache tini && addgroup -S skillpouch && adduser -S -G skillpouch skillpouch
+RUN apk add --no-cache tini && addgroup -S -g 10001 skillpouch && adduser -S -u 10001 -G skillpouch skillpouch
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /repo/apps/api/dist ./dist
 COPY --from=build /out/package.json ./package.json

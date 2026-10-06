@@ -10,15 +10,37 @@ worker (API_ROLE=worker, pg-boss) · postgres 16 · blobs on /srv/skillpouch/blo
 
 ## First install
 
-1. Mount the data volume at `/srv/skillpouch` (LUKS) and create
-   `/etc/skillpouch/secrets/` with `better_auth_secret`, `dpop_nonce_secret`,
-   `ip_hash_secret` (≥ 32 chars each), `pepper_key` (32 random bytes,
-   base64url — **keep an offline copy, it is not in backups**) and
-   `jwt_signing_key` (Ed25519 private JWK).
+1. Mount the data volume at `/srv/skillpouch` (LUKS) and run
+   `sudo scripts/init-secrets.sh`. It fills `deploy/secrets/` (see
+   [Secrets](#secrets)) and never overwrites an existing file. **Copy
+   `pepper_key` and `jwt_signing_key` somewhere offline — they are not in
+   backups.**
 2. `cp env/stack.env.example env/stack.env`, `cp env/api.env.example env/api.env`, fill them.
 3. `docker compose --env-file env/stack.env up -d postgres caddy`
 4. `scripts/deploy.sh ghcr.io/skillpouch/api:<version>` — migrates, starts the
    first color, switches Caddy; start the worker with `docker compose --env-file env/stack.env up -d worker`.
+
+## Secrets
+
+`deploy/secrets/` is tracked by git (`.gitkeep`) but its contents are
+ignored by git and by Docker builds. Compose mounts it read-only at
+`/run/secrets` in the API and worker containers (container user uid 10001;
+folder `700`, files `600`).
+
+One file per secret, named after the variable in lower case:
+
+| File                                                                                                          | Required | Format                                            |
+| ------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------- |
+| `better_auth_secret`, `dpop_nonce_secret`, `ip_hash_secret`                                                   | yes      | ≥ 32 random chars                                 |
+| `pepper_key`                                                                                                  | yes      | 32 random bytes, base64url, no padding (43 chars) |
+| `jwt_signing_key`                                                                                             | yes      | Ed25519 private JWK (JSON)                        |
+| `github_client_secret`, `google_client_secret`, `polar_access_token`, `polar_webhook_secret`, `database_url*` | no       | as the variable                                   |
+
+At production boot the API resolves every secret as: the variable itself →
+`X_FILE` → `$SECRETS_DIR/<x>` (default `/run/secrets`). If a required one is
+still missing it refuses to start and prints each missing secret with the
+exact path it looked for. Development and test never read this folder; they
+use built-in dev values.
 
 ## Zero-downtime deploys
 
@@ -37,6 +59,6 @@ ship as a later `contract` migration (plan 10 §5.2).
 
 `scripts/backup.sh` (nightly timer): `pg_dump` + immutable blob files to
 restic. Moving hosts = attach the volume (or rsync blobs + restore the dump)
-on the new machine, copy `/etc/skillpouch/secrets`, run `deploy.sh`, move the
+on the new machine, copy `deploy/secrets/`, run `deploy.sh`, move the
 Floating IP. For an always-on move use a streaming replica and the admin
 write-pause toggle during switchover (plan 10 §7).

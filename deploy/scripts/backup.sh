@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Nightly backup (plan 10 §6): logical dump + immutable blobs to restic
 # (e.g. a Hetzner Storage Box). Secrets (PEPPER_KEY, JWT key) are NOT backed
-# up here — they live only in /etc/skillpouch/secrets + the offline copy.
+# up here — they live only in deploy/secrets + the offline copy.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${RESTIC_REPOSITORY:?}" "${RESTIC_PASSWORD_FILE:?}"

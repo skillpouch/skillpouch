@@ -16,8 +16,10 @@ x-api: &api
     DATABASE_URL: postgres://skillpouch:${POSTGRES_PASSWORD}@postgres:5432/skillpouch
     DB_SET_ROLE: 'true'
     BLOB_FS_ROOT: /data/blobs
-  secrets: [better_auth_secret, dpop_nonce_secret, ip_hash_secret, pepper_key, jwt_signing_key]
   volumes:
+    # Every file here is picked up as a secret by name (pepper_key → PEPPER_KEY);
+    # the API refuses to boot in production while a required one is missing.
+    - ${SECRETS_DIR:-./secrets}:/run/secrets:ro
     - ${DATA_ROOT:-/srv/skillpouch}/blobs:/data/blobs
   depends_on:
     postgres: { condition: service_healthy }
@@ -92,18 +94,6 @@ services:
       - ./caddy:/etc/caddy/conf.d
       - ${DATA_ROOT:-/srv/skillpouch}/web:/srv/web:ro
       - caddy_data:/data
-
-secrets:
-  better_auth_secret:
-    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/better_auth_secret'
-  dpop_nonce_secret:
-    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/dpop_nonce_secret'
-  ip_hash_secret:
-    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/ip_hash_secret'
-  pepper_key:
-    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/pepper_key'
-  jwt_signing_key:
-    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/jwt_signing_key'
 
 volumes:
   caddy_data:

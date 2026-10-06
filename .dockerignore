@@ -5,4 +5,5 @@
 .engram
 .git
 deploy/env/*.env
+deploy/secrets
 **/*.log

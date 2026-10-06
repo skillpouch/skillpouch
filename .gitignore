@@ -12,4 +12,7 @@ coverage/
 !.engram/graph.json
 !.engram/GRAPH_REPORT.md
 deploy/env/*.env
+# production secrets: the folder is tracked, its contents never are
+deploy/secrets/*
+!deploy/secrets/.gitkeep
 deploy/caddy/.live-color

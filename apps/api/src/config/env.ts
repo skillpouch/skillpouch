@@ -1,10 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Environment configuration (plan 06 §8). Validated with Zod at boot; the
- * process exits on invalid configuration. Every secret `X` may instead be
- * provided as a file path in `X_FILE` (Docker secrets).
+ * process exits on invalid configuration.
+ *
+ * Secrets are resolved in this order (first hit wins):
+ *   1. the variable itself (`PEPPER_KEY=...`),
+ *   2. a file named by `X_FILE` (`PEPPER_KEY_FILE=/somewhere/pepper_key`),
+ *   3. production only: the default location `$SECRETS_DIR/<x lowercased>`
+ *      (`/run/secrets/pepper_key`; `deploy/secrets/` is mounted there).
+ * Production refuses to boot while a required secret is missing and lists
+ * every missing one with the exact file it looked for.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { z } from 'zod';
 
 const bool = z
@@ -14,6 +22,9 @@ const bool = z
 const DEV_SECRET = 'dev-only-secret-change-me-dev-only-secret-change-me';
 /** 32 zero-ish bytes; only ever used outside production. */
 const DEV_PEPPER_KEY = 'ZGV2LW9ubHktcGVwcGVyLWtleS1jaGFuZ2UtbWUtISE';
+
+/** Where the Compose stack mounts `deploy/secrets/` inside the container. */
+export const DEFAULT_SECRETS_DIR = '/run/secrets';
 
 const EnvSchema = z
 	.object({
@@ -47,6 +58,9 @@ const EnvSchema = z
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
 		/** Comma-separated verified emails promoted to admin on sign-in (18 §1). */
 		ADMIN_EMAILS: z.string().default(''),
+
+		/** Production: directory searched for secrets not set explicitly (see header). */
+		SECRETS_DIR: z.string().default(DEFAULT_SECRETS_DIR),
 
 		/** Ed25519 private JWK (JSON) for access tokens; generated per boot in dev/test. */
 		JWT_SIGNING_KEY: z.string().optional(),
@@ -113,14 +127,60 @@ const SECRET_KEYS = [
 	'POLAR_WEBHOOK_SECRET',
 ] as const;
 
-/** Reads `X_FILE` secrets and fills dev-only defaults outside production. */
+/** Secrets production cannot run without (the rest enable optional features). */
+export const REQUIRED_PRODUCTION_SECRETS = [
+	'BETTER_AUTH_SECRET',
+	'DPOP_NONCE_SECRET',
+	'IP_HASH_SECRET',
+	'PEPPER_KEY',
+	'JWT_SIGNING_KEY',
+] as const satisfies readonly (typeof SECRET_KEYS)[number][];
+
+/** `PEPPER_KEY` → `pepper_key`: the file name used in the secrets directory. */
+export function secretFileName(key: string): string {
+	return key.toLowerCase();
+}
+
+function readSecretFile(path: string): string | undefined {
+	const value = readFileSync(path, 'utf8').trim();
+	return value === '' ? undefined : value;
+}
+
+/** Resolves secrets (header order) and fills dev-only defaults outside production. */
 function resolveRaw(source: NodeJS.ProcessEnv): Record<string, string | undefined> {
 	const raw: Record<string, string | undefined> = { ...source };
+	const production = raw.NODE_ENV === 'production';
+	const secretsDir = raw.SECRETS_DIR || DEFAULT_SECRETS_DIR;
+	const problems: string[] = [];
+
 	for (const key of SECRET_KEYS) {
-		const file = raw[`${key}_FILE`];
-		if (!raw[key] && file) raw[key] = readFileSync(file, 'utf8').trim();
+		if (raw[key]) continue;
+		const explicitFile = raw[`${key}_FILE`];
+		if (explicitFile) {
+			if (!existsSync(explicitFile)) {
+				problems.push(`  ${key}_FILE: ${explicitFile} does not exist`);
+				continue;
+			}
+			raw[key] = readSecretFile(explicitFile);
+			if (!raw[key]) problems.push(`  ${key}_FILE: ${explicitFile} is empty`);
+			continue;
+		}
+		if (!production) continue;
+		const defaultFile = join(secretsDir, secretFileName(key));
+		if (existsSync(defaultFile)) raw[key] = readSecretFile(defaultFile);
 	}
-	if (raw.NODE_ENV !== 'production') {
+
+	if (production) {
+		for (const key of REQUIRED_PRODUCTION_SECRETS) {
+			if (raw[key] || raw[`${key}_FILE`]) continue;
+			problems.push(
+				`  ${key}: missing — create ${join(secretsDir, secretFileName(key))} or set ${key} / ${key}_FILE`,
+			);
+		}
+	}
+	if (problems.length > 0) throw new Error(`Invalid environment:\n${problems.join('\n')}`);
+
+	if (!production) {
 		for (const key of ['BETTER_AUTH_SECRET', 'DPOP_NONCE_SECRET', 'IP_HASH_SECRET'] as const) {
 			raw[key] ??= DEV_SECRET;
 		}
@@ -136,9 +196,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
 			(issue) => `  ${issue.path.join('.')}: ${issue.message}`,
 		);
 		throw new Error(`Invalid environment:\n${problems.join('\n')}`);
-	}
-	if (parsed.data.NODE_ENV === 'production' && !parsed.data.JWT_SIGNING_KEY) {
-		throw new Error('Invalid environment:\n  JWT_SIGNING_KEY is required in production');
 	}
 	return parsed.data;
 }
