@@ -14,6 +14,7 @@ import {
 	buildGenesis,
 	buildRemoveMember,
 	buildRenamePouch,
+	buildReplaceSecretMember,
 	cliConfirmCode,
 	confirmCode,
 	CryptoError,
@@ -356,5 +357,53 @@ describe('authorize CLI and revoke', () => {
 			ctx.server.envelopes,
 		);
 		expect(browser.pouches.size).toBe(1);
+	});
+
+	it('replaces the master password: the new one opens every pouch, the old one opens nothing new', async () => {
+		const ctx = await setup();
+		const keyring = ctx.genesis.keyring;
+		const salt = randomBytes(16);
+		const newKeys = await secretMemberKeys(
+			'password',
+			await passwordSecret('new-harbor-lights-31', ctx.kdfSalt, params, ctx.pepper),
+			salt,
+		);
+		const newId = randomUUID();
+		const change = await buildReplaceSecretMember(
+			keyring,
+			ctx.ids.password,
+			memberEntry(newId, 'password', newKeys, { memberSalt: b64(salt) }),
+		);
+		ctx.server.append(change.statements, change.key_envelopes);
+
+		const roster = await verifyRoster(ctx.server.statements, { accountId: ctx.accountId });
+		expect(roster.members.get(ctx.ids.password)!.removedSeq).not.toBeNull();
+		const opened = await openKeyring(
+			{ id: newId, kind: 'password', keys: newKeys },
+			roster,
+			ctx.server.envelopes,
+		);
+		const keys = pouchKeys(opened, ctx.ids.pouch);
+		expect(keys.current.keyGen).toBe(2);
+
+		// Halfway through (new member added, old not removed yet) the chain is not a valid account.
+		await expect(
+			verifyRoster(ctx.server.statements.slice(0, -2), { accountId: ctx.accountId }),
+		).rejects.toThrow(/one password and one recovery/);
+	});
+
+	it('replaces the Recovery Key the same way', async () => {
+		const ctx = await setup();
+		const next = generateRecoveryKey();
+		const salt = randomBytes(16);
+		const keys = await secretMemberKeys('recovery', next.entropy, salt);
+		const change = await buildReplaceSecretMember(
+			ctx.genesis.keyring,
+			ctx.ids.recovery,
+			memberEntry(randomUUID(), 'recovery', keys, { memberSalt: b64(salt) }),
+		);
+		ctx.server.append(change.statements, change.key_envelopes);
+		const roster = await verifyRoster(ctx.server.statements, { accountId: ctx.accountId });
+		expect(roster.members.get(ctx.ids.recovery)!.removedSeq).not.toBeNull();
 	});
 });

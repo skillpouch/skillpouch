@@ -43,10 +43,15 @@ const wire = (signed: SignedStatement[]): RosterStatementWire[] =>
 	}));
 
 /** Applies freshly signed statements to the keyring's roster (re-verified, never trusted blindly). */
-async function advance(keyring: Keyring, signed: SignedStatement[]): Promise<void> {
+async function advance(
+	keyring: Keyring,
+	signed: SignedStatement[],
+	options: { partial?: boolean } = {},
+): Promise<void> {
 	keyring.roster = await verifyRoster(wire(signed), {
 		accountId: keyring.roster.accountId,
 		previous: keyring.roster,
+		...options,
 	});
 }
 
@@ -257,7 +262,8 @@ export async function buildReplaceSecretMember(
 	const addEnvelopes = await sealAllFor(keyring, [
 		{ id: entry.id, encPub: entry.enc_pub as PublicJwk },
 	]);
-	await advance(keyring, [add]);
+	// Two members of this kind until the removal below: checked once the batch is complete.
+	await advance(keyring, [add], { partial: true });
 	const rest = await buildRemoveMember(keyring, oldMemberId);
 	return {
 		statements: [add.input, ...rest.statements],

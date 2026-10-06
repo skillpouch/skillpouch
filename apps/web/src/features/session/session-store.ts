@@ -44,7 +44,7 @@ export function setSession(next: SessionState): void {
 
 /** Replaces `me` (after usage or plan changes) without touching the keyring. */
 export function patchMe(me: Me): void {
-	if ('me' in state) setSession({ ...state, me } as SessionState);
+	if ('me' in state && state.me !== me) setSession({ ...state, me } as SessionState);
 }
 
 export function subscribeSession(listener: () => void): () => void {

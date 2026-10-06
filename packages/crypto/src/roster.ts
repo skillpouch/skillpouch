@@ -255,6 +255,12 @@ export async function verifyRoster(
 		pinnedGenesisHash?: string | null;
 		previous?: RosterState;
 		reportedHeadSeq?: number;
+		/**
+		 * Skip the one-password/one-recovery check. Only for a statement built
+		 * locally in the middle of a replacement (add new → remove old), whose
+		 * finished batch is checked normally.
+		 */
+		partial?: boolean;
 	},
 ): Promise<RosterState> {
 	const previous = options.previous;
@@ -341,7 +347,10 @@ export async function verifyRoster(
 	}
 
 	if (!state) throw new CryptoError('roster_rollback', 'the roster is empty');
-	if (countActive(state, 'password') !== 1 || countActive(state, 'recovery') !== 1) {
+	if (
+		!options.partial &&
+		(countActive(state, 'password') !== 1 || countActive(state, 'recovery') !== 1)
+	) {
 		throw new CryptoError(
 			'roster_fork',
 			'account must keep one password and one recovery member',
