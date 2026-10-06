@@ -4,6 +4,8 @@ import {
 	ActivePouchReport,
 	CursorReport,
 	DeviceList,
+	DeviceRename,
+	DeviceSelfReport,
 	DeviceTokens,
 	Empty,
 	IdParam,
@@ -11,8 +13,8 @@ import {
 	RevokeRequest,
 	RevokeResponse,
 } from '@skillpouch/contracts';
-import { accountMembers, deviceCursors, deviceKeys, devices } from '@skillpouch/db';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { deviceCursors, devices } from '@skillpouch/db';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Deps } from '../../deps';
 import { deviceOf, principalOf } from '../../http/principal';
@@ -20,7 +22,14 @@ import type { ZodApp } from '../../http/zod-app';
 import { touchDevice, verifyRequestDpop } from '../../security/authenticate';
 import { withTenantTx } from '../../security/tenant-tx';
 import { findPouch } from '../pouches/pouches.service';
-import { refreshDeviceTokens, revokeBrowser, revokeDevice } from './devices.service';
+import {
+	listDevices,
+	refreshDeviceTokens,
+	renameDevice,
+	reportDevice,
+	revokeBrowser,
+	revokeDevice,
+} from './devices.service';
 
 export async function devicesRoutes(app: ZodApp, deps: Deps) {
 	app.post(
@@ -50,54 +59,37 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 				response: { 200: DeviceList },
 			},
 		},
-		async (request) => {
-			const principal = principalOf(request);
-			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				const rows = await tx
-					.select({
-						device: devices,
-						keyStorage: deviceKeys.keyStorage,
-						memberId: accountMembers.id,
-					})
-					.from(devices)
-					.leftJoin(
-						deviceKeys,
-						and(eq(deviceKeys.deviceId, devices.id), isNull(deviceKeys.retiredAt)),
-					)
-					.leftJoin(accountMembers, eq(accountMembers.deviceId, devices.id))
-					.orderBy(asc(devices.createdAt));
-				const browsers = await tx
-					.select()
-					.from(accountMembers)
-					.where(eq(accountMembers.kind, 'browser'))
-					.orderBy(asc(accountMembers.createdAt));
-				return {
-					devices: rows.map(({ device, keyStorage, memberId }) => ({
-						id: device.id,
-						name: device.name,
-						os: device.os,
-						arch: device.arch,
-						cli_version: device.cliVersion,
-						state: device.state,
-						key_storage: keyStorage,
-						member_id: memberId,
-						active_pouch_id: device.activePouchId,
-						last_seen_at: device.lastSeenAt?.toISOString() ?? null,
-						revoked_at: device.revokedAt?.toISOString() ?? null,
-						created_at: device.createdAt.toISOString(),
-						is_current: principal.kind === 'device' && principal.deviceId === device.id,
-					})),
-					browsers: browsers.map((member) => ({
-						member_id: member.id,
-						label_enc: member.labelEnc ? member.labelEnc.toString('base64url') : null,
-						last_seen_at: member.lastSeenAt?.toISOString() ?? null,
-						revoked_at: member.revokedAt?.toISOString() ?? null,
-						removed_seq: member.removedSeq,
-						is_current: principal.memberId === member.id,
-					})),
-				};
-			});
+		async (request) => listDevices(deps, principalOf(request)),
+	);
+
+	app.patch(
+		'/v1/devices/:id',
+		{
+			config: { auth: 'any' },
+			schema: {
+				tags: ['devices'],
+				summary: 'Rename a CLI (the web: any device; a CLI: itself)',
+				params: IdParam,
+				body: DeviceRename,
+				response: { 200: Empty },
+			},
 		},
+		async (request) =>
+			renameDevice(deps, principalOf(request), request.params.id, request.body.name),
+	);
+
+	app.patch(
+		'/v1/devices/me',
+		{
+			config: { auth: 'device' },
+			schema: {
+				tags: ['devices'],
+				summary: 'CLI reports its version and detected assistants',
+				body: DeviceSelfReport,
+				response: { 200: Empty },
+			},
+		},
+		async (request) => reportDevice(deps, deviceOf(request), request.body),
 	);
 
 	app.post(

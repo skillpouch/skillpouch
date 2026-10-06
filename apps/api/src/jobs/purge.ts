@@ -204,6 +204,7 @@ export async function purgeDeletedAccounts(deps: Deps): Promise<number> {
 				'plan_grants',
 				'entitlement_overrides',
 				'cli_auth_requests',
+				'cli_connect_tokens',
 				'audit_log',
 			]) {
 				await tx.execute(

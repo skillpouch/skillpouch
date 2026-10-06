@@ -16,6 +16,8 @@
 	"welcomeMaxBytes": 262144,
 	"bindingPayloadMaxBytes": 16384,
 	"cliAuthTtlSeconds": 600,
+	"connectTokenTtlSeconds": 600,
+	"connectTokensMaxOpen": 5,
 	"pepperReleasesPerHour": 10,
 	"pepperReleasesPerDay": 30,
 	"unlockGrantSeconds": 600,

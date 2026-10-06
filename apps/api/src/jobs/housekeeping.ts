@@ -11,17 +11,26 @@ import { blake3Hash } from '../security/crypto-util';
 import { refreshEntitlements } from '../modules/entitlements/entitlements.service';
 import { rows } from './sql';
 
-/** `cli-auth.expire`: open requests past their TTL expire; final ones are deleted after 24 h. */
+/**
+ * `cli-auth.expire`: open requests past their TTL expire; final ones are
+ * deleted after 24 h, and so are connect tokens past their lifetime.
+ */
 export async function expireCliAuthRequests(
 	deps: Deps,
-): Promise<{ expired: number; deleted: number }> {
+): Promise<{ expired: number; deleted: number; tokens: number }> {
 	const expired = await deps.db.maintenance.execute(sql`
 		UPDATE cli_auth_requests SET state = 'expired', finalized_at = now()
 		WHERE state IN ('open', 'approved') AND expires_at < now()`);
 	const deleted = await deps.db.maintenance.execute(sql`
 		DELETE FROM cli_auth_requests
 		WHERE state <> 'open' AND COALESCE(finalized_at, expires_at) < now() - interval '24 hours'`);
-	return { expired: expired.rowCount ?? 0, deleted: deleted.rowCount ?? 0 };
+	const tokens = await deps.db.maintenance.execute(sql`
+		DELETE FROM cli_connect_tokens WHERE expires_at < now() - interval '24 hours'`);
+	return {
+		expired: expired.rowCount ?? 0,
+		deleted: deleted.rowCount ?? 0,
+		tokens: tokens.rowCount ?? 0,
+	};
 }
 
 /**

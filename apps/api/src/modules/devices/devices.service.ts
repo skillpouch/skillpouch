@@ -5,14 +5,21 @@
  */
 import { randomUUID } from 'node:crypto';
 import type { RosterAppendRequest } from '@skillpouch/contracts';
-import { accountMembers, deviceKeys, devices, securityEvents, sessions } from '@skillpouch/db';
-import { and, eq, isNull } from 'drizzle-orm';
+import {
+	accountMembers,
+	deviceCursors,
+	deviceKeys,
+	devices,
+	securityEvents,
+	sessions,
+} from '@skillpouch/db';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
 import { notifyAccount, notifyDeviceRevoked } from '../../infra/notify';
 import { appendAudit } from '../../security/audit';
 import { randomToken, sha256 } from '../../security/crypto-util';
-import type { Principal } from '../../security/principal';
+import type { DevicePrincipal, Principal } from '../../security/principal';
 import { principalLabel } from '../../security/principal';
 import type { TenantTx } from '../../security/tenant-tx';
 import { withTenantTx } from '../../security/tenant-tx';
@@ -295,4 +302,107 @@ async function finishRemoval(
 		revoked: true as const,
 		rotation_pending: member !== undefined && after?.removedSeq === null,
 	};
+}
+
+/** Devices page: every CLI (with its sync cursors) and every browser member of the account. */
+export async function listDevices(deps: Deps, principal: Principal) {
+	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
+		const rows = await tx
+			.select({
+				device: devices,
+				keyStorage: deviceKeys.keyStorage,
+				memberId: accountMembers.id,
+			})
+			.from(devices)
+			.leftJoin(
+				deviceKeys,
+				and(eq(deviceKeys.deviceId, devices.id), isNull(deviceKeys.retiredAt)),
+			)
+			.leftJoin(accountMembers, eq(accountMembers.deviceId, devices.id))
+			.orderBy(asc(devices.createdAt));
+		const cursors = await tx
+			.select({
+				deviceId: deviceCursors.deviceId,
+				pouchId: deviceCursors.pouchId,
+				ackedSeq: deviceCursors.ackedSeq,
+			})
+			.from(deviceCursors);
+		const browsers = await tx
+			.select()
+			.from(accountMembers)
+			.where(eq(accountMembers.kind, 'browser'))
+			.orderBy(asc(accountMembers.createdAt));
+		return {
+			devices: rows.map(({ device, keyStorage, memberId }) => ({
+				id: device.id,
+				name: device.name,
+				os: device.os,
+				arch: device.arch,
+				cli_version: device.cliVersion,
+				assistants: device.assistants,
+				cursors: cursors
+					.filter((cursor) => cursor.deviceId === device.id)
+					.map((cursor) => ({ pouch_id: cursor.pouchId, acked_seq: cursor.ackedSeq })),
+				state: device.state,
+				key_storage: keyStorage,
+				member_id: memberId,
+				active_pouch_id: device.activePouchId,
+				last_seen_at: device.lastSeenAt?.toISOString() ?? null,
+				revoked_at: device.revokedAt?.toISOString() ?? null,
+				created_at: device.createdAt.toISOString(),
+				is_current: principal.kind === 'device' && principal.deviceId === device.id,
+			})),
+			browsers: browsers.map((member) => ({
+				member_id: member.id,
+				label_enc: member.labelEnc ? member.labelEnc.toString('base64url') : null,
+				last_seen_at: member.lastSeenAt?.toISOString() ?? null,
+				revoked_at: member.revokedAt?.toISOString() ?? null,
+				removed_seq: member.removedSeq,
+				is_current: principal.memberId === member.id,
+			})),
+		};
+	});
+}
+
+/** Rename a CLI. The web may rename any device of the account; a CLI only itself. */
+export async function renameDevice(
+	deps: Deps,
+	principal: Principal,
+	deviceId: string,
+	name: string,
+) {
+	if (principal.kind === 'device' && principal.deviceId !== deviceId)
+		throw new AppError('not_found');
+	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
+		const [device] = await tx
+			.update(devices)
+			.set({ name })
+			.where(eq(devices.id, deviceId))
+			.returning({ id: devices.id });
+		if (!device) throw new AppError('not_found');
+		await appendAudit(tx, {
+			storageAccountId: principal.storageAccountId,
+			actor: principalLabel(principal),
+			action: 'device.renamed',
+			target: `device:${deviceId}`,
+		});
+		return {};
+	});
+}
+
+/** The CLI reports its version and the assistants it found on this computer. */
+export async function reportDevice(
+	deps: Deps,
+	principal: DevicePrincipal,
+	report: { cli_version?: string | undefined; assistants?: string[] | undefined },
+) {
+	const changes: Partial<typeof devices.$inferInsert> = {};
+	if (report.cli_version !== undefined) changes.cliVersion = report.cli_version;
+	if (report.assistants !== undefined)
+		changes.assistants = [...new Set(report.assistants)].sort();
+	if (Object.keys(changes).length === 0) return {};
+	await withTenantTx(deps.db.app, principal.storageAccountId, (tx) =>
+		tx.update(devices).set(changes).where(eq(devices.id, principal.deviceId)),
+	);
+	return {};
 }

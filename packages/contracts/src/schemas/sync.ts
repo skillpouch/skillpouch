@@ -180,6 +180,7 @@ export const AccountEventType = z.enum([
 	'device.revoked',
 	'entitlements.changed',
 	'usage.changed',
+	'cli_auth.requested',
 	'cli_auth.approved',
 ]);
 

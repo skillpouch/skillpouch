@@ -127,6 +127,7 @@ CREATE TABLE devices (
 	os                  text NOT NULL CHECK (os IN ('linux', 'macos', 'windows')),
 	arch                text NOT NULL,
 	cli_version         text NOT NULL,
+	assistants          text[] NOT NULL DEFAULT '{}',
 	active_pouch_id     uuid,
 	state               text NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'suspended', 'revoked')),
 	authorized_from     uuid,
@@ -175,6 +176,7 @@ CREATE TABLE cli_auth_requests (
 	os                  text NOT NULL,
 	arch                text NOT NULL,
 	cli_version         text NOT NULL,
+	assistants          text[] NOT NULL DEFAULT '{}',
 	ip_hash             bytea NOT NULL,
 	geo                 text,
 	state               text NOT NULL DEFAULT 'open'
@@ -183,12 +185,28 @@ CREATE TABLE cli_auth_requests (
 	approved_by_member  uuid,
 	device_id           uuid,
 	welcome             bytea,
+	connect_token_id    uuid,
 	expires_at          timestamptz NOT NULL,
 	finalized_at        timestamptz,
 	created_at          timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX cli_auth_requests_expires_idx ON cli_auth_requests (expires_at);
 CREATE INDEX cli_auth_requests_ip_idx ON cli_auth_requests (ip_hash) WHERE state = 'open';
+
+-- Pre-tenant: one-time "Connect a computer" tokens (`skillpouch login <token>`).
+-- The CLI presents the token before it has any credentials, so lookups happen
+-- by token hash without tenant context. Only the hash is stored.
+CREATE TABLE cli_connect_tokens (
+	id                  uuid PRIMARY KEY,
+	token_hash          bytea NOT NULL UNIQUE,
+	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id) ON DELETE CASCADE,
+	created_by_member   uuid NOT NULL,
+	request_id          uuid,
+	expires_at          timestamptz NOT NULL,
+	used_at             timestamptz,
+	created_at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX cli_connect_tokens_account_idx ON cli_connect_tokens (storage_account_id, expires_at);
 
 -- ---------------------------------------------------------------- E2EE membership
 CREATE TABLE account_members (

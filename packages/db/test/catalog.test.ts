@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import * as schema from '../src/schema/index';
 import { createTestDatabase, type TestDatabase } from '../src/testing';
 
-const PRE_TENANT_TABLES = new Set(['cli_auth_requests']);
+const PRE_TENANT_TABLES = new Set(['cli_auth_requests', 'cli_connect_tokens']);
 
 describe('database catalog', () => {
 	let db: TestDatabase;

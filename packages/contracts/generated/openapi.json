@@ -1291,6 +1291,15 @@
 										"minLength": 1,
 										"maxLength": 64
 									},
+									"assistants": {
+										"default": [],
+										"maxItems": 32,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+										}
+									},
 									"os": {
 										"type": "string",
 										"enum": [
@@ -1379,6 +1388,10 @@
 											"os_keystore",
 											"file"
 										]
+									},
+									"connect_token": {
+										"type": "string",
+										"pattern": "^sp_lt_[A-Za-z0-9_-]{32}$"
 									}
 								},
 								"required": [
@@ -1523,6 +1536,9 @@
 														"redeemed"
 													]
 												},
+												"via_connect_token": {
+													"type": "boolean"
+												},
 												"device_name": {
 													"type": "string"
 												},
@@ -1539,6 +1555,12 @@
 												},
 												"cli_version": {
 													"type": "string"
+												},
+												"assistants": {
+													"type": "array",
+													"items": {
+														"type": "string"
+													}
 												},
 												"key_storage": {
 													"type": "string",
@@ -1636,10 +1658,12 @@
 											"required": [
 												"request_id",
 												"state",
+												"via_connect_token",
 												"device_name",
 												"os",
 												"arch",
 												"cli_version",
+												"assistants",
 												"key_storage",
 												"sign_pub",
 												"enc_pub",
@@ -2155,6 +2179,260 @@
 				}
 			}
 		},
+		"/v1/cli-auth/connect-tokens": {
+			"post": {
+				"summary": "Connect a computer: one-time token for `npx skillpouch login <token>`",
+				"tags": [
+					"cli-auth"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"token": {
+													"type": "string",
+													"pattern": "^sp_lt_[A-Za-z0-9_-]{32}$"
+												},
+												"command": {
+													"type": "string"
+												},
+												"expires_at": {
+													"type": "string",
+													"format": "date-time",
+													"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+												}
+											},
+											"required": [
+												"id",
+												"token",
+												"command",
+												"expires_at"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/cli-auth/connect-tokens/{id}": {
+			"get": {
+				"summary": "Whether a CLI has used the token yet (polling fallback for the event)",
+				"tags": [
+					"cli-auth"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"state": {
+													"type": "string",
+													"enum": [
+														"waiting",
+														"requested",
+														"expired"
+													]
+												},
+												"request_id": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "uuid",
+															"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"expires_at": {
+													"type": "string",
+													"format": "date-time",
+													"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+												}
+											},
+											"required": [
+												"id",
+												"state",
+												"request_id",
+												"expires_at"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"summary": "Invalidate an unused connect token",
+				"tags": [
+					"cli-auth"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {},
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/v1/devices/token": {
 			"post": {
 				"summary": "Refresh the access token (rotating refresh secret + DPoP proof)",
@@ -2319,6 +2597,35 @@
 															"cli_version": {
 																"type": "string"
 															},
+															"assistants": {
+																"type": "array",
+																"items": {
+																	"type": "string"
+																}
+															},
+															"cursors": {
+																"type": "array",
+																"items": {
+																	"type": "object",
+																	"properties": {
+																		"pouch_id": {
+																			"type": "string",
+																			"format": "uuid",
+																			"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+																		},
+																		"acked_seq": {
+																			"type": "integer",
+																			"minimum": -9007199254740991,
+																			"maximum": 9007199254740991
+																		}
+																	},
+																	"required": [
+																		"pouch_id",
+																		"acked_seq"
+																	],
+																	"additionalProperties": false
+																}
+															},
 															"state": {
 																"type": "string",
 																"enum": [
@@ -2406,6 +2713,8 @@
 															"os",
 															"arch",
 															"cli_version",
+															"assistants",
+															"cursors",
 															"state",
 															"key_storage",
 															"member_id",
@@ -2495,6 +2804,179 @@
 												"devices",
 												"browsers"
 											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/devices/{id}": {
+			"patch": {
+				"summary": "Rename a CLI (the web: any device; a CLI: itself)",
+				"tags": [
+					"devices"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 64
+									}
+								},
+								"required": [
+									"name"
+								],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {},
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/devices/me": {
+			"patch": {
+				"summary": "CLI reports its version and detected assistants",
+				"tags": [
+					"devices"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"cli_version": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 32
+									},
+									"assistants": {
+										"maxItems": 32,
+										"type": "array",
+										"items": {
+											"type": "string",
+											"pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+										}
+									}
+								},
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {},
 											"additionalProperties": false
 										},
 										"meta": {

@@ -41,6 +41,10 @@ export const Limits = {
 	bindingPayloadMaxBytes: 16 * KiB,
 	/** "Authorize CLI" request lifetime in seconds. */
 	cliAuthTtlSeconds: 600,
+	/** Lifetime of a one-time "Connect a computer" token. */
+	connectTokenTtlSeconds: 600,
+	/** Unused connect tokens an account may hold at once. */
+	connectTokensMaxOpen: 5,
 	/** Unlock pepper releases per account. */
 	pepperReleasesPerHour: 10,
 	pepperReleasesPerDay: 30,

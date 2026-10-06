@@ -89,6 +89,7 @@ export async function authorizeCli(
 	harness: Harness,
 	account: Account,
 	name = 'laptop',
+	options: { connectToken?: string } = {},
 ): Promise<CliClient> {
 	const cli = new CliClient(harness, await TestKey.generate(), await TestKey.generate());
 	const verifier = randomBytes(32).toString('base64url');
@@ -101,6 +102,7 @@ export async function authorizeCli(
 		sign_pub: cli.key.jwk,
 		enc_pub: cli.encKey.jwk,
 		key_storage: 'file',
+		...(options.connectToken ? { connect_token: options.connectToken } : {}),
 	});
 	if (created.status !== 200)
 		throw new Error(`cli-auth request failed: ${JSON.stringify(created.body)}`);

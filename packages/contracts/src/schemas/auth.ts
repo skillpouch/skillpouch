@@ -13,6 +13,30 @@ import {
 } from './common';
 import { KeyEnvelopeInput, RosterStatementInput } from './roster';
 
+/** `sp_lt_` + 32 base64url characters (24 random bytes). */
+export const ConnectTokenValue = z.string().regex(/^sp_lt_[A-Za-z0-9_-]{32}$/);
+
+/** "Connect a computer": the browser asks for a one-time login token. */
+export const ConnectTokenCreated = z.object({
+	id: Uuid,
+	token: ConnectTokenValue,
+	/** Ready to paste: `npx skillpouch login <token>`. */
+	command: z.string(),
+	expires_at: Timestamp,
+});
+
+/**
+ * waiting   — nobody has used the token yet;
+ * requested — a CLI used it; `request_id` is the login request to authorize;
+ * expired   — unused and past its lifetime.
+ */
+export const ConnectTokenStatus = z.object({
+	id: Uuid,
+	state: z.enum(['waiting', 'requested', 'expired']),
+	request_id: Uuid.nullable(),
+	expires_at: Timestamp,
+});
+
 /** Token pair issued to a CLI device. */
 export const DeviceTokens = z.object({
 	token_type: z.literal('DPoP'),
@@ -28,6 +52,11 @@ export const CliAuthCreate = z.strictObject({
 	/** base64url(SHA-256(code_verifier)). */
 	code_challenge: b64urlBytes(32),
 	device_name: z.string().trim().min(1).max(64),
+	/** Assistants found on this computer (shown on the Devices page). */
+	assistants: z
+		.array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/))
+		.max(32)
+		.default([]),
 	os: DeviceOs,
 	arch: z.string().min(1).max(32),
 	cli_version: z.string().min(1).max(32),
@@ -35,6 +64,8 @@ export const CliAuthCreate = z.strictObject({
 	sign_pub: P256PublicJwk,
 	enc_pub: P256PublicJwk,
 	key_storage: KeyStorage,
+	/** One-time token from "Connect a computer"; links the request to that account. */
+	connect_token: ConnectTokenValue.optional(),
 });
 
 export const CliAuthCreated = z.object({
@@ -47,10 +78,13 @@ export const CliAuthCreated = z.object({
 export const CliAuthRequestView = z.object({
 	request_id: Uuid,
 	state: z.enum(['open', 'approved', 'denied', 'expired', 'redeemed']),
+	/** Set when the CLI used the browser's own one-time connect token. */
+	via_connect_token: z.boolean(),
 	device_name: z.string(),
 	os: DeviceOs,
 	arch: z.string(),
 	cli_version: z.string(),
+	assistants: z.array(z.string()),
 	key_storage: KeyStorage,
 	sign_pub: P256PublicJwk,
 	enc_pub: P256PublicJwk,

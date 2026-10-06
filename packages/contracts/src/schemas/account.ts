@@ -47,12 +47,20 @@ export const Plan = z.object({
 	storage_bytes: z.number().int(),
 });
 
+/** AI assistant detected on a computer, e.g. `claude-code`, `opencode`, `codex`. */
+export const AssistantId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,31}$/);
+
+export const DeviceName = z.string().trim().min(1).max(64);
+
 export const Device = z.object({
 	id: Uuid,
 	name: z.string(),
 	os: DeviceOs,
 	arch: z.string(),
 	cli_version: z.string(),
+	assistants: z.array(z.string()),
+	/** Last acknowledged event per pouch; compare with `Pouch.event_seq` for "synced". */
+	cursors: z.array(z.object({ pouch_id: Uuid, acked_seq: z.number().int() })),
 	state: z.enum(['active', 'suspended', 'revoked']),
 	key_storage: KeyStorage.nullable(),
 	member_id: Uuid.nullable(),
@@ -95,6 +103,14 @@ export const CursorReport = z.strictObject({
 });
 
 export const ActivePouchReport = z.strictObject({ pouch_id: Uuid.nullable() });
+
+export const DeviceRename = z.strictObject({ name: DeviceName });
+
+/** What the CLI reports about itself after start-up and upgrades. */
+export const DeviceSelfReport = z.strictObject({
+	cli_version: z.string().min(1).max(32).optional(),
+	assistants: z.array(AssistantId).max(32).optional(),
+});
 
 export const Pouch = z.object({
 	id: Uuid,

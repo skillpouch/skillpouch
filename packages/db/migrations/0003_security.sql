@@ -16,7 +16,7 @@ BEGIN
 		WHERE c.table_schema = 'public'
 			AND c.column_name = 'storage_account_id'
 			AND tb.table_type = 'BASE TABLE'
-			AND c.table_name <> 'cli_auth_requests'   -- pre-tenant
+			AND c.table_name NOT IN ('cli_auth_requests', 'cli_connect_tokens')   -- pre-tenant
 	LOOP
 		EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t.table_name);
 		EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t.table_name);

@@ -88,6 +88,11 @@ const EnvSchema = z
 		SHUTDOWN_GRACE_MS: z.coerce.number().int().min(0).default(25_000),
 		/** Swagger UI at /docs — on by default outside production. */
 		SWAGGER: bool.optional(),
+		/**
+		 * `POST /v1/dev/login`: sign in by email without OAuth, for local
+		 * development and browser tests. Refused in production.
+		 */
+		DEV_LOGIN: bool.default(false),
 		RATE_LIMIT_ENABLED: bool.default(true),
 		MAINTENANCE_WRITE_PAUSE: bool.default(false),
 
@@ -97,6 +102,10 @@ const EnvSchema = z
 
 		CLI_LATEST_VERSION: z.string().default('0.1.0'),
 		CLI_MIN_VERSION: z.string().default('0.1.0'),
+	})
+	.refine((env) => !(env.DEV_LOGIN && env.NODE_ENV === 'production'), {
+		message: 'DEV_LOGIN cannot be enabled in production',
+		path: ['DEV_LOGIN'],
 	})
 	.transform((env) => ({
 		...env,

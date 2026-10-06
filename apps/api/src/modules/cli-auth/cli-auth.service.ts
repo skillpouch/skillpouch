@@ -11,6 +11,11 @@
  *
  * A stolen request id is useless: redeeming needs the PKCE verifier and the
  * CLI's private key.
+ *
+ * Shortcut — "Connect a computer": the unlocked browser creates a one-time
+ * connect token, the user runs `npx skillpouch login <token>`, the CLI sends
+ * it with step 1. The request is then bound to that account and the waiting
+ * browser authorizes it without the user opening a link.
  */
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -20,8 +25,14 @@ import {
 	type CliAuthApprove,
 	type CliAuthCreate,
 } from '@skillpouch/contracts';
-import { cliAuthRequests, deviceKeys, devices, securityEvents } from '@skillpouch/db';
-import { and, eq, sql } from 'drizzle-orm';
+import {
+	cliAuthRequests,
+	cliConnectTokens,
+	deviceKeys,
+	devices,
+	securityEvents,
+} from '@skillpouch/db';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
@@ -62,7 +73,7 @@ export async function createCliAuthRequest(
 	if (Number(open.rows[0]?.n ?? 0) >= MAX_OPEN_PER_IP) throw new AppError('rate_limited');
 
 	const id = randomUUID();
-	await deps.db.app.insert(cliAuthRequests).values({
+	const values = {
 		id,
 		codeChallenge: Buffer.from(fromBase64Url(input.code_challenge)),
 		jkt: proofJkt,
@@ -73,9 +84,37 @@ export async function createCliAuthRequest(
 		os: input.os,
 		arch: input.arch,
 		cliVersion: input.cli_version,
+		assistants: input.assistants,
 		ipHash,
 		expiresAt: addSeconds(deps.now(), Limits.cliAuthTtlSeconds),
-	});
+	};
+	if (input.connect_token) {
+		await deps.db.app.transaction(async (tx) => {
+			const [token] = await tx
+				.update(cliConnectTokens)
+				.set({ usedAt: deps.now(), requestId: id })
+				.where(
+					and(
+						eq(cliConnectTokens.tokenHash, sha256(input.connect_token!)),
+						isNull(cliConnectTokens.usedAt),
+						gt(cliConnectTokens.expiresAt, deps.now()),
+					),
+				)
+				.returning();
+			if (!token) throw new AppError('connect_token_invalid');
+			await tx.insert(cliAuthRequests).values({
+				...values,
+				storageAccountId: token.storageAccountId,
+				connectTokenId: token.id,
+			});
+			await notifyAccount(tx, token.storageAccountId, 'cli_auth.requested', {
+				request_id: id,
+				connect_token_id: token.id,
+			});
+		});
+	} else {
+		await deps.db.app.insert(cliAuthRequests).values(values);
+	}
 	return {
 		request_id: id,
 		authorize_url: `${deps.env.WEB_ORIGIN}/cli/authorize?request=${id}`,
@@ -103,10 +142,12 @@ export function requestView(row: RequestRow, deps: Deps) {
 		os: row.os,
 		arch: row.arch,
 		cli_version: row.cliVersion,
+		assistants: row.assistants,
 		key_storage: row.keyStorage,
 		sign_pub: row.signPub as { kty: 'EC'; crv: 'P-256'; x: string; y: string },
 		enc_pub: row.encPub as { kty: 'EC'; crv: 'P-256'; x: string; y: string },
 		jkt: row.jkt,
+		via_connect_token: row.connectTokenId !== null,
 		geo: row.geo,
 		created_at: row.createdAt.toISOString(),
 		expires_at: row.expiresAt.toISOString(),
@@ -166,6 +207,7 @@ export async function approveCliAuthRequest(
 			os: row.os,
 			arch: row.arch,
 			cliVersion: row.cliVersion,
+			assistants: row.assistants,
 			authorizedFrom: principal.memberId,
 			refreshHash: sha256(randomToken(32)),
 			refreshFamilyId: randomUUID(),
@@ -324,5 +366,77 @@ export async function cancelCliAuthRequest(deps: Deps, id: string, proofJkt: str
 		.update(cliAuthRequests)
 		.set({ state: 'expired', finalizedAt: deps.now() })
 		.where(and(eq(cliAuthRequests.id, id), eq(cliAuthRequests.state, 'open')));
+	return {};
+}
+
+const CONNECT_TOKEN_PREFIX = 'sp_lt_';
+
+/** "Connect a computer": a one-time token the user pastes into `npx skillpouch login`. */
+export async function createConnectToken(deps: Deps, principal: SessionPrincipal) {
+	if (!principal.memberId)
+		throw new AppError('member_inactive', { reason: 'unlock this browser first' });
+	const open = await deps.db.app.execute(
+		sql`SELECT count(*)::int AS n FROM cli_connect_tokens
+			WHERE storage_account_id = ${principal.storageAccountId}
+				AND used_at IS NULL AND expires_at > now()`,
+	);
+	if (Number(open.rows[0]?.n ?? 0) >= Limits.connectTokensMaxOpen)
+		throw new AppError('rate_limited');
+
+	const id = randomUUID();
+	const token = CONNECT_TOKEN_PREFIX + randomToken(24);
+	const expiresAt = addSeconds(deps.now(), Limits.connectTokenTtlSeconds);
+	await deps.db.app.insert(cliConnectTokens).values({
+		id,
+		tokenHash: sha256(token),
+		storageAccountId: principal.storageAccountId,
+		createdByMember: principal.memberId,
+		expiresAt,
+	});
+	return {
+		id,
+		token,
+		command: `npx skillpouch login ${token}`,
+		expires_at: expiresAt.toISOString(),
+	};
+}
+
+async function loadConnectToken(deps: Deps, principal: SessionPrincipal, id: string) {
+	const [row] = await deps.db.app
+		.select()
+		.from(cliConnectTokens)
+		.where(
+			and(
+				eq(cliConnectTokens.id, id),
+				eq(cliConnectTokens.storageAccountId, principal.storageAccountId),
+			),
+		);
+	if (!row) throw new AppError('not_found');
+	return row;
+}
+
+/** Fallback for browsers that missed the `cli_auth.requested` event. */
+export async function getConnectToken(deps: Deps, principal: SessionPrincipal, id: string) {
+	const row = await loadConnectToken(deps, principal, id);
+	const state = row.requestId
+		? ('requested' as const)
+		: row.expiresAt <= deps.now()
+			? ('expired' as const)
+			: ('waiting' as const);
+	return {
+		id: row.id,
+		state,
+		request_id: row.requestId,
+		expires_at: row.expiresAt.toISOString(),
+	};
+}
+
+/** "New token" or closing the dialog: an unused token stops working at once. */
+export async function revokeConnectToken(deps: Deps, principal: SessionPrincipal, id: string) {
+	await loadConnectToken(deps, principal, id);
+	await deps.db.app
+		.update(cliConnectTokens)
+		.set({ expiresAt: deps.now() })
+		.where(and(eq(cliConnectTokens.id, id), isNull(cliConnectTokens.usedAt)));
 	return {};
 }

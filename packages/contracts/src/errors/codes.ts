@@ -62,6 +62,12 @@ export const ErrorCodes = {
 		retryable: false,
 		message: 'This login request was already handled.',
 	},
+	connect_token_invalid: {
+		status: 401,
+		retryable: false,
+		message:
+			'This connect token is invalid, expired or already used. Create a new one on the web.',
+	},
 	pkce_invalid: { status: 401, retryable: false, message: 'PKCE verification failed.' },
 
 	// --- roster / E2EE structure -----------------------------------------

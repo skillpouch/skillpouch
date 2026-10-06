@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** CLI devices, their keys, CLI login requests and DPoP replay cache. */
+import { sql } from 'drizzle-orm';
 import { integer, jsonb, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, tenantColumn, tstz } from './columns';
 
@@ -13,6 +14,10 @@ export const devices = pgTable('devices', {
 	os: text('os', { enum: ['linux', 'macos', 'windows'] }).notNull(),
 	arch: text('arch').notNull(),
 	cliVersion: text('cli_version').notNull(),
+	assistants: text('assistants')
+		.array()
+		.notNull()
+		.default(sql`'{}'::text[]`),
 	activePouchId: uuid('active_pouch_id'),
 	state: text('state', { enum: ['active', 'suspended', 'revoked'] })
 		.notNull()
@@ -66,6 +71,10 @@ export const cliAuthRequests = pgTable('cli_auth_requests', {
 	os: text('os', { enum: ['linux', 'macos', 'windows'] }).notNull(),
 	arch: text('arch').notNull(),
 	cliVersion: text('cli_version').notNull(),
+	assistants: text('assistants')
+		.array()
+		.notNull()
+		.default(sql`'{}'::text[]`),
 	ipHash: bytea('ip_hash').notNull(),
 	geo: text('geo'),
 	state: text('state', { enum: ['open', 'approved', 'denied', 'expired', 'redeemed'] })
@@ -75,7 +84,19 @@ export const cliAuthRequests = pgTable('cli_auth_requests', {
 	approvedByMember: uuid('approved_by_member'),
 	deviceId: uuid('device_id'),
 	welcome: bytea('welcome'),
+	connectTokenId: uuid('connect_token_id'),
 	expiresAt: tstz('expires_at').notNull(),
 	finalizedAt: tstz('finalized_at'),
+	createdAt: tstz('created_at').notNull().defaultNow(),
+});
+
+export const cliConnectTokens = pgTable('cli_connect_tokens', {
+	id: uuid('id').primaryKey(),
+	tokenHash: bytea('token_hash').notNull().unique(),
+	storageAccountId: uuid('storage_account_id').notNull(),
+	createdByMember: uuid('created_by_member').notNull(),
+	requestId: uuid('request_id'),
+	expiresAt: tstz('expires_at').notNull(),
+	usedAt: tstz('used_at'),
 	createdAt: tstz('created_at').notNull().defaultNow(),
 });

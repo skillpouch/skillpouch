@@ -26,6 +26,7 @@ Every API error uses the standard response envelope. Clients branch on `code`;
 | `cli_auth_expired` | 410 | no | This login request expired. |
 | `cli_auth_denied` | 403 | no | This login request was denied. |
 | `cli_auth_final` | 409 | no | This login request was already handled. |
+| `connect_token_invalid` | 401 | no | This connect token is invalid, expired or already used. Create a new one on the web. |
 | `pkce_invalid` | 401 | no | PKCE verification failed. |
 | `roster_exists` | 409 | no | This account is already initialized. |
 | `roster_missing` | 409 | no | Finish account setup in the browser first. |

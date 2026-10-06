@@ -7,6 +7,8 @@ import {
 	CliAuthRequestView,
 	CliAuthTokenRequest,
 	CliAuthTokenResponse,
+	ConnectTokenCreated,
+	ConnectTokenStatus,
 	Empty,
 	IdParam,
 } from '@skillpouch/contracts';
@@ -19,9 +21,12 @@ import {
 	approveCliAuthRequest,
 	cancelCliAuthRequest,
 	createCliAuthRequest,
+	createConnectToken,
 	denyCliAuthRequest,
 	getCliAuthRequest,
+	getConnectToken,
 	redeemCliAuthRequest,
+	revokeConnectToken,
 } from './cli-auth.service';
 
 export async function cliAuthRoutes(app: ZodApp, deps: Deps) {
@@ -123,5 +128,46 @@ export async function cliAuthRoutes(app: ZodApp, deps: Deps) {
 			const proof = await verifyRequestDpop(deps, request);
 			return cancelCliAuthRequest(deps, request.params.id, proof.jkt);
 		},
+	);
+
+	app.post(
+		'/v1/cli-auth/connect-tokens',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['cli-auth'],
+				summary: 'Connect a computer: one-time token for `npx skillpouch login <token>`',
+				response: { 200: ConnectTokenCreated },
+			},
+		},
+		async (request) => createConnectToken(deps, sessionOf(request)),
+	);
+
+	app.get(
+		'/v1/cli-auth/connect-tokens/:id',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['cli-auth'],
+				summary: 'Whether a CLI has used the token yet (polling fallback for the event)',
+				params: IdParam,
+				response: { 200: ConnectTokenStatus },
+			},
+		},
+		async (request) => getConnectToken(deps, sessionOf(request), request.params.id),
+	);
+
+	app.delete(
+		'/v1/cli-auth/connect-tokens/:id',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['cli-auth'],
+				summary: 'Invalidate an unused connect token',
+				params: IdParam,
+				response: { 200: Empty },
+			},
+		},
+		async (request) => revokeConnectToken(deps, sessionOf(request), request.params.id),
 	);
 }
