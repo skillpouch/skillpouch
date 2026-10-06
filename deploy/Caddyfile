@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# skillpouch.net — one origin for the SPA and the API (plan 17 §1).
+# The live API color is in conf.d/upstreams.caddy, rewritten by scripts/deploy.sh.
+{
+	email ops@skillpouch.net
+}
+
+skillpouch.net, api.skillpouch.net {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		-Server
+	}
+
+	@api path /v1/* /healthz /readyz /docs*
+	handle @api {
+		import /etc/caddy/conf.d/upstreams.caddy
+	}
+
+	handle {
+		root * /srv/web/current
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SkillPouch API + worker image (plan 10 §3). One image, three roles:
+#   API_ROLE=api (default) · API_ROLE=worker · API_ROLE=migrate
+# Build from the repository root:  docker build -f deploy/docker/api.Dockerfile .
+
+FROM node:24-alpine AS base
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS build
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY packages/contracts/package.json packages/contracts/
+COPY packages/db/package.json packages/db/
+COPY packages/config/package.json packages/config/
+RUN pnpm install --frozen-lockfile --filter @skillpouch/api...
+COPY . .
+RUN pnpm --filter @skillpouch/api build \
+	&& pnpm --filter @skillpouch/api deploy --prod --legacy /out
+
+FROM node:24-alpine AS runtime
+ARG SKILLPOUCH_VERSION=dev
+ENV NODE_ENV=production \
+	SKILLPOUCH_VERSION=$SKILLPOUCH_VERSION \
+	SKILLPOUCH_MIGRATIONS_DIR=/app/migrations \
+	PORT=8080 \
+	METRICS_PORT=9464
+WORKDIR /app
+RUN apk add --no-cache tini && addgroup -S skillpouch && adduser -S -G skillpouch skillpouch
+COPY --from=build /out/node_modules ./node_modules
+COPY --from=build /repo/apps/api/dist ./dist
+COPY --from=build /repo/packages/db/migrations ./migrations
+COPY --from=build /out/package.json ./package.json
+USER skillpouch
+EXPOSE 8080 9464
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+	CMD wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "--enable-source-maps", "dist/main.mjs"]

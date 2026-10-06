@@ -18,7 +18,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
-export const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+/** Bundled builds (the API image) set `SKILLPOUCH_MIGRATIONS_DIR`; source runs resolve it next to this file. */
+export const MIGRATIONS_DIR =
+	process.env.SKILLPOUCH_MIGRATIONS_DIR ??
+	join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 
 const ADVISORY_LOCK_KEY = 0x5b1e_9001;
 const LOCK_TIMEOUT_SQLSTATE = '55P03';

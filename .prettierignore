@@ -4,3 +4,5 @@ dist/
 coverage/
 packages/db/migrations/
 LICENSE
+docs/errors.md
+packages/contracts/generated/

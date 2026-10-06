@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Production stack on one host (plan 10 §1–5). Blue/green API colors behind
+# Caddy; `scripts/deploy.sh` switches colors with zero downtime.
+#
+#   docker compose --env-file env/stack.env up -d postgres caddy worker api-blue
+#
+# Data lives on the mounted volume (/srv/skillpouch): Postgres + blobs. Moving
+# hosts = move that volume (or replicate, 10 §7); nothing else is stateful.
+name: skillpouch
+
+x-api: &api
+  image: ${API_IMAGE:-ghcr.io/skillpouch/api:latest}
+  restart: unless-stopped
+  env_file: env/api.env
+  environment:
+    DATABASE_URL: postgres://skillpouch:${POSTGRES_PASSWORD}@postgres:5432/skillpouch
+    DB_SET_ROLE: 'true'
+    BLOB_FS_ROOT: /data/blobs
+  secrets: [better_auth_secret, dpop_nonce_secret, ip_hash_secret, pepper_key, jwt_signing_key]
+  volumes:
+    - ${DATA_ROOT:-/srv/skillpouch}/blobs:/data/blobs
+  depends_on:
+    postgres: { condition: service_healthy }
+  stop_grace_period: 30s
+  healthcheck:
+    test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/readyz >/dev/null || exit 1']
+    interval: 5s
+    timeout: 3s
+    retries: 3
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      POSTGRES_DB: postgres
+      SKILLPOUCH_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${DATA_ROOT:-/srv/skillpouch}/postgres:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      retries: 30
+
+  migrate:
+    <<: *api
+    profiles: [tools]
+    restart: 'no'
+    environment:
+      API_ROLE: migrate
+      DATABASE_URL: postgres://skillpouch:${POSTGRES_PASSWORD}@postgres:5432/skillpouch
+    healthcheck: { disable: true }
+
+  api-blue:
+    <<: *api
+    environment:
+      API_ROLE: api
+      DATABASE_URL: postgres://skillpouch:${POSTGRES_PASSWORD}@postgres:5432/skillpouch
+      DB_SET_ROLE: 'true'
+      BLOB_FS_ROOT: /data/blobs
+      TRUST_PROXY: 'true'
+    image: ${API_IMAGE_BLUE:-ghcr.io/skillpouch/api:latest}
+
+  api-green:
+    <<: *api
+    environment:
+      API_ROLE: api
+      DATABASE_URL: postgres://skillpouch:${POSTGRES_PASSWORD}@postgres:5432/skillpouch
+      DB_SET_ROLE: 'true'
+      BLOB_FS_ROOT: /data/blobs
+      TRUST_PROXY: 'true'
+    image: ${API_IMAGE_GREEN:-ghcr.io/skillpouch/api:latest}
+
+  worker:
+    <<: *api
+    environment:
+      API_ROLE: worker
+      DATABASE_URL: postgres://skillpouch:${POSTGRES_PASSWORD}@postgres:5432/skillpouch
+      DB_SET_ROLE: 'true'
+      BLOB_FS_ROOT: /data/blobs
+    healthcheck: { disable: true }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ['80:80', '443:443', '443:443/udp']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/etc/caddy/conf.d
+      - ${DATA_ROOT:-/srv/skillpouch}/web:/srv/web:ro
+      - caddy_data:/data
+
+secrets:
+  better_auth_secret:
+    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/better_auth_secret'
+  dpop_nonce_secret:
+    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/dpop_nonce_secret'
+  ip_hash_secret:
+    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/ip_hash_secret'
+  pepper_key:
+    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/pepper_key'
+  jwt_signing_key:
+    file: '${SECRETS_DIR:-/etc/skillpouch/secrets}/jwt_signing_key'
+
+volumes:
+  caddy_data:

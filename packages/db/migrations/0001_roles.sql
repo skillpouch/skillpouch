@@ -17,3 +17,15 @@ BEGIN
 	END IF;
 END
 $$;
+
+-- The migrating login (the database owner in production, a superuser in dev)
+-- may SET ROLE into the runtime roles, so one login can serve every pool with
+-- DB_SET_ROLE=true. It does not *inherit* their privileges (INHERIT FALSE):
+-- RLS still applies to whatever role a pool switched to.
+DO $$
+BEGIN
+	IF NOT (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) THEN
+		EXECUTE format('GRANT sp_app, sp_worker, sp_maintenance, sp_admin TO %I WITH INHERIT FALSE, SET TRUE', current_user);
+	END IF;
+END
+$$;

@@ -7,7 +7,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "tsx watch src/main.ts",
-		"start": "node dist/main.js",
+		"start": "node --enable-source-maps dist/main.mjs",
 		"build": "tsdown",
 		"typecheck": "tsc -p tsconfig.json",
 		"test": "vitest run",

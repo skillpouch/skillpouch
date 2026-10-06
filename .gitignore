@@ -11,3 +11,5 @@ coverage/
 .engram/*
 !.engram/graph.json
 !.engram/GRAPH_REPORT.md
+deploy/env/*.env
+deploy/caddy/.live-color

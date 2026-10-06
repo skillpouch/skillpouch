@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# CI for the monorepo (plan 10 §4, 11): static checks, the full test suite
+# (unit + integration + end-to-end over a real socket) against Postgres 16,
+# a production build smoke test, and the API image.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: lint · format · typecheck · contracts drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Generated contracts are up to date
+        run: |
+          pnpm contracts:generate
+          git diff --exit-code -- packages/contracts/generated docs/errors.md
+
+  test:
+    name: tests (unit · integration · e2e)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:55432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - name: End-to-end suite (explicit, real HTTP socket)
+        run: pnpm --filter @skillpouch/api exec vitest run --project e2e
+
+  build:
+    name: production build + boot smoke test
+    runs-on: ubuntu-latest
+    needs: [checks]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: skillpouch
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/skillpouch
+      SKILLPOUCH_MIGRATIONS_DIR: ${{ github.workspace }}/packages/db/migrations
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @skillpouch/api build
+      - name: Migrate with the bundle
+        working-directory: apps/api
+        run: API_ROLE=migrate NODE_ENV=test node dist/main.mjs
+      - name: Boot, probe, shut down gracefully
+        working-directory: apps/api
+        run: |
+          NODE_ENV=test PORT=18080 METRICS_PORT=19464 SWAGGER=true node dist/main.mjs &
+          PID=$!
+          for i in $(seq 1 30); do curl -fs localhost:18080/readyz && break; sleep 1; done
+          curl -fs localhost:18080/healthz
+          curl -fs -o /dev/null localhost:18080/docs
+          curl -fs localhost:18080/docs/json | grep -q '"/v1/pouches/{pouchId}/operations"'
+          curl -fs localhost:19464/metrics | grep -q skillpouch_http_request_duration_seconds
+          kill -TERM $PID
+          wait $PID
+
+  image:
+    name: API image
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/api.Dockerfile
+          push: false
+          tags: skillpouch/api:ci
+          build-args: SKILLPOUCH_VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
