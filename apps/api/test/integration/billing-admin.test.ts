@@ -26,6 +26,29 @@ describe('billing and admin', () => {
 	let admin: BrowserClient;
 	const calls: Call[] = [];
 	let remoteSubscription: Record<string, unknown> = {};
+	const orders = [
+		{
+			id: 'ord_2',
+			created_at: '2026-10-06T10:00:00Z',
+			status: 'paid',
+			total_amount: 500,
+			currency: 'usd',
+			customer_id: 'cus_1',
+			is_invoice_generated: true,
+			product: { name: 'Supporter — monthly' },
+		},
+		{
+			id: 'ord_1',
+			created_at: '2026-09-06T10:00:00Z',
+			status: 'refunded',
+			total_amount: 500,
+			currency: 'usd',
+			customer_id: 'cus_1',
+			is_invoice_generated: false,
+			product: { name: 'Supporter — monthly' },
+		},
+	];
+	const foreignOrder = { ...orders[0]!, id: 'ord_other', customer_id: 'cus_other' };
 
 	const fakePolar: typeof fetch = async (input, init) => {
 		const url = String(input);
@@ -41,6 +64,20 @@ describe('billing and admin', () => {
 		if (url.endsWith('/v1/customer-sessions/'))
 			return json({ customer_portal_url: 'https://sandbox.polar.sh/portal/xyz' });
 		if (url.includes('/v1/subscriptions/')) return json(remoteSubscription);
+		if (url.includes('/v1/customers/external/')) {
+			return url.endsWith(encodeURIComponent(alice.accountId))
+				? json({ id: 'cus_1' })
+				: new Response('{}', { status: 404 });
+		}
+		if (url.includes('/v1/orders/?customer_id=cus_1')) return json({ items: orders });
+		const order = /\/v1\/orders\/([^/?]+)(\/invoice)?$/.exec(url);
+		if (order) {
+			const found = [...orders, foreignOrder].find((item) => item.id === order[1]);
+			if (!found) return new Response('{}', { status: 404 });
+			return order[2]
+				? json({ url: `https://polar.test/invoices/${found.id}.pdf` })
+				: json(found);
+		}
 		if (url.includes('/v1/products')) return json({ id: 'prod_new' });
 		return new Response('not found', { status: 404 });
 	};
@@ -109,6 +146,47 @@ describe('billing and admin', () => {
 	});
 	afterAll(async () => {
 		await h.close();
+	});
+
+	describe('invoices', () => {
+		it('lists the account’s charges newest first', async () => {
+			const response = await alice.browser.get('/v1/billing/invoices');
+			expect(response.body.data.invoices).toEqual([
+				{
+					id: 'ord_2',
+					created_at: '2026-10-06T10:00:00.000Z',
+					description: 'Supporter — monthly',
+					amount_cents: 500,
+					currency: 'usd',
+					status: 'paid',
+					invoice_available: true,
+				},
+				expect.objectContaining({
+					id: 'ord_1',
+					status: 'refunded',
+					invoice_available: false,
+				}),
+			]);
+		});
+
+		it('returns an empty list for accounts that never paid', async () => {
+			const response = await admin.get('/v1/billing/invoices');
+			expect(response.body.data.invoices).toEqual([]);
+		});
+
+		it('links only this account’s generated invoices', async () => {
+			const pdf = await alice.browser.get('/v1/billing/invoices/ord_2/pdf');
+			expect(pdf.body.data.url).toBe('https://polar.test/invoices/ord_2.pdf');
+			expect((await alice.browser.get('/v1/billing/invoices/ord_1/pdf')).status).toBe(404);
+			expect((await alice.browser.get('/v1/billing/invoices/ord_other/pdf')).status).toBe(
+				404,
+			);
+			expect((await alice.browser.get('/v1/billing/invoices/ord_missing/pdf')).status).toBe(
+				404,
+			);
+			expect((await alice.browser.get('/v1/billing/invoices/..%2Fx/pdf')).status).toBe(400);
+			expect((await admin.get('/v1/billing/invoices/ord_2/pdf')).status).toBe(404);
+		});
 	});
 
 	describe('plans and checkout', () => {

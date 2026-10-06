@@ -28,7 +28,8 @@ export function blobIdBytes(id: string): Buffer {
 	return bytes;
 }
 
-async function lockAccount(tx: TenantTx, storageAccountId: string) {
+/** Locks the storage account row: quota checks and usage updates are serialised per account. */
+export async function lockAccount(tx: TenantTx, storageAccountId: string) {
 	const [account] = await tx
 		.select()
 		.from(storageAccounts)

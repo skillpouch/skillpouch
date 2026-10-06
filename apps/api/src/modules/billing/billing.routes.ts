@@ -26,6 +26,18 @@ const SubscriptionView = z.object({
 	cancel_at_period_end: z.boolean(),
 });
 
+const Invoice = z.object({
+	id: z.string(),
+	created_at: Timestamp,
+	description: z.string(),
+	amount_cents: z.number().int(),
+	currency: z.string(),
+	status: z.enum(['paid', 'refunded', 'partially_refunded', 'pending', 'failed']),
+	invoice_available: z.boolean(),
+});
+
+const InvoiceList = z.object({ invoices: z.array(Invoice) });
+
 export async function billingRoutes(app: ZodApp, deps: Deps) {
 	app.get(
 		'/v1/billing',
@@ -92,6 +104,55 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 				productId: plan.polarProductId,
 				successUrl: `${deps.env.WEB_ORIGIN}/app/billing?ok=1`,
 			});
+		},
+	);
+
+	app.get(
+		'/v1/billing/invoices',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['billing'],
+				summary: 'Recent charges of this account (newest first)',
+				response: { 200: InvoiceList },
+			},
+		},
+		async (request) => {
+			const principal = sessionOf(request);
+			if (!deps.billing) return { invoices: [] };
+			const invoices = await deps.billing.listInvoices(principal.storageAccountId, 24);
+			return {
+				invoices: invoices.map((invoice) => ({
+					id: invoice.id,
+					created_at: invoice.createdAt.toISOString(),
+					description: invoice.description,
+					amount_cents: invoice.amountCents,
+					currency: invoice.currency,
+					status: invoice.status,
+					invoice_available: invoice.invoiceAvailable,
+				})),
+			};
+		},
+	);
+
+	app.get(
+		'/v1/billing/invoices/:invoiceId/pdf',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['billing'],
+				summary: 'Link to the PDF of one of this account’s invoices',
+				params: z.object({ invoiceId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }),
+				response: { 200: BillingUrl },
+			},
+		},
+		async (request) => {
+			const url = await requireBilling(deps).invoiceUrl(
+				sessionOf(request).storageAccountId,
+				request.params.invoiceId,
+			);
+			if (!url) throw new AppError('not_found');
+			return { url };
 		},
 	);
 

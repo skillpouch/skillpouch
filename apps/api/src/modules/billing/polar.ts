@@ -13,6 +13,7 @@ import { AppError } from '../../http/app-error';
 import type {
 	BillingEvent,
 	BillingProvider,
+	NormalizedInvoice,
 	NormalizedSubscription,
 	PlanProductInput,
 } from './provider';
@@ -107,6 +108,22 @@ export function normalizePolarSubscription(data: Record<string, unknown>): Norma
 	};
 }
 
+const ORDER_STATUSES = new Set(['paid', 'refunded', 'partially_refunded', 'pending', 'failed']);
+
+export function normalizePolarOrder(data: Record<string, unknown>): NormalizedInvoice {
+	const status = String(data.status ?? 'pending');
+	const product = data.product as { name?: string } | undefined;
+	return {
+		id: String(data.id),
+		createdAt: dateOrNull(data.created_at) ?? new Date(0),
+		description: product?.name ?? String(data.description ?? 'SkillPouch'),
+		amountCents: Number(data.total_amount ?? data.amount ?? 0),
+		currency: String(data.currency ?? 'usd'),
+		status: (ORDER_STATUSES.has(status) ? status : 'pending') as NormalizedInvoice['status'],
+		invoiceAvailable: Boolean(data.is_invoice_generated),
+	};
+}
+
 export class PolarProvider implements BillingProvider {
 	readonly name = 'polar';
 	private readonly base: string;
@@ -184,6 +201,49 @@ export class PolarProvider implements BillingProvider {
 					? normalizePolarSubscription(event.data)
 					: null,
 		};
+	}
+
+	/** Polar customer id for our storage account, or null before the first checkout. */
+	private async customerId(storageAccountId: string): Promise<string | null> {
+		try {
+			const customer = await this.call<{ id: string }>(
+				'GET',
+				`/v1/customers/external/${encodeURIComponent(storageAccountId)}`,
+			);
+			return customer.id;
+		} catch (error) {
+			if (error instanceof AppError && error.details?.status === 404) return null;
+			throw error;
+		}
+	}
+
+	async listInvoices(storageAccountId: string, limit: number): Promise<NormalizedInvoice[]> {
+		const customerId = await this.customerId(storageAccountId);
+		if (!customerId) return [];
+		const page = await this.call<{ items: Record<string, unknown>[] }>(
+			'GET',
+			`/v1/orders/?customer_id=${encodeURIComponent(customerId)}&sorting=-created_at&limit=${limit}`,
+		);
+		return page.items.map(normalizePolarOrder);
+	}
+
+	async invoiceUrl(storageAccountId: string, invoiceId: string): Promise<string | null> {
+		const customerId = await this.customerId(storageAccountId);
+		if (!customerId) return null;
+		const order = await this.call<Record<string, unknown>>(
+			'GET',
+			`/v1/orders/${encodeURIComponent(invoiceId)}`,
+		).catch((error: unknown) => {
+			if (error instanceof AppError && error.details?.status === 404) return null;
+			throw error;
+		});
+		// Another customer's order is "not found" for this account.
+		if (!order || order.customer_id !== customerId || !order.is_invoice_generated) return null;
+		const invoice = await this.call<{ url: string }>(
+			'GET',
+			`/v1/orders/${encodeURIComponent(invoiceId)}/invoice`,
+		);
+		return invoice.url;
 	}
 
 	async fetchSubscription(externalSubscriptionId: string) {

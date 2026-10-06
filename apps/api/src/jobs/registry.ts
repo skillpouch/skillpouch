@@ -13,6 +13,7 @@ import { gcBlobs, gcPending } from './gc';
 import {
 	expireBrowserTrust,
 	expireCliAuthRequests,
+	expireShares,
 	flagStaleDevices,
 	purgeEphemeral,
 	recalcUsage,
@@ -38,6 +39,7 @@ export const JOBS: JobDefinition[] = [
 	{ name: 'usage.recalc', cron: '15 4 * * *', run: recalcUsage },
 	{ name: 'blobs.verify', cron: '30 5 * * 0', run: (deps) => verifyBlobSample(deps) },
 	{ name: 'cli-auth.expire', cron: '*/5 * * * *', run: expireCliAuthRequests },
+	{ name: 'shares.expire', cron: '*/15 * * * *', run: expireShares },
 	{ name: 'browsers.trust-expire', cron: '12 * * * *', run: expireBrowserTrust },
 	{ name: 'housekeeping.ephemeral', cron: '*/10 * * * *', run: purgeEphemeral },
 	{ name: 'pouch.delete', cron: '22 * * * *', run: purgeDeletedPouches },

@@ -17,6 +17,7 @@ async function purgePouchRows(tx: Tx, pouchId: string): Promise<void> {
 	await tx.execute(sql`UPDATE artifacts SET head_revision_id = NULL WHERE pouch_id = ${pouchId}`);
 	for (const table of [
 		'snapshots',
+		'shares',
 		'checkpoints',
 		'bindings',
 		'conflicts',
@@ -46,7 +47,8 @@ export async function recalcAccountUsage(tx: Tx, storageAccountId: string): Prom
 		WITH actual AS (
 			SELECT
 				COALESCE((SELECT sum(stored_size) FROM blobs WHERE storage_account_id = ${storageAccountId} AND state = 'stored'), 0)
-					+ COALESCE((SELECT sum(octet_length(envelope)) FROM revisions WHERE storage_account_id = ${storageAccountId}), 0) AS used,
+					+ COALESCE((SELECT sum(octet_length(envelope)) FROM revisions WHERE storage_account_id = ${storageAccountId}), 0)
+					+ COALESCE((SELECT sum(stored_size) FROM shares WHERE storage_account_id = ${storageAccountId}), 0) AS used,
 				COALESCE((SELECT sum(stored_size) FROM blobs WHERE storage_account_id = ${storageAccountId} AND state = 'pending'), 0) AS pending
 		)
 		UPDATE storage_accounts sa SET

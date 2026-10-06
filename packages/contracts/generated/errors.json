@@ -221,6 +221,12 @@
 		"message": "Delete the item first, then free its space.",
 		"docs_url": "https://docs.skillpouch.net/errors/artifact_not_deleted"
 	},
+	"share_unavailable": {
+		"status": 410,
+		"retryable": false,
+		"message": "This link expired, was revoked or was already used.",
+		"docs_url": "https://docs.skillpouch.net/errors/share_unavailable"
+	},
 	"quota_exceeded": {
 		"status": 413,
 		"retryable": false,

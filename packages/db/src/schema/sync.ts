@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Pouches and the sync data model. */
-import { integer, jsonb, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
+import { boolean, integer, jsonb, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, int8, tenantColumn, tstz } from './columns';
 
 export const pouches = pgTable('pouches', {
@@ -187,5 +187,24 @@ export const snapshots = pgTable('snapshots', {
 	epoch: uuid('epoch').notNull(),
 	seq: int8('seq').notNull(),
 	expiresAt: tstz('expires_at').notNull(),
+	createdAt: tstz('created_at').notNull().defaultNow(),
+});
+
+/** Share links: one sealed item, readable only with the key in the link fragment. */
+export const shares = pgTable('shares', {
+	id: uuid('id').primaryKey(),
+	storageAccountId: tenantColumn(),
+	pouchId: uuid('pouch_id').notNull(),
+	createdByMember: uuid('created_by_member').notNull(),
+	labelEnc: bytea('label_enc').notNull(),
+	ciphertext: bytea('ciphertext').notNull(),
+	storedSize: integer('stored_size').notNull(),
+	oneTime: boolean('one_time').notNull().default(false),
+	expiresAt: tstz('expires_at'),
+	revokedAt: tstz('revoked_at'),
+	consumedAt: tstz('consumed_at'),
+	views: integer('views').notNull().default(0),
+	imports: integer('imports').notNull().default(0),
+	lastImportedAt: tstz('last_imported_at'),
 	createdAt: tstz('created_at').notNull().defaultNow(),
 });

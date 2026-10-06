@@ -157,3 +157,27 @@ export async function refreshAllEntitlements(deps: Deps): Promise<number> {
 	for (const account of accounts) await refreshEntitlements(deps.db.app, account.id);
 	return accounts.length;
 }
+
+/**
+ * `shares.expire`: an expired share link keeps its counters but drops its
+ * ciphertext, and the bytes go back to the owner's quota.
+ */
+export async function expireShares(deps: Deps): Promise<number> {
+	const result = await deps.db.maintenance.execute(sql`
+		WITH expired AS (
+			SELECT id, storage_account_id, stored_size FROM shares
+			WHERE stored_size > 0 AND expires_at <= now()
+			ORDER BY expires_at
+			LIMIT 1000
+			FOR UPDATE SKIP LOCKED
+		), cleared AS (
+			UPDATE shares s SET ciphertext = ''::bytea, stored_size = 0
+			FROM expired e WHERE s.id = e.id
+			RETURNING e.storage_account_id, e.stored_size
+		)
+		UPDATE storage_accounts sa
+		SET used_bytes = GREATEST(0, sa.used_bytes - t.total)
+		FROM (SELECT storage_account_id, sum(stored_size) AS total FROM cleared GROUP BY 1) t
+		WHERE sa.id = t.storage_account_id`);
+	return result.rowCount ?? 0;
+}

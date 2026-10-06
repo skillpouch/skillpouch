@@ -22,6 +22,18 @@ export interface NormalizedSubscription {
 	providerUpdatedAt: Date | null;
 }
 
+/** One charge (Polar "order"): a payment, a renewal or a refund. */
+export interface NormalizedInvoice {
+	id: string;
+	createdAt: Date;
+	description: string;
+	amountCents: number;
+	currency: string;
+	status: 'paid' | 'refunded' | 'partially_refunded' | 'pending' | 'failed';
+	/** The provider has a PDF for it (generated from the customer portal). */
+	invoiceAvailable: boolean;
+}
+
 export interface BillingEvent {
 	/** Provider event id — the idempotency key. */
 	id: string;
@@ -51,6 +63,10 @@ export interface BillingProvider {
 	/** Throws `webhook_invalid` on a bad signature or stale timestamp. */
 	verifyWebhook(rawBody: Buffer, headers: IncomingHttpHeaders): Promise<BillingEvent>;
 	fetchSubscription(externalSubscriptionId: string): Promise<NormalizedSubscription | null>;
+	/** Newest first; empty when the account never paid. */
+	listInvoices(storageAccountId: string, limit: number): Promise<NormalizedInvoice[]>;
+	/** PDF link of one of this account's invoices, or null when none exists (yet). */
+	invoiceUrl(storageAccountId: string, invoiceId: string): Promise<string | null>;
 	/** Creates or updates the provider product for a paid plan; returns its id. */
 	syncProduct(input: PlanProductInput): Promise<string>;
 }

@@ -29,6 +29,15 @@ BEGIN
 END
 $$;
 
+-- Share links are opened by people outside the account. A request that names
+-- one share (transaction-local `app.share_id`) may read and count exactly that
+-- row; it still cannot list or touch any other share.
+CREATE POLICY share_by_id ON shares FOR SELECT
+	USING (id = nullif(current_setting('app.share_id', true), '')::uuid);
+CREATE POLICY share_count_by_id ON shares FOR UPDATE
+	USING (id = nullif(current_setting('app.share_id', true), '')::uuid)
+	WITH CHECK (id = nullif(current_setting('app.share_id', true), '')::uuid);
+
 GRANT USAGE ON SCHEMA public TO sp_app, sp_worker, sp_maintenance, sp_admin;
 
 -- API and tenant-scoped worker jobs.

@@ -16,3 +16,4 @@ export * from './schemas/account';
 export * from './schemas/sync';
 export * from './schemas/admin';
 export * from './schemas/unlock';
+export * from './schemas/shares';

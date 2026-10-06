@@ -43,6 +43,12 @@ export const Limits = {
 	cliAuthTtlSeconds: 600,
 	/** Lifetime of a one-time "Connect a computer" token. */
 	connectTokenTtlSeconds: 600,
+	/** Largest sealed share bundle. */
+	shareMaxBytes: 8 * 1024 * 1024,
+	/** Encrypted share label (kind + name). */
+	shareLabelMaxBytes: 512,
+	/** Active (not revoked, not expired) share links per account. */
+	sharesMaxActive: 200,
 	/** Unused connect tokens an account may hold at once. */
 	connectTokensMaxOpen: 5,
 	/** Unlock pepper releases per account. */

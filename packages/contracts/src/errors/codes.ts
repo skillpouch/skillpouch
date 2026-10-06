@@ -138,6 +138,11 @@ export const ErrorCodes = {
 		retryable: false,
 		message: 'Delete the item first, then free its space.',
 	},
+	share_unavailable: {
+		status: 410,
+		retryable: false,
+		message: 'This link expired, was revoked or was already used.',
+	},
 	quota_exceeded: { status: 413, retryable: false, message: 'Storage quota exceeded.' },
 	precondition_failed: {
 		status: 412,

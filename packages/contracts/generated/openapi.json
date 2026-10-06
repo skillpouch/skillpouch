@@ -10569,6 +10569,839 @@
 				}
 			}
 		},
+		"/v1/pouches/{pouchId}/shares": {
+			"post": {
+				"summary": "Create a share link for one item (sealed in the browser)",
+				"tags": [
+					"shares"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"id": {
+										"type": "string",
+										"format": "uuid",
+										"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+									},
+									"bundle": {
+										"type": "string",
+										"maxLength": 11184811,
+										"pattern": "^[A-Za-z0-9_-]*$"
+									},
+									"label_enc": {
+										"type": "string",
+										"maxLength": 683,
+										"pattern": "^[A-Za-z0-9_-]*$"
+									},
+									"expires": {
+										"default": "7d",
+										"type": "string",
+										"enum": [
+											"1d",
+											"7d",
+											"30d",
+											"never"
+										]
+									},
+									"one_time": {
+										"default": false,
+										"type": "boolean"
+									}
+								},
+								"required": [
+									"id",
+									"bundle",
+									"label_enc"
+								],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "pouchId",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"pouch_id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"label_enc": {
+													"type": "string",
+													"pattern": "^[A-Za-z0-9_-]*$"
+												},
+												"state": {
+													"type": "string",
+													"enum": [
+														"active",
+														"expired",
+														"revoked",
+														"consumed"
+													]
+												},
+												"one_time": {
+													"type": "boolean"
+												},
+												"size": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"views": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"imports": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"expires_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"revoked_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"last_imported_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"created_at": {
+													"type": "string",
+													"format": "date-time",
+													"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+												}
+											},
+											"required": [
+												"id",
+												"pouch_id",
+												"label_enc",
+												"state",
+												"one_time",
+												"size",
+												"views",
+												"imports",
+												"expires_at",
+												"revoked_at",
+												"last_imported_at",
+												"created_at"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/shares": {
+			"get": {
+				"summary": "Every share link of the account, newest first",
+				"tags": [
+					"shares"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"shares": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"type": "string",
+																"format": "uuid",
+																"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+															},
+															"pouch_id": {
+																"type": "string",
+																"format": "uuid",
+																"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+															},
+															"label_enc": {
+																"type": "string",
+																"pattern": "^[A-Za-z0-9_-]*$"
+															},
+															"state": {
+																"type": "string",
+																"enum": [
+																	"active",
+																	"expired",
+																	"revoked",
+																	"consumed"
+																]
+															},
+															"one_time": {
+																"type": "boolean"
+															},
+															"size": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"views": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"imports": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"expires_at": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"format": "date-time",
+																		"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"revoked_at": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"format": "date-time",
+																		"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"last_imported_at": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"format": "date-time",
+																		"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
+															"created_at": {
+																"type": "string",
+																"format": "date-time",
+																"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+															}
+														},
+														"required": [
+															"id",
+															"pouch_id",
+															"label_enc",
+															"state",
+															"one_time",
+															"size",
+															"views",
+															"imports",
+															"expires_at",
+															"revoked_at",
+															"last_imported_at",
+															"created_at"
+														],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": [
+												"shares"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/shares/{id}/revoke": {
+			"post": {
+				"summary": "Revoke a share link; its ciphertext is deleted",
+				"tags": [
+					"shares"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"pouch_id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"label_enc": {
+													"type": "string",
+													"pattern": "^[A-Za-z0-9_-]*$"
+												},
+												"state": {
+													"type": "string",
+													"enum": [
+														"active",
+														"expired",
+														"revoked",
+														"consumed"
+													]
+												},
+												"one_time": {
+													"type": "boolean"
+												},
+												"size": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"views": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"imports": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"expires_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"revoked_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"last_imported_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"created_at": {
+													"type": "string",
+													"format": "date-time",
+													"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+												}
+											},
+											"required": [
+												"id",
+												"pouch_id",
+												"label_enc",
+												"state",
+												"one_time",
+												"size",
+												"views",
+												"imports",
+												"expires_at",
+												"revoked_at",
+												"last_imported_at",
+												"created_at"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/public/shares/{id}": {
+			"get": {
+				"summary": "Public: whether a link still works, its size and expiry",
+				"tags": [
+					"shares"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string",
+													"format": "uuid",
+													"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+												},
+												"state": {
+													"type": "string",
+													"enum": [
+														"active",
+														"expired",
+														"revoked",
+														"consumed"
+													]
+												},
+												"one_time": {
+													"type": "boolean"
+												},
+												"size": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"expires_at": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "date-time",
+															"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"created_at": {
+													"type": "string",
+													"format": "date-time",
+													"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+												}
+											},
+											"required": [
+												"id",
+												"state",
+												"one_time",
+												"size",
+												"expires_at",
+												"created_at"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/public/shares/{id}/bundle": {
+			"get": {
+				"summary": "Public: sealed bundle of a reusable link (application/octet-stream)",
+				"tags": [
+					"shares"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/v1/shares/{id}/claim": {
+			"post": {
+				"summary": "Take the bundle of a one-time link; the link is used up",
+				"tags": [
+					"shares"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"bundle": {
+													"type": "string",
+													"pattern": "^[A-Za-z0-9_-]*$"
+												}
+											},
+											"required": [
+												"bundle"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/shares/{id}/imported": {
+			"post": {
+				"summary": "Count an import of a reusable link",
+				"tags": [
+					"shares"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid",
+							"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+						},
+						"in": "path",
+						"name": "id",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {},
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/v1/billing": {
 			"get": {
 				"summary": "This account’s subscriptions (newest first) and whether billing is available",
@@ -10713,6 +11546,193 @@
 						}
 					}
 				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"format": "uri"
+												}
+											},
+											"required": [
+												"url"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/billing/invoices": {
+			"get": {
+				"summary": "Recent charges of this account (newest first)",
+				"tags": [
+					"billing"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"invoices": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"type": "string"
+															},
+															"created_at": {
+																"type": "string",
+																"format": "date-time",
+																"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+															},
+															"description": {
+																"type": "string"
+															},
+															"amount_cents": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"currency": {
+																"type": "string"
+															},
+															"status": {
+																"type": "string",
+																"enum": [
+																	"paid",
+																	"refunded",
+																	"partially_refunded",
+																	"pending",
+																	"failed"
+																]
+															},
+															"invoice_available": {
+																"type": "boolean"
+															}
+														},
+														"required": [
+															"id",
+															"created_at",
+															"description",
+															"amount_cents",
+															"currency",
+															"status",
+															"invoice_available"
+														],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": [
+												"invoices"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/billing/invoices/{invoiceId}/pdf": {
+			"get": {
+				"summary": "Link to the PDF of one of this account’s invoices",
+				"tags": [
+					"billing"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"pattern": "^[A-Za-z0-9_-]{1,64}$"
+						},
+						"in": "path",
+						"name": "invoiceId",
+						"required": true
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "Default Response",

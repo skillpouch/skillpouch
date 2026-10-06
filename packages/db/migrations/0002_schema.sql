@@ -587,6 +587,32 @@ CREATE TABLE security_events (
 );
 CREATE INDEX security_events_account_idx ON security_events (storage_account_id, created_at DESC);
 
+-- ---------------------------------------------------------------- share links
+-- A share is one item sealed by the browser with a random key that lives only
+-- in the link fragment (`/s/<id>#key=…`). The server stores ciphertext and
+-- counters; it can neither read the item nor its name.
+CREATE TABLE shares (
+	id                  uuid PRIMARY KEY,
+	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
+	pouch_id            uuid NOT NULL,
+	created_by_member   uuid NOT NULL,
+	label_enc           bytea NOT NULL,
+	ciphertext          bytea NOT NULL,
+	stored_size         integer NOT NULL,
+	one_time            boolean NOT NULL DEFAULT false,
+	expires_at          timestamptz,
+	revoked_at          timestamptz,
+	consumed_at         timestamptz,
+	views               integer NOT NULL DEFAULT 0,
+	imports             integer NOT NULL DEFAULT 0,
+	last_imported_at    timestamptz,
+	created_at          timestamptz NOT NULL DEFAULT now(),
+	UNIQUE (storage_account_id, id),
+	FOREIGN KEY (storage_account_id, pouch_id) REFERENCES pouches (storage_account_id, id)
+);
+CREATE INDEX shares_account_idx ON shares (storage_account_id, created_at DESC);
+CREATE INDEX shares_pouch_idx ON shares (storage_account_id, pouch_id);
+
 CREATE TABLE system_settings (
 	key         text PRIMARY KEY,
 	value       jsonb NOT NULL,
