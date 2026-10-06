@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { randomBytes } from 'node:crypto';
 
-/** UUIDv7 (RFC 9562): 48-bit Unix ms timestamp + random — time-ordered IDs (03). */
+/** UUIDv7 (RFC 9562): 48-bit Unix ms timestamp + random — time-ordered IDs. */
 export function uuidv7(now = Date.now()): string {
 	const bytes = randomBytes(16);
 	bytes.writeUIntBE(now, 0, 6);

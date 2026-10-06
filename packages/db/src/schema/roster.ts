@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** E2EE membership: members, roster chain, key envelopes, unlock material (15). */
+/** E2EE membership: members, roster chain, key envelopes, unlock material. */
 import { integer, jsonb, pgTable, primaryKey, text, uuid } from 'drizzle-orm/pg-core';
 import { bytea, int8, tenantColumn, tstz } from './columns';
 

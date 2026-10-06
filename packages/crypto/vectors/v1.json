@@ -1,0 +1,92 @@
+{
+	"format": 1,
+	"padme": [
+		{
+			"length": 0,
+			"padded": 0
+		},
+		{
+			"length": 1,
+			"padded": 1
+		},
+		{
+			"length": 2,
+			"padded": 2
+		},
+		{
+			"length": 9,
+			"padded": 10
+		},
+		{
+			"length": 100,
+			"padded": 104
+		},
+		{
+			"length": 1000,
+			"padded": 1024
+		},
+		{
+			"length": 4097,
+			"padded": 4352
+		},
+		{
+			"length": 65537,
+			"padded": 67584
+		}
+	],
+	"pouch_keys": {
+		"pouch_id": "01920000-0000-7000-8000-00000000a001",
+		"key_gen": 3,
+		"ps": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA",
+		"pis": "ZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5_gIGCg4Q",
+		"k_content": "3FG1_PjruR5FaIrDLZhC-BNlCCiE_DG-x18W8DwuigY",
+		"k_meta": "hWpqwhmgs4JkhakdhzU_rOnJjl49SSBbWCfE0btLmuQ",
+		"k_binding": "h0tK83q4bboTSGOjjv9GYZgiLckrqUCNsqHajzbG8dM",
+		"k_blob_id": "gEMTBqPuc8w5Twwvq7jCbkAmt8RTuT6MuDNeoFD72V8",
+		"k_name": "LzTMTbfIRkP2c-cw6H6U9pxQPBF21oky-jcey6V7sjc"
+	},
+	"blob": {
+		"plaintext": "LS0tCm5hbWU6IHBkZi10b29scwotLS0KIyBQREYgdG9vbHMK",
+		"blob_id": "ZFjvjWP_r7oSLs_dZUIlZCMq4WH2UWGNdX7rXFvDXx4",
+		"nonce": "MjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJ",
+		"sealed": "AQAAAAMyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSEn-DlRxTtqnOMioYRyaGlGM1kr7mVPAd9UO60k3fAs3cMTOUXFONGZ6zlnXKIZGGIsZltcxbu2vyA",
+		"aad_utf8": "aad"
+	},
+	"name_index": [
+		{
+			"kind": "skill",
+			"scope": "global",
+			"logical_key": "PDF-Tools",
+			"name_index": "SvPMEUh3wG7FeM32gthotEYBCfXIj_S-H5LARSRJ-c0"
+		},
+		{
+			"kind": "mcp_server",
+			"scope": "global",
+			"logical_key": "Ünïcode",
+			"name_index": "ZXkBJgsCLbuIlgErLO6gr6XGuNiGOPWYyYhpthCRTII"
+		}
+	],
+	"member_seed": {
+		"kind": "password",
+		"secret": "BwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4_QEFCQ0RFRg",
+		"member_salt": "yMnKy8zNzs_Q0dLT1NXW1w",
+		"seed": "Pwqgnd3wfsQwQaHU2-RAROzYdwCgDqOE44pTZlaq-r8",
+		"sign_pub": {
+			"kty": "EC",
+			"crv": "P-256",
+			"x": "gy3F7VP3UoUy44rHiDK0OuBVuE9VJyK6RAwnZFp_dYI",
+			"y": "5o7-_7b4jjfgkNRvYsKhrxrCE_2CU_TyJ6kkewR0o2c"
+		},
+		"enc_pub": {
+			"kty": "EC",
+			"crv": "P-256",
+			"x": "Rsp8YEOGlZVCR0VV1mlRpfr4RXGkLZGlmJ9-85oYKRQ",
+			"y": "qBEegBk53iLW-1sSPhzw8sXMvJrZvyBMQFeE1cwtdAk"
+		},
+		"sign_jkt": "SDVwrsK_aV3PecAO0AuhkMi7APWFRKeZ0OVietvmLDo"
+	},
+	"confirm_code": {
+		"request_id": "01920000-0000-7000-8000-00000000c0de",
+		"code": "4185-4388"
+	}
+}

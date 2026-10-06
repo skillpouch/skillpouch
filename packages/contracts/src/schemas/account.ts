@@ -121,8 +121,8 @@ export const PouchDeleteQuery = z.strictObject({
 });
 
 /**
- * `POST /v1/pouches/:id/activate` — make a locked pouch the active one
- *. At the pouch limit, `lock_pouch_id` names the active pouch that
+ * `POST /v1/pouches/:id/activate` — make a locked pouch the active one.
+ * At the pouch limit, `lock_pouch_id` names the active pouch that
  * takes its place as locked.
  */
 export const PouchActivate = z.strictObject({ lock_pouch_id: Uuid.optional() });

@@ -64,7 +64,7 @@ export const ErrorCodes = {
 	},
 	pkce_invalid: { status: 401, retryable: false, message: 'PKCE verification failed.' },
 
-	// --- roster / E2EE structure (15) -----------------------------------------
+	// --- roster / E2EE structure -----------------------------------------
 	roster_exists: {
 		status: 409,
 		retryable: false,
@@ -167,7 +167,7 @@ export const ErrorCodes = {
 		message: 'Snapshot lease expired; start again.',
 	},
 
-	// --- billing & admin (18) ---------------------------------------------------
+	// --- billing & admin ---------------------------------------------------
 	billing_unavailable: {
 		status: 503,
 		retryable: false,

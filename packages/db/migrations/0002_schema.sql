@@ -190,7 +190,7 @@ CREATE TABLE cli_auth_requests (
 CREATE INDEX cli_auth_requests_expires_idx ON cli_auth_requests (expires_at);
 CREATE INDEX cli_auth_requests_ip_idx ON cli_auth_requests (ip_hash) WHERE state = 'open';
 
--- ---------------------------------------------------------------- E2EE membership (15)
+-- ---------------------------------------------------------------- E2EE membership
 CREATE TABLE account_members (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),

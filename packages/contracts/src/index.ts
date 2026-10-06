@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * @skillpouch/contracts — everything that crosses the wire between the API,
- * the web app and the CLI. Plan references: 17 (envelope, errors), 04 (sync),
- * 15 (E2EE formats), 08 (auth).
+ * the web app and the CLI.
  */
 export * from './errors/codes';
 export * from './envelope';
