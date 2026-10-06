@@ -18,7 +18,10 @@ export class AppError extends Error {
 		details?: Record<string, unknown>,
 		options?: { headers?: Record<string, string>; cause?: unknown },
 	) {
-		super(ErrorCodes[code].message, options?.cause === undefined ? undefined : { cause: options.cause });
+		super(
+			ErrorCodes[code].message,
+			options?.cause === undefined ? undefined : { cause: options.cause },
+		);
 		this.name = 'AppError';
 		this.code = code;
 		this.status = ErrorCodes[code].status;

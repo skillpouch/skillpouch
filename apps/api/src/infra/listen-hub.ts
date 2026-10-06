@@ -95,7 +95,11 @@ export class ListenHub {
 	}
 
 	/** Resolves when the pouch gets new events, the hub reconnects, or the timeout fires. */
-	waitForPouch(pouchId: string, timeoutMs: number, signal?: AbortSignal): Promise<'notified' | 'timeout'> {
+	waitForPouch(
+		pouchId: string,
+		timeoutMs: number,
+		signal?: AbortSignal,
+	): Promise<'notified' | 'timeout'> {
 		return new Promise((resolve) => {
 			const event = `pouch:${pouchId}`;
 			const finish = (result: 'notified' | 'timeout') => {
@@ -117,7 +121,9 @@ export class ListenHub {
 	/** Subscribes to everything for one storage account (SSE stream). */
 	subscribeAccount(
 		storageAccountId: string,
-		listener: (event: { kind: 'pouch' | 'account' | 'reconnect' } & Record<string, unknown>) => void,
+		listener: (
+			event: { kind: 'pouch' | 'account' | 'reconnect' } & Record<string, unknown>,
+		) => void,
 	): () => void {
 		const event = `account:${storageAccountId}`;
 		const onReconnect = () => listener({ kind: 'reconnect' });

@@ -62,14 +62,21 @@ export async function cliAuthRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'session' },
 			schema: {
 				tags: ['cli-auth'],
-				summary: 'Authorize: roster add + sealed welcome + key envelopes; creates the device',
+				summary:
+					'Authorize: roster add + sealed welcome + key envelopes; creates the device',
 				params: IdParam,
 				body: CliAuthApprove,
 				response: { 200: z.object({ device_id: z.uuid() }) },
 			},
 		},
 		async (request) =>
-			approveCliAuthRequest(deps, sessionOf(request), request.params.id, request.body, clientIpHash(deps, request)),
+			approveCliAuthRequest(
+				deps,
+				sessionOf(request),
+				request.params.id,
+				request.body,
+				clientIpHash(deps, request),
+			),
 	);
 
 	app.post(
@@ -87,7 +94,8 @@ export async function cliAuthRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'public', rateLimit: 'auth' },
 			schema: {
 				tags: ['cli-auth'],
-				summary: 'CLI redeems the approved request (PKCE verifier + same DPoP key); long-polls up to `wait` s',
+				summary:
+					'CLI redeems the approved request (PKCE verifier + same DPoP key); long-polls up to `wait` s',
 				body: CliAuthTokenRequest,
 				response: { 200: CliAuthTokenResponse },
 			},
@@ -104,7 +112,12 @@ export async function cliAuthRoutes(app: ZodApp, deps: Deps) {
 		'/v1/cli-auth/requests/:id',
 		{
 			config: { auth: 'public' },
-			schema: { tags: ['cli-auth'], summary: 'CLI cancels its pending request', params: IdParam, response: { 200: Empty } },
+			schema: {
+				tags: ['cli-auth'],
+				summary: 'CLI cancels its pending request',
+				params: IdParam,
+				response: { 200: Empty },
+			},
 		},
 		async (request) => {
 			const proof = await verifyRequestDpop(deps, request);

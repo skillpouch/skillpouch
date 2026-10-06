@@ -94,7 +94,8 @@ export function resolveEntitlements(input: ResolveInput): EntitlementsJson {
 
 	const override =
 		input.override &&
-		(input.override.expiresAt === null || input.override.expiresAt.getTime() > input.now.getTime())
+		(input.override.expiresAt === null ||
+			input.override.expiresAt.getTime() > input.now.getTime())
 			? input.override
 			: null;
 	const overridden =

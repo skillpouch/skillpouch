@@ -49,7 +49,10 @@ export async function buildServer(deps: Deps): Promise<BuiltServer> {
 		(_request, body, done) => done(null, body),
 	);
 
-	await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } });
+	await app.register(helmet, {
+		contentSecurityPolicy: false,
+		crossOriginResourcePolicy: { policy: 'same-site' },
+	});
 	await app.register(cors, {
 		origin: [deps.env.WEB_ORIGIN],
 		credentials: true,
@@ -64,7 +67,12 @@ export async function buildServer(deps: Deps): Promise<BuiltServer> {
 			'Idempotency-Key',
 			'Last-Event-ID',
 		],
-		exposedHeaders: ['DPoP-Nonce', 'Skillpouch-Request-Id', 'Skillpouch-Min-Cli', 'Retry-After'],
+		exposedHeaders: [
+			'DPoP-Nonce',
+			'Skillpouch-Request-Id',
+			'Skillpouch-Min-Cli',
+			'Retry-After',
+		],
 	});
 	await app.register(envelopePlugin);
 	await registerSwagger(app, deps.env);

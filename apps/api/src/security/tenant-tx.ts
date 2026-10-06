@@ -33,16 +33,21 @@ export async function withTenantTx<T>(
 		try {
 			return await db.transaction(
 				async (tx) => {
-					await tx.execute(sql`SELECT set_config('app.sa_id', ${storageAccountId}, true)`);
+					await tx.execute(
+						sql`SELECT set_config('app.sa_id', ${storageAccountId}, true)`,
+					);
 					return fn(tx as TenantTx);
 				},
 				options.isolationLevel ? { isolationLevel: options.isolationLevel } : undefined,
 			);
 		} catch (error) {
-			const code = (error as { code?: string; cause?: { code?: string } }).code ??
+			const code =
+				(error as { code?: string; cause?: { code?: string } }).code ??
 				(error as { cause?: { code?: string } }).cause?.code;
 			if (attempt >= retries || !code || !RETRYABLE_SQLSTATES.has(code)) throw error;
-			await new Promise((resolve) => setTimeout(resolve, 10 + Math.random() * 40 * (attempt + 1)));
+			await new Promise((resolve) =>
+				setTimeout(resolve, 10 + Math.random() * 40 * (attempt + 1)),
+			);
 		}
 	}
 }

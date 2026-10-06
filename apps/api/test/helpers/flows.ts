@@ -6,7 +6,14 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { uuidv7 } from '../../src/lib/ids';
 import { BrowserClient, CliClient, signIn } from './clients';
-import { envelopesFor, memberJson, newMember, rosterHead, statement, type MemberHandle } from './e2ee';
+import {
+	envelopesFor,
+	memberJson,
+	newMember,
+	rosterHead,
+	statement,
+	type MemberHandle,
+} from './e2ee';
 import type { Harness } from './harness';
 import { TestKey } from './keys';
 
@@ -21,7 +28,10 @@ export interface Account {
 }
 
 export async function accountIdOf(harness: Harness, userId: string): Promise<string> {
-	const { rows } = await harness.owner.query('SELECT id FROM storage_accounts WHERE owner_user_id = $1', [userId]);
+	const { rows } = await harness.owner.query(
+		'SELECT id FROM storage_accounts WHERE owner_user_id = $1',
+		[userId],
+	);
 	return rows[0].id as string;
 }
 
@@ -45,13 +55,25 @@ export async function setupAccount(harness: Harness, email: string): Promise<Acc
 		statements: [genesis, createPouch],
 		key_envelopes: envelopesFor(pouchId, [browserMember, recoveryMember], 1, browserMember.id),
 	});
-	if (response.status !== 200) throw new Error(`genesis failed: ${JSON.stringify(response.body)}`);
+	if (response.status !== 200)
+		throw new Error(`genesis failed: ${JSON.stringify(response.body)}`);
 	browser.memberId = browserMember.id;
-	return { browser, accountId, pouchId, browserMember, recoveryMember, members: [browserMember, recoveryMember] };
+	return {
+		browser,
+		accountId,
+		pouchId,
+		browserMember,
+		recoveryMember,
+		members: [browserMember, recoveryMember],
+	};
 }
 
 /** `skillpouch login` → browser clicks Authorize → CLI redeems tokens (08 §6.1). */
-export async function authorizeCli(harness: Harness, account: Account, name = 'laptop'): Promise<CliClient> {
+export async function authorizeCli(
+	harness: Harness,
+	account: Account,
+	name = 'laptop',
+): Promise<CliClient> {
 	const cli = new CliClient(harness, await TestKey.generate(), await TestKey.generate());
 	const verifier = randomBytes(32).toString('base64url');
 	const created = await cli.post('/v1/cli-auth/requests', {
@@ -64,27 +86,43 @@ export async function authorizeCli(harness: Harness, account: Account, name = 'l
 		enc_pub: cli.encKey.jwk,
 		key_storage: 'file',
 	});
-	if (created.status !== 200) throw new Error(`cli-auth request failed: ${JSON.stringify(created.body)}`);
+	if (created.status !== 200)
+		throw new Error(`cli-auth request failed: ${JSON.stringify(created.body)}`);
 	const requestId = created.body.data.request_id as string;
 
-	const deviceMember: MemberHandle = { id: uuidv7(), kind: 'device', key: cli.key, enc: cli.encKey };
+	const deviceMember: MemberHandle = {
+		id: uuidv7(),
+		kind: 'device',
+		key: cli.key,
+		enc: cli.encKey,
+	};
 	const head = await rosterHead(account.browser);
 	const add = await statement(account.browserMember, account.accountId, head, {
 		action: 'add',
 		member: memberJson(deviceMember),
 	});
-	const pouches = (await account.browser.get('/v1/pouches')).body.data.pouches as { id: string; key_gen: number; state: string }[];
+	const pouches = (await account.browser.get('/v1/pouches')).body.data.pouches as {
+		id: string;
+		key_gen: number;
+		state: string;
+	}[];
 	const envelopes = pouches
 		.filter((pouch) => pouch.state !== 'deleted')
-		.flatMap((pouch) => envelopesFor(pouch.id, [deviceMember], pouch.key_gen, account.browserMember.id));
+		.flatMap((pouch) =>
+			envelopesFor(pouch.id, [deviceMember], pouch.key_gen, account.browserMember.id),
+		);
 	const approved = await account.browser.post(`/v1/cli-auth/requests/${requestId}/approve`, {
 		statement: add,
 		welcome: Buffer.from('sealed-welcome').toString('base64url'),
 		key_envelopes: envelopes,
 	});
-	if (approved.status !== 200) throw new Error(`approve failed: ${JSON.stringify(approved.body)}`);
+	if (approved.status !== 200)
+		throw new Error(`approve failed: ${JSON.stringify(approved.body)}`);
 
-	const token = await cli.post('/v1/cli-auth/token', { request_id: requestId, code_verifier: verifier });
+	const token = await cli.post('/v1/cli-auth/token', {
+		request_id: requestId,
+		code_verifier: verifier,
+	});
 	if (token.status !== 200 || token.body.data.status !== 'approved') {
 		throw new Error(`token failed: ${JSON.stringify(token.body)}`);
 	}

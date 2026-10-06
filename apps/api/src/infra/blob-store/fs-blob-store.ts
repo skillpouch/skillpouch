@@ -16,7 +16,14 @@ export class FsBlobStore implements BlobStore {
 	private pathOf(key: BlobKey): string {
 		assertValidKey(key);
 		const hex = key.blobIdHex;
-		return join(this.root, key.storageAccountId, key.pouchId, hex.slice(0, 2), hex.slice(2, 4), hex);
+		return join(
+			this.root,
+			key.storageAccountId,
+			key.pouchId,
+			hex.slice(0, 2),
+			hex.slice(2, 4),
+			hex,
+		);
 	}
 
 	async put(key: BlobKey, body: Uint8Array): Promise<void> {

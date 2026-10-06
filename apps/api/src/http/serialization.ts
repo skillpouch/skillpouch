@@ -22,7 +22,8 @@ export function rawSchema<T extends z.ZodType>(schema: T): T {
 }
 
 function wrap(schema: unknown, status: string): unknown {
-	if (!(schema instanceof z.ZodType) || rawSchemas.has(schema) || !status.startsWith('2')) return schema;
+	if (!(schema instanceof z.ZodType) || rawSchemas.has(schema) || !status.startsWith('2'))
+		return schema;
 	return z.object({ ok: z.literal(true), data: schema, meta: ResponseMeta });
 }
 

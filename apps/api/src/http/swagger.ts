@@ -29,12 +29,19 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 					'plus a DPoP proof from the key bound with `POST /v1/session/bind`, and send',
 					'`Skillpouch-Client: web` on writes. Fetch a nonce from `GET /v1/dpop/nonce`.',
 				].join('\n'),
-				license: { name: 'AGPL-3.0-only', url: 'https://www.gnu.org/licenses/agpl-3.0.html' },
+				license: {
+					name: 'AGPL-3.0-only',
+					url: 'https://www.gnu.org/licenses/agpl-3.0.html',
+				},
 			},
 			servers: [{ url: env.API_PUBLIC_URL }],
 			components: {
 				securitySchemes: {
-					dpop: { type: 'http', scheme: 'DPoP', description: 'DPoP-bound access token + DPoP proof' },
+					dpop: {
+						type: 'http',
+						scheme: 'DPoP',
+						description: 'DPoP-bound access token + DPoP proof',
+					},
 					session: { type: 'apiKey', in: 'cookie', name: 'sp.session_token' },
 				},
 			},
@@ -43,7 +50,10 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 				{ name: 'session', description: 'Browser session binding and DPoP nonces' },
 				{ name: 'cli-auth', description: '“Authorize CLI” login (08 §6)' },
 				{ name: 'devices', description: 'CLIs and browsers, refresh, revoke' },
-				{ name: 'account', description: 'Me, roster (E2EE membership), key envelopes, join requests' },
+				{
+					name: 'account',
+					description: 'Me, roster (E2EE membership), key envelopes, join requests',
+				},
 				{ name: 'pouches' },
 				{ name: 'sync', description: 'Blobs, operations, events, snapshots' },
 				{ name: 'artifacts' },

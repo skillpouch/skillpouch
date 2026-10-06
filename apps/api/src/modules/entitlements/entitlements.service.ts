@@ -43,14 +43,24 @@ export async function defaultEntitlements(db: Pick<Database, 'select'>): Promise
 }
 
 /** Recomputes and stores entitlements inside a tenant transaction. */
-export async function refreshEntitlementsInTx(tx: TenantTx, storageAccountId: string, now = new Date()) {
+export async function refreshEntitlementsInTx(
+	tx: TenantTx,
+	storageAccountId: string,
+	now = new Date(),
+) {
 	const allPlans = await tx.select().from(plans);
 	const byId = new Map(allPlans.map((plan) => [plan.id, plan]));
 	const defaultPlan = allPlans.find((plan) => plan.isDefault);
 	if (!defaultPlan) throw new Error('No default plan seeded');
 
-	const subs = await tx.select().from(subscriptions).where(eq(subscriptions.storageAccountId, storageAccountId));
-	const grants = await tx.select().from(planGrants).where(eq(planGrants.storageAccountId, storageAccountId));
+	const subs = await tx
+		.select()
+		.from(subscriptions)
+		.where(eq(subscriptions.storageAccountId, storageAccountId));
+	const grants = await tx
+		.select()
+		.from(planGrants)
+		.where(eq(planGrants.storageAccountId, storageAccountId));
 	const [override] = await tx
 		.select()
 		.from(entitlementOverrides)
@@ -70,7 +80,14 @@ export async function refreshEntitlementsInTx(tx: TenantTx, storageAccountId: st
 		grants: grants.flatMap((grant) => {
 			const plan = byId.get(grant.planId);
 			return plan
-				? [{ plan: toLimits(plan), startsAt: grant.startsAt, endsAt: grant.endsAt, revokedAt: grant.revokedAt }]
+				? [
+						{
+							plan: toLimits(plan),
+							startsAt: grant.startsAt,
+							endsAt: grant.endsAt,
+							revokedAt: grant.revokedAt,
+						},
+					]
 				: [];
 		}),
 		override: override ?? null,
@@ -78,7 +95,10 @@ export async function refreshEntitlementsInTx(tx: TenantTx, storageAccountId: st
 	});
 
 	const [account] = await tx
-		.select({ entitlements: storageAccounts.entitlements, usedBytes: storageAccounts.usedBytes })
+		.select({
+			entitlements: storageAccounts.entitlements,
+			usedBytes: storageAccounts.usedBytes,
+		})
 		.from(storageAccounts)
 		.where(eq(storageAccounts.id, storageAccountId));
 	const overQuota = (account?.usedBytes ?? 0) > effective.storage_bytes;
@@ -103,16 +123,37 @@ async function applyPouchLimit(tx: TenantTx, storageAccountId: string, limit: nu
 	const live = await tx
 		.select({ id: pouches.id, state: pouches.state })
 		.from(pouches)
-		.where(and(eq(pouches.storageAccountId, storageAccountId), inArray(pouches.state, ['active', 'read_only'])))
+		.where(
+			and(
+				eq(pouches.storageAccountId, storageAccountId),
+				inArray(pouches.state, ['active', 'read_only']),
+			),
+		)
 		.orderBy(asc(pouches.createdAt), asc(pouches.id));
 	const keep = new Set(live.slice(0, Math.max(0, limit)).map((pouch) => pouch.id));
 	const toActivate = live.filter((pouch) => keep.has(pouch.id) && pouch.state === 'read_only');
 	const toFreeze = live.filter((pouch) => !keep.has(pouch.id) && pouch.state === 'active');
 	if (toActivate.length > 0) {
-		await tx.update(pouches).set({ state: 'active' }).where(inArray(pouches.id, toActivate.map((p) => p.id)));
+		await tx
+			.update(pouches)
+			.set({ state: 'active' })
+			.where(
+				inArray(
+					pouches.id,
+					toActivate.map((p) => p.id),
+				),
+			);
 	}
 	if (toFreeze.length > 0) {
-		await tx.update(pouches).set({ state: 'read_only' }).where(inArray(pouches.id, toFreeze.map((p) => p.id)));
+		await tx
+			.update(pouches)
+			.set({ state: 'read_only' })
+			.where(
+				inArray(
+					pouches.id,
+					toFreeze.map((p) => p.id),
+				),
+			);
 	}
 	for (const pouch of [...toActivate, ...toFreeze]) {
 		await notifyAccount(tx, storageAccountId, 'pouch.state_changed', { pouch_id: pouch.id });
@@ -120,12 +161,16 @@ async function applyPouchLimit(tx: TenantTx, storageAccountId: string, limit: nu
 }
 
 export function refreshEntitlements(db: Database, storageAccountId: string) {
-	return withTenantTx(db, storageAccountId, (tx) => refreshEntitlementsInTx(tx, storageAccountId));
+	return withTenantTx(db, storageAccountId, (tx) =>
+		refreshEntitlementsInTx(tx, storageAccountId),
+	);
 }
 
 /** Number of pouches counting toward the limit (archived count, deleted don't — 15 §7.5). */
 export async function countedPouches(tx: TenantTx): Promise<number> {
-	const rows = await tx.select({ id: pouches.id }).from(pouches).where(ne(pouches.state, 'deleted'));
+	const rows = await tx
+		.select({ id: pouches.id })
+		.from(pouches)
+		.where(ne(pouches.state, 'deleted'));
 	return rows.length;
 }
-

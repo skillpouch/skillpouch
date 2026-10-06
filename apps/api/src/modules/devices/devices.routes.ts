@@ -44,15 +44,26 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 		'/v1/devices',
 		{
 			config: { auth: 'any' },
-			schema: { tags: ['devices'], summary: 'All CLIs and browsers of the account', response: { 200: DeviceList } },
+			schema: {
+				tags: ['devices'],
+				summary: 'All CLIs and browsers of the account',
+				response: { 200: DeviceList },
+			},
 		},
 		async (request) => {
 			const principal = principalOf(request);
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 				const rows = await tx
-					.select({ device: devices, keyStorage: deviceKeys.keyStorage, memberId: accountMembers.id })
+					.select({
+						device: devices,
+						keyStorage: deviceKeys.keyStorage,
+						memberId: accountMembers.id,
+					})
 					.from(devices)
-					.leftJoin(deviceKeys, and(eq(deviceKeys.deviceId, devices.id), isNull(deviceKeys.retiredAt)))
+					.leftJoin(
+						deviceKeys,
+						and(eq(deviceKeys.deviceId, devices.id), isNull(deviceKeys.retiredAt)),
+					)
 					.leftJoin(accountMembers, eq(accountMembers.deviceId, devices.id))
 					.orderBy(asc(devices.createdAt));
 				const browsers = await tx
@@ -95,7 +106,8 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any', stepUp: true },
 			schema: {
 				tags: ['devices'],
-				summary: 'Revoke a CLI: effective on its next request; optional signed remove + key rotation',
+				summary:
+					'Revoke a CLI: effective on its next request; optional signed remove + key rotation',
 				params: IdParam,
 				body: RevokeRequest,
 				response: { 200: RevokeResponse },
@@ -120,14 +132,22 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 				response: { 200: RevokeResponse },
 			},
 		},
-		async (request) => revokeBrowser(deps, principalOf(request), request.params.id, { roster: request.body.roster }),
+		async (request) =>
+			revokeBrowser(deps, principalOf(request), request.params.id, {
+				roster: request.body.roster,
+			}),
 	);
 
 	app.put(
 		'/v1/devices/me/cursor',
 		{
 			config: { auth: 'device' },
-			schema: { tags: ['devices'], summary: 'Report the acknowledged event seq of a pouch', body: CursorReport, response: { 200: Empty } },
+			schema: {
+				tags: ['devices'],
+				summary: 'Report the acknowledged event seq of a pouch',
+				body: CursorReport,
+				response: { 200: Empty },
+			},
 		},
 		async (request) => {
 			const principal = deviceOf(request);
@@ -145,7 +165,11 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 					})
 					.onConflictDoUpdate({
 						target: [deviceCursors.deviceId, deviceCursors.pouchId],
-						set: { epoch: request.body.epoch, ackedSeq: request.body.acked_seq, updatedAt: deps.now() },
+						set: {
+							epoch: request.body.epoch,
+							ackedSeq: request.body.acked_seq,
+							updatedAt: deps.now(),
+						},
 					});
 			});
 			return {};
@@ -156,13 +180,21 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 		'/v1/devices/me/active-pouch',
 		{
 			config: { auth: 'device' },
-			schema: { tags: ['devices'], summary: 'Report the active pouch (display only, 16 §9)', body: ActivePouchReport, response: { 200: Empty } },
+			schema: {
+				tags: ['devices'],
+				summary: 'Report the active pouch (display only, 16 §9)',
+				body: ActivePouchReport,
+				response: { 200: Empty },
+			},
 		},
 		async (request) => {
 			const principal = deviceOf(request);
 			await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 				if (request.body.pouch_id) await findPouch(tx, request.body.pouch_id);
-				await tx.update(devices).set({ activePouchId: request.body.pouch_id }).where(eq(devices.id, principal.deviceId));
+				await tx
+					.update(devices)
+					.set({ activePouchId: request.body.pouch_id })
+					.where(eq(devices.id, principal.deviceId));
 			});
 			return {};
 		},
@@ -180,8 +212,17 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 		async (request) => {
 			const principal = deviceOf(request);
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				const rows = await tx.select().from(deviceCursors).where(eq(deviceCursors.deviceId, principal.deviceId));
-				return { cursors: rows.map((row) => ({ pouch_id: row.pouchId, epoch: row.epoch, acked_seq: row.ackedSeq })) };
+				const rows = await tx
+					.select()
+					.from(deviceCursors)
+					.where(eq(deviceCursors.deviceId, principal.deviceId));
+				return {
+					cursors: rows.map((row) => ({
+						pouch_id: row.pouchId,
+						epoch: row.epoch,
+						acked_seq: row.ackedSeq,
+					})),
+				};
 			});
 		},
 	);

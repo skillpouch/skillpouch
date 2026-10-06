@@ -36,7 +36,9 @@ export class NonceService {
 	}
 
 	private forBucket(bucket: number): string {
-		const mac = createHmac('sha256', this.secret).update(`dpop-nonce:${bucket}`).digest('base64url');
+		const mac = createHmac('sha256', this.secret)
+			.update(`dpop-nonce:${bucket}`)
+			.digest('base64url');
 		return `${bucket}.${mac.slice(0, 22)}`;
 	}
 }

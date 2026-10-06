@@ -3,12 +3,18 @@
 import type { Deps } from '../deps';
 import type { ZodApp } from '../http/zod-app';
 import { accountRoutes } from './account/account.routes';
+import { artifactsRoutes } from './artifacts/artifacts.routes';
+import { blobsRoutes } from './blobs/blobs.routes';
 import { cliAuthRoutes } from './cli-auth/cli-auth.routes';
+import { conflictsRoutes } from './conflicts/conflicts.routes';
 import { devicesRoutes } from './devices/devices.routes';
+import { eventsRoutes } from './events/events.routes';
 import { healthRoutes, type HealthState } from './health/health.routes';
+import { operationsRoutes } from './operations/operations.routes';
 import { pouchesRoutes } from './pouches/pouches.routes';
 import { rosterRoutes } from './roster/roster.routes';
 import { sessionRoutes } from './session/session.routes';
+import { snapshotsRoutes } from './snapshots/snapshots.routes';
 
 export async function registerModules(app: ZodApp, deps: Deps, health: HealthState): Promise<void> {
 	await healthRoutes(app, deps, health);
@@ -18,4 +24,10 @@ export async function registerModules(app: ZodApp, deps: Deps, health: HealthSta
 	await devicesRoutes(app, deps);
 	await rosterRoutes(app, deps);
 	await pouchesRoutes(app, deps);
+	await blobsRoutes(app, deps);
+	await operationsRoutes(app, deps);
+	await eventsRoutes(app, deps);
+	await snapshotsRoutes(app, deps);
+	await artifactsRoutes(app, deps);
+	await conflictsRoutes(app, deps);
 }

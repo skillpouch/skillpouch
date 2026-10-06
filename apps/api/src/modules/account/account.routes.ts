@@ -32,11 +32,18 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 		'/v1/me',
 		{
 			config: { auth: 'any', allowUnbound: true },
-			schema: { tags: ['account'], summary: 'Current user, account, entitlements and usage', response: { 200: MeResponse } },
+			schema: {
+				tags: ['account'],
+				summary: 'Current user, account, entitlements and usage',
+				response: { 200: MeResponse },
+			},
 		},
 		async (request) => {
 			const principal = principalOf(request);
-			const [user] = await deps.db.app.select().from(users).where(eq(users.id, principal.userId));
+			const [user] = await deps.db.app
+				.select()
+				.from(users)
+				.where(eq(users.id, principal.userId));
 			if (!user) throw new AppError('unauthenticated');
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 				const [account] = await tx
@@ -53,7 +60,13 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 					device = row ?? null;
 				}
 				return {
-					user: { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role },
+					user: {
+						id: user.id,
+						email: user.email,
+						name: user.name,
+						image: user.image,
+						role: user.role,
+					},
 					account: {
 						id: account.id,
 						entitlements: account.entitlements,
@@ -66,7 +79,11 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 					},
 					session:
 						principal.kind === 'session'
-							? { bound: principal.jkt !== null, jkt: principal.jkt, step_up_fresh: isStepUpFresh(principal, deps.now()) }
+							? {
+									bound: principal.jkt !== null,
+									jkt: principal.jkt,
+									step_up_fresh: isStepUpFresh(principal, deps.now()),
+								}
 							: null,
 					device,
 				};
@@ -78,7 +95,11 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 		'/v1/plans',
 		{
 			config: { auth: 'public' },
-			schema: { tags: ['billing'], summary: 'Public, active plans (pricing page)', response: { 200: z.object({ plans: z.array(Plan) }) } },
+			schema: {
+				tags: ['billing'],
+				summary: 'Public, active plans (pricing page)',
+				response: { 200: z.object({ plans: z.array(Plan) }) },
+			},
 		},
 		async () => {
 			const rows = await deps.db.app
@@ -105,21 +126,36 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 		'/v1/cli/latest',
 		{
 			config: { auth: 'public' },
-			schema: { tags: ['devices'], summary: 'Latest CLI version and minimum supported version', response: { 200: CliLatest } },
+			schema: {
+				tags: ['devices'],
+				summary: 'Latest CLI version and minimum supported version',
+				response: { 200: CliLatest },
+			},
 		},
-		async () => ({ version: deps.env.CLI_LATEST_VERSION, min_supported: deps.env.CLI_MIN_VERSION }),
+		async () => ({
+			version: deps.env.CLI_LATEST_VERSION,
+			min_supported: deps.env.CLI_MIN_VERSION,
+		}),
 	);
 
 	app.get(
 		'/v1/security/events',
 		{
 			config: { auth: 'any' },
-			schema: { tags: ['account'], summary: 'Security events for the Security page', response: { 200: z.object({ events: z.array(SecurityEvent) }) } },
+			schema: {
+				tags: ['account'],
+				summary: 'Security events for the Security page',
+				response: { 200: z.object({ events: z.array(SecurityEvent) }) },
+			},
 		},
 		async (request) => {
 			const principal = principalOf(request);
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				const rows = await tx.select().from(securityEvents).orderBy(desc(securityEvents.createdAt)).limit(200);
+				const rows = await tx
+					.select()
+					.from(securityEvents)
+					.orderBy(desc(securityEvents.createdAt))
+					.limit(200);
 				return {
 					events: rows.map((row) => ({
 						id: row.id,
@@ -146,10 +182,18 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 				const updated = await tx
 					.update(securityEvents)
 					.set({ acknowledgedAt: deps.now() })
-					.where(and(eq(securityEvents.id, request.params.id), isNull(securityEvents.acknowledgedAt)))
+					.where(
+						and(
+							eq(securityEvents.id, request.params.id),
+							isNull(securityEvents.acknowledgedAt),
+						),
+					)
 					.returning({ id: securityEvents.id });
 				if (updated.length === 0) {
-					const [exists] = await tx.select({ id: securityEvents.id }).from(securityEvents).where(eq(securityEvents.id, request.params.id));
+					const [exists] = await tx
+						.select({ id: securityEvents.id })
+						.from(securityEvents)
+						.where(eq(securityEvents.id, request.params.id));
 					if (!exists) throw new AppError('not_found');
 				}
 			});
@@ -163,20 +207,28 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any' },
 			schema: {
 				tags: ['account'],
-				summary: 'Client-reported E2EE verification failure (should never happen; pages the operator, 08 §9)',
+				summary:
+					'Client-reported E2EE verification failure (should never happen; pages the operator, 08 §9)',
 				body: ClientSecurityReport,
 				response: { 200: Empty },
 			},
 		},
 		async (request) => {
 			const principal = principalOf(request);
-			request.log.error({ kind: request.body.kind, reporter: principalLabel(principal) }, 'client E2EE verification failure');
+			request.log.error(
+				{ kind: request.body.kind, reporter: principalLabel(principal) },
+				'client E2EE verification failure',
+			);
 			await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 				await tx.insert(securityEvents).values({
 					storageAccountId: principal.storageAccountId,
 					kind: `client.${request.body.kind}`,
 					severity: 'critical',
-					details: { ...request.body.details, pouch_id: request.body.pouch_id ?? null, reporter: principalLabel(principal) },
+					details: {
+						...request.body.details,
+						pouch_id: request.body.pouch_id ?? null,
+						reporter: principalLabel(principal),
+					},
 				});
 			});
 			return {};
@@ -189,14 +241,25 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 		'/v1/account',
 		{
 			config: { auth: 'session', stepUp: true },
-			schema: { tags: ['account'], summary: 'Delete the account after a 7-day grace period', response: { 200: scheduleSchema } },
+			schema: {
+				tags: ['account'],
+				summary: 'Delete the account after a 7-day grace period',
+				response: { 200: scheduleSchema },
+			},
 		},
 		async (request) => {
 			const principal = sessionOf(request);
 			const deleteAfter = addSeconds(deps.now(), Limits.undoWindowDays * 86400);
 			await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				await tx.update(storageAccounts).set({ deleteAfter }).where(eq(storageAccounts.id, principal.storageAccountId));
-				await appendAudit(tx, { storageAccountId: principal.storageAccountId, actor: principalLabel(principal), action: 'account.delete_scheduled' });
+				await tx
+					.update(storageAccounts)
+					.set({ deleteAfter })
+					.where(eq(storageAccounts.id, principal.storageAccountId));
+				await appendAudit(tx, {
+					storageAccountId: principal.storageAccountId,
+					actor: principalLabel(principal),
+					action: 'account.delete_scheduled',
+				});
 			});
 			return { delete_after: deleteAfter.toISOString() };
 		},
@@ -206,13 +269,24 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 		'/v1/account/restore',
 		{
 			config: { auth: 'session' },
-			schema: { tags: ['account'], summary: 'Cancel a scheduled account deletion', response: { 200: scheduleSchema } },
+			schema: {
+				tags: ['account'],
+				summary: 'Cancel a scheduled account deletion',
+				response: { 200: scheduleSchema },
+			},
 		},
 		async (request) => {
 			const principal = sessionOf(request);
 			await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				await tx.update(storageAccounts).set({ deleteAfter: null }).where(eq(storageAccounts.id, principal.storageAccountId));
-				await appendAudit(tx, { storageAccountId: principal.storageAccountId, actor: principalLabel(principal), action: 'account.delete_canceled' });
+				await tx
+					.update(storageAccounts)
+					.set({ deleteAfter: null })
+					.where(eq(storageAccounts.id, principal.storageAccountId));
+				await appendAudit(tx, {
+					storageAccountId: principal.storageAccountId,
+					actor: principalLabel(principal),
+					action: 'account.delete_canceled',
+				});
 			});
 			return { delete_after: null };
 		},
@@ -233,8 +307,15 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 			const principal = sessionOf(request);
 			const resetAfter = addSeconds(deps.now(), Limits.undoWindowDays * 86400);
 			await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				await tx.update(storageAccounts).set({ resetAfter }).where(eq(storageAccounts.id, principal.storageAccountId));
-				await appendAudit(tx, { storageAccountId: principal.storageAccountId, actor: principalLabel(principal), action: 'account.reset_scheduled' });
+				await tx
+					.update(storageAccounts)
+					.set({ resetAfter })
+					.where(eq(storageAccounts.id, principal.storageAccountId));
+				await appendAudit(tx, {
+					storageAccountId: principal.storageAccountId,
+					actor: principalLabel(principal),
+					action: 'account.reset_scheduled',
+				});
 			});
 			return { reset_after: resetAfter.toISOString() };
 		},
@@ -244,15 +325,21 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 		'/v1/account/reset-encryption',
 		{
 			config: { auth: 'session' },
-			schema: { tags: ['account'], summary: 'Cancel a scheduled encrypted-data reset', response: { 200: z.object({ reset_after: z.string().nullable() }) } },
+			schema: {
+				tags: ['account'],
+				summary: 'Cancel a scheduled encrypted-data reset',
+				response: { 200: z.object({ reset_after: z.string().nullable() }) },
+			},
 		},
 		async (request) => {
 			const principal = sessionOf(request);
 			await withTenantTx(deps.db.app, principal.storageAccountId, (tx) =>
-				tx.update(storageAccounts).set({ resetAfter: null }).where(eq(storageAccounts.id, principal.storageAccountId)),
+				tx
+					.update(storageAccounts)
+					.set({ resetAfter: null })
+					.where(eq(storageAccounts.id, principal.storageAccountId)),
 			);
 			return { reset_after: null };
 		},
 	);
-
 }

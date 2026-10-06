@@ -33,11 +33,17 @@ describe('authentication', () => {
 		it('binds once, then requires a proof from that key', async () => {
 			const browser = await signIn(h, 'binder@skillpouch.test', { bind: false });
 			await browser.bind();
-			expect((await browser.post('/v1/session/bind')).body.error.code).toBe('session_already_bound');
+			expect((await browser.post('/v1/session/bind')).body.error.code).toBe(
+				'session_already_bound',
+			);
 			expect((await browser.get('/v1/pouches')).status).toBe(200);
-			expect((await browser.get('/v1/pouches', { noDpop: true })).body.error.code).toBe('dpop_invalid');
+			expect((await browser.get('/v1/pouches', { noDpop: true })).body.error.code).toBe(
+				'dpop_invalid',
+			);
 			const otherKey = await TestKey.generate();
-			expect((await browser.get('/v1/pouches', { dpopKey: otherKey })).body.error.code).toBe('dpop_invalid');
+			expect((await browser.get('/v1/pouches', { dpopKey: otherKey })).body.error.code).toBe(
+				'dpop_invalid',
+			);
 		});
 
 		it('rejects a stolen cookie used from another browser (no key)', async () => {
@@ -48,13 +54,21 @@ describe('authentication', () => {
 		});
 
 		it('rejects cross-site writes (Origin / Skillpouch-Client)', async () => {
-			const response = await account.browser.post('/v1/pouches', {}, { headers: { origin: 'https://evil.example' } });
+			const response = await account.browser.post(
+				'/v1/pouches',
+				{},
+				{ headers: { origin: 'https://evil.example' } },
+			);
 			expect(response.body.error.code).toBe('csrf_rejected');
 		});
 
 		it('refuses replayed DPoP proofs', async () => {
 			const nonce = (await account.browser.get('/v1/dpop/nonce')).body.data.nonce;
-			const proof = await account.browser.key.dpop('GET', 'http://localhost:8080/v1/pouches', { nonce });
+			const proof = await account.browser.key.dpop(
+				'GET',
+				'http://localhost:8080/v1/pouches',
+				{ nonce },
+			);
 			const send = () =>
 				h.app.inject({
 					method: 'GET',
@@ -75,21 +89,32 @@ describe('authentication', () => {
 			expect(response.json().error.code).toBe('dpop_nonce_required');
 			expect(response.headers['dpop-nonce']).toBeTruthy();
 			const nonce = String(response.headers['dpop-nonce']);
-			const stale = await account.browser.key.dpop('GET', 'http://localhost:8080/v1/pouches', {
-				nonce,
-				iat: Math.floor(Date.now() / 1000) - 600,
-			});
+			const stale = await account.browser.key.dpop(
+				'GET',
+				'http://localhost:8080/v1/pouches',
+				{
+					nonce,
+					iat: Math.floor(Date.now() / 1000) - 600,
+				},
+			);
 			const staleResponse = await h.app.inject({
 				method: 'GET',
 				url: '/v1/pouches',
 				headers: { cookie: account.browser.cookie, dpop: stale },
 			});
-			expect(staleResponse.json().error).toMatchObject({ code: 'dpop_invalid', details: { reason: 'iat' } });
+			expect(staleResponse.json().error).toMatchObject({
+				code: 'dpop_invalid',
+				details: { reason: 'iat' },
+			});
 		});
 
 		it('rejects a proof for a different URL (htu)', async () => {
 			const nonce = (await account.browser.get('/v1/dpop/nonce')).body.data.nonce;
-			const proof = await account.browser.key.dpop('GET', 'http://localhost:8080/v1/devices', { nonce });
+			const proof = await account.browser.key.dpop(
+				'GET',
+				'http://localhost:8080/v1/devices',
+				{ nonce },
+			);
 			const response = await h.app.inject({
 				method: 'GET',
 				url: '/v1/pouches',
@@ -103,9 +128,17 @@ describe('authentication', () => {
 		it('created the first pouch and both members', async () => {
 			const pouches = (await account.browser.get('/v1/pouches')).body.data.pouches;
 			expect(pouches).toHaveLength(1);
-			expect(pouches[0]).toMatchObject({ id: account.pouchId, state: 'active', key_gen: 1, event_seq: 0 });
+			expect(pouches[0]).toMatchObject({
+				id: account.pouchId,
+				state: 'active',
+				key_gen: 1,
+				event_seq: 0,
+			});
 			const members = (await account.browser.get('/v1/account/members')).body.data.members;
-			expect(members.map((m: { kind: string }) => m.kind).sort()).toEqual(['browser', 'recovery']);
+			expect(members.map((m: { kind: string }) => m.kind).sort()).toEqual([
+				'browser',
+				'recovery',
+			]);
 			const roster = (await account.browser.get('/v1/account/roster')).body.data;
 			expect(roster.head_seq).toBe(1);
 			expect(roster.genesis_hash).toBe(roster.statements[0].statement_hash);
@@ -129,7 +162,12 @@ describe('authentication', () => {
 			const list = await cli.get('/v1/devices');
 			expect(list.status).toBe(200);
 			expect(list.body.data.devices).toHaveLength(1);
-			expect(list.body.data.devices[0]).toMatchObject({ name: 'laptop', state: 'active', key_storage: 'file', is_current: true });
+			expect(list.body.data.devices[0]).toMatchObject({
+				name: 'laptop',
+				state: 'active',
+				key_storage: 'file',
+				is_current: true,
+			});
 			const envelopes = await cli.get('/v1/account/key-envelopes');
 			expect(envelopes.body.data.key_envelopes).toHaveLength(1);
 		});
@@ -163,19 +201,16 @@ describe('authentication', () => {
 
 		it('requires the DPoP proof to come from the announced key', async () => {
 			const cli = new CliClient(h, await TestKey.generate(), await TestKey.generate());
-			const response = await cli.post(
-				'/v1/cli-auth/requests',
-				{
-					code_challenge: createHash('sha256').update('x'.repeat(43)).digest('base64url'),
-					device_name: 'box',
-					os: 'linux',
-					arch: 'x64',
-					cli_version: '0.1.0',
-					sign_pub: (await TestKey.generate()).jwk,
-					enc_pub: cli.encKey.jwk,
-					key_storage: 'file',
-				},
-			);
+			const response = await cli.post('/v1/cli-auth/requests', {
+				code_challenge: createHash('sha256').update('x'.repeat(43)).digest('base64url'),
+				device_name: 'box',
+				os: 'linux',
+				arch: 'x64',
+				cli_version: '0.1.0',
+				sign_pub: (await TestKey.generate()).jwk,
+				enc_pub: cli.encKey.jwk,
+				key_storage: 'file',
+			});
 			expect(response.body.error.code).toBe('dpop_invalid');
 		});
 
@@ -184,9 +219,14 @@ describe('authentication', () => {
 			const verifier = randomBytes(32).toString('base64url');
 			const created = await openRequest(cli, verifier);
 			const requestId = created.body.data.request_id;
-			expect(created.body.data.authorize_url).toBe(`http://localhost:5173/cli/authorize?request=${requestId}`);
+			expect(created.body.data.authorize_url).toBe(
+				`http://localhost:5173/cli/authorize?request=${requestId}`,
+			);
 
-			const pending = await cli.post('/v1/cli-auth/token', { request_id: requestId, code_verifier: verifier });
+			const pending = await cli.post('/v1/cli-auth/token', {
+				request_id: requestId,
+				code_verifier: verifier,
+			});
 			expect(pending.body.data).toEqual({ status: 'pending', interval: 2 });
 
 			const wrongVerifier = await cli.post('/v1/cli-auth/token', {
@@ -196,33 +236,52 @@ describe('authentication', () => {
 			expect(wrongVerifier.body.error.code).toBe('pkce_invalid');
 
 			const thief = new CliClient(h, await TestKey.generate(), await TestKey.generate());
-			const wrongKey = await thief.post('/v1/cli-auth/token', { request_id: requestId, code_verifier: verifier });
+			const wrongKey = await thief.post('/v1/cli-auth/token', {
+				request_id: requestId,
+				code_verifier: verifier,
+			});
 			expect(wrongKey.body.error.code).toBe('dpop_invalid');
 
 			const view = await account.browser.get(`/v1/cli-auth/requests/${requestId}`);
-			expect(view.body.data).toMatchObject({ device_name: 'box', os: 'macos', state: 'open', jkt: cli.key.jkt });
+			expect(view.body.data).toMatchObject({
+				device_name: 'box',
+				os: 'macos',
+				state: 'open',
+				jkt: cli.key.jkt,
+			});
 		});
 
 		it('deny is final', async () => {
 			const cli = new CliClient(h, await TestKey.generate(), await TestKey.generate());
 			const verifier = randomBytes(32).toString('base64url');
 			const requestId = (await openRequest(cli, verifier)).body.data.request_id;
-			expect((await account.browser.post(`/v1/cli-auth/requests/${requestId}/deny`)).status).toBe(200);
-			const token = await cli.post('/v1/cli-auth/token', { request_id: requestId, code_verifier: verifier });
+			expect(
+				(await account.browser.post(`/v1/cli-auth/requests/${requestId}/deny`)).status,
+			).toBe(200);
+			const token = await cli.post('/v1/cli-auth/token', {
+				request_id: requestId,
+				code_verifier: verifier,
+			});
 			expect(token.body.error.code).toBe('cli_auth_denied');
 		});
 
 		it('another user cannot see or approve someone else’s approved request', async () => {
 			const other = await setupAccount(h, 'mallory@skillpouch.test');
 			const cli = await authorizeCli(h, account, 'victim-cli');
-			const { rows } = await h.owner.query('SELECT id FROM cli_auth_requests WHERE device_id = $1', [cli.deviceId]);
+			const { rows } = await h.owner.query(
+				'SELECT id FROM cli_auth_requests WHERE device_id = $1',
+				[cli.deviceId],
+			);
 			const response = await other.browser.get(`/v1/cli-auth/requests/${rows[0].id}`);
 			expect(response.status).toBe(404);
 		});
 
 		it('a redeemed request cannot be redeemed again', async () => {
 			const cli = await authorizeCli(h, account, 'once');
-			const { rows } = await h.owner.query('SELECT id FROM cli_auth_requests WHERE device_id = $1', [cli.deviceId]);
+			const { rows } = await h.owner.query(
+				'SELECT id FROM cli_auth_requests WHERE device_id = $1',
+				[cli.deviceId],
+			);
 			const again = await cli.anonymous().post('/v1/cli-auth/token', {
 				request_id: rows[0].id,
 				code_verifier: 'x'.repeat(43),
@@ -235,11 +294,15 @@ describe('authentication', () => {
 		it('rotate on use and revoke the device on reuse', async () => {
 			const cli = await authorizeCli(h, account, 'refresher');
 			const first = cli.refreshToken;
-			const refreshed = await cli.anonymous().post('/v1/devices/token', { refresh_token: first });
+			const refreshed = await cli
+				.anonymous()
+				.post('/v1/devices/token', { refresh_token: first });
 			expect(refreshed.status).toBe(200);
 			expect(refreshed.body.data.refresh_token).not.toBe(first);
 
-			const reused = await cli.anonymous().post('/v1/devices/token', { refresh_token: first });
+			const reused = await cli
+				.anonymous()
+				.post('/v1/devices/token', { refresh_token: first });
 			expect(reused.body.error.code).toBe('refresh_reused');
 
 			const afterReuse = await cli.get('/v1/devices');
@@ -251,7 +314,9 @@ describe('authentication', () => {
 		it('requires the device key', async () => {
 			const cli = await authorizeCli(h, account, 'refresh-key');
 			const thief = new CliClient(h, await TestKey.generate(), await TestKey.generate());
-			const response = await thief.post('/v1/devices/token', { refresh_token: cli.refreshToken });
+			const response = await thief.post('/v1/devices/token', {
+				refresh_token: cli.refreshToken,
+			});
 			expect(response.body.error.code).toBe('dpop_invalid');
 		});
 	});
@@ -263,7 +328,9 @@ describe('authentication', () => {
 			const revoke = await account.browser.post(`/v1/devices/${cli.deviceId}/revoke`, {});
 			expect(revoke.body.data).toEqual({ revoked: true, rotation_pending: true });
 			expect((await cli.get('/v1/devices')).body.error.code).toBe('device_revoked');
-			const refresh = await cli.anonymous().post('/v1/devices/token', { refresh_token: cli.refreshToken });
+			const refresh = await cli
+				.anonymous()
+				.post('/v1/devices/token', { refresh_token: cli.refreshToken });
 			expect(refresh.body.error.code).toBe('device_revoked');
 		});
 
@@ -277,10 +344,15 @@ describe('authentication', () => {
 
 		it('requires a fresh sign-in (step-up) for web sessions', async () => {
 			const cli = await authorizeCli(h, account, 'stepup');
-			await h.owner.query(`UPDATE sessions SET step_up_at = now() - interval '1 hour' WHERE jkt = $1`, [account.browser.key.jkt]);
+			await h.owner.query(
+				`UPDATE sessions SET step_up_at = now() - interval '1 hour' WHERE jkt = $1`,
+				[account.browser.key.jkt],
+			);
 			const response = await account.browser.post(`/v1/devices/${cli.deviceId}/revoke`, {});
 			expect(response.body.error.code).toBe('step_up_required');
-			await h.owner.query(`UPDATE sessions SET step_up_at = now() WHERE jkt = $1`, [account.browser.key.jkt]);
+			await h.owner.query(`UPDATE sessions SET step_up_at = now() WHERE jkt = $1`, [
+				account.browser.key.jkt,
+			]);
 		});
 	});
 });

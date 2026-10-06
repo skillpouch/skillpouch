@@ -53,7 +53,8 @@ export async function verifyDpopProof(
 	expected: DpopExpectation,
 	deps: DpopVerifierDeps,
 ): Promise<DpopResult> {
-	if (!proof || proof.length > 4096 || proof.includes(',')) throw invalid('missing or malformed proof');
+	if (!proof || proof.length > 4096 || proof.includes(','))
+		throw invalid('missing or malformed proof');
 
 	let header: ReturnType<typeof decodeProtectedHeader>;
 	try {
@@ -76,7 +77,10 @@ export async function verifyDpopProof(
 	if (payload.htm !== expected.method) throw invalid('htm');
 	if (payload.htu !== expected.url) throw invalid('htu');
 	const nowSeconds = Math.floor(deps.now().getTime() / 1000);
-	if (typeof payload.iat !== 'number' || Math.abs(nowSeconds - payload.iat) > Limits.dpopIatWindowSeconds) {
+	if (
+		typeof payload.iat !== 'number' ||
+		Math.abs(nowSeconds - payload.iat) > Limits.dpopIatWindowSeconds
+	) {
 		throw invalid('iat');
 	}
 	if (typeof payload.jti !== 'string' || payload.jti.length < 8 || payload.jti.length > 128) {
@@ -98,6 +102,11 @@ export async function verifyDpopProof(
 }
 
 /** RFC 7638 thumbprint of a P-256 public JWK. */
-export function jwkThumbprint(jwk: { kty: string; crv: string; x: string; y: string }): Promise<string> {
+export function jwkThumbprint(jwk: {
+	kty: string;
+	crv: string;
+	x: string;
+	y: string;
+}): Promise<string> {
 	return calculateJwkThumbprint({ kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y }, 'sha256');
 }

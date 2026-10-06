@@ -36,7 +36,11 @@ import type { SessionPrincipal } from '../../security/principal';
 import { principalLabel } from '../../security/principal';
 import { withTenantTx } from '../../security/tenant-tx';
 import { issueDeviceTokens } from '../devices/devices.service';
-import { appendStatements, assertEnvelopeCoverage, insertKeyEnvelopes } from '../roster/roster.service';
+import {
+	appendStatements,
+	assertEnvelopeCoverage,
+	insertKeyEnvelopes,
+} from '../roster/roster.service';
 
 type RequestRow = typeof cliAuthRequests.$inferSelect;
 
@@ -112,7 +116,8 @@ export function requestView(row: RequestRow, deps: Deps) {
 /** The authorize page loads a request. Requests already approved by another account are invisible. */
 export async function getCliAuthRequest(deps: Deps, principal: SessionPrincipal, id: string) {
 	const row = await loadRequest(deps, id);
-	if (row.storageAccountId && row.storageAccountId !== principal.storageAccountId) throw new AppError('not_found');
+	if (row.storageAccountId && row.storageAccountId !== principal.storageAccountId)
+		throw new AppError('not_found');
 	return requestView(row, deps);
 }
 
@@ -124,10 +129,15 @@ export async function approveCliAuthRequest(
 	input: z.infer<typeof CliAuthApprove>,
 	ipHash: Buffer,
 ) {
-	if (!principal.memberId) throw new AppError('member_inactive', { reason: 'unlock this browser first' });
+	if (!principal.memberId)
+		throw new AppError('member_inactive', { reason: 'unlock this browser first' });
 	const statement = parseRosterStatement(input.statement.statement).body;
 	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-		const [row] = await tx.select().from(cliAuthRequests).where(eq(cliAuthRequests.id, id)).for('update');
+		const [row] = await tx
+			.select()
+			.from(cliAuthRequests)
+			.where(eq(cliAuthRequests.id, id))
+			.for('update');
 		if (!row || (row.storageAccountId && row.storageAccountId !== principal.storageAccountId)) {
 			throw new AppError('not_found');
 		}
@@ -142,7 +152,9 @@ export async function approveCliAuthRequest(
 			!samePublicKey(member.sign_pub, row.signPub) ||
 			!samePublicKey(member.enc_pub, row.encPub)
 		) {
-			throw new AppError('roster_invalid', { reason: 'statement must add exactly this CLI’s keys' });
+			throw new AppError('roster_invalid', {
+				reason: 'statement must add exactly this CLI’s keys',
+			});
 		}
 
 		const deviceId = uuidv7();
@@ -199,14 +211,20 @@ export async function approveCliAuthRequest(
 			target: `device:${deviceId}`,
 			ipHash,
 		});
-		await notifyAccount(tx, principal.storageAccountId, 'cli_auth.approved', { device_id: deviceId });
+		await notifyAccount(tx, principal.storageAccountId, 'cli_auth.approved', {
+			device_id: deviceId,
+		});
 		return { device_id: deviceId };
 	});
 }
 
 export async function denyCliAuthRequest(deps: Deps, principal: SessionPrincipal, id: string) {
 	await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-		const [row] = await tx.select().from(cliAuthRequests).where(eq(cliAuthRequests.id, id)).for('update');
+		const [row] = await tx
+			.select()
+			.from(cliAuthRequests)
+			.where(eq(cliAuthRequests.id, id))
+			.for('update');
 		if (!row || (row.storageAccountId && row.storageAccountId !== principal.storageAccountId)) {
 			throw new AppError('not_found');
 		}
@@ -214,7 +232,11 @@ export async function denyCliAuthRequest(deps: Deps, principal: SessionPrincipal
 		if (row.state !== 'open') throw new AppError('cli_auth_final', { state: row.state });
 		await tx
 			.update(cliAuthRequests)
-			.set({ state: 'denied', storageAccountId: principal.storageAccountId, finalizedAt: deps.now() })
+			.set({
+				state: 'denied',
+				storageAccountId: principal.storageAccountId,
+				finalizedAt: deps.now(),
+			})
 			.where(eq(cliAuthRequests.id, id));
 		await appendAudit(tx, {
 			storageAccountId: principal.storageAccountId,
@@ -236,7 +258,8 @@ export async function redeemCliAuthRequest(
 	const initial = await loadRequest(deps, input.request_id);
 	const challenge = createHash('sha256').update(input.code_verifier).digest();
 	if (!bytesEqualBuffers(challenge, initial.codeChallenge)) throw new AppError('pkce_invalid');
-	if (proofJkt !== initial.jkt) throw new AppError('dpop_invalid', { reason: 'not the requesting key' });
+	if (proofJkt !== initial.jkt)
+		throw new AppError('dpop_invalid', { reason: 'not the requesting key' });
 
 	const deadline = Date.now() + input.wait * 1000;
 	for (;;) {
@@ -251,7 +274,8 @@ export async function redeemCliAuthRequest(
 			throw new AppError('cli_auth_expired');
 		}
 		if (row.state === 'approved') return finishRedeem(deps, row.id);
-		if (Date.now() >= deadline || signal.aborted) return { status: 'pending' as const, interval: 2 };
+		if (Date.now() >= deadline || signal.aborted)
+			return { status: 'pending' as const, interval: 2 };
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
 	}
 }
@@ -259,15 +283,33 @@ export async function redeemCliAuthRequest(
 async function finishRedeem(deps: Deps, id: string) {
 	// Claim the approved request exactly once; a concurrent second redeem gets cli_auth_final.
 	const claimed = await deps.db.app.transaction(async (tx) => {
-		const [row] = await tx.select().from(cliAuthRequests).where(eq(cliAuthRequests.id, id)).for('update');
-		if (!row || row.state !== 'approved' || !row.deviceId || !row.storageAccountId || !row.welcome) return null;
-		await tx.update(cliAuthRequests).set({ state: 'redeemed', welcome: null }).where(eq(cliAuthRequests.id, id));
+		const [row] = await tx
+			.select()
+			.from(cliAuthRequests)
+			.where(eq(cliAuthRequests.id, id))
+			.for('update');
+		if (
+			!row ||
+			row.state !== 'approved' ||
+			!row.deviceId ||
+			!row.storageAccountId ||
+			!row.welcome
+		)
+			return null;
+		await tx
+			.update(cliAuthRequests)
+			.set({ state: 'redeemed', welcome: null })
+			.where(eq(cliAuthRequests.id, id));
 		return row;
 	});
 	if (!claimed) throw new AppError('cli_auth_final');
 	const deviceId = claimed.deviceId!;
 	const tokens = await withTenantTx(deps.db.app, claimed.storageAccountId!, async (tx) => {
-		const [device] = await tx.select().from(devices).where(eq(devices.id, deviceId)).for('update');
+		const [device] = await tx
+			.select()
+			.from(devices)
+			.where(eq(devices.id, deviceId))
+			.for('update');
 		if (!device || device.state !== 'active') throw new AppError('device_revoked');
 		return issueDeviceTokens(deps, tx, device, claimed.jkt, { newFamily: true });
 	});

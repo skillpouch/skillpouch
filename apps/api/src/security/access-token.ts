@@ -42,7 +42,10 @@ export class AccessTokens {
 	) {}
 
 	/** Loads the signing key from a private JWK, or generates an ephemeral one (dev/test). */
-	static async create(privateJwkJson: string | undefined, now: () => Date): Promise<AccessTokens> {
+	static async create(
+		privateJwkJson: string | undefined,
+		now: () => Date,
+	): Promise<AccessTokens> {
 		if (privateJwkJson) {
 			const jwk = JSON.parse(privateJwkJson) as JWK;
 			const privateKey = (await importJWK(jwk, 'EdDSA')) as CryptoKey;
@@ -56,7 +59,10 @@ export class AccessTokens {
 
 	/** Generates a new private JWK for `JWT_SIGNING_KEY` (used by `pnpm ops keygen`). */
 	static async generatePrivateJwk(kid: string): Promise<JWK> {
-		const { privateKey } = await generateKeyPair('EdDSA', { crv: 'Ed25519', extractable: true });
+		const { privateKey } = await generateKeyPair('EdDSA', {
+			crv: 'Ed25519',
+			extractable: true,
+		});
 		return { ...(await exportJWK(privateKey)), kid, alg: 'EdDSA', use: 'sig' };
 	}
 

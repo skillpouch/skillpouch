@@ -33,12 +33,17 @@ export async function findPouch(
 ): Promise<PouchRow> {
 	const query = tx.select().from(pouches).where(eq(pouches.id, pouchId));
 	const [pouch] = options.lock ? await query.for('update') : await query;
-	if (!pouch || (pouch.state === 'deleted' && !options.includeDeleted)) throw new AppError('not_found');
+	if (!pouch || (pouch.state === 'deleted' && !options.includeDeleted))
+		throw new AppError('not_found');
 	return pouch;
 }
 
 /** Same as `findPouch` but also requires the pouch to accept new data. */
-export async function findWritablePouch(tx: TenantTx, pouchId: string, lock = false): Promise<PouchRow> {
+export async function findWritablePouch(
+	tx: TenantTx,
+	pouchId: string,
+	lock = false,
+): Promise<PouchRow> {
 	const pouch = await findPouch(tx, pouchId, { lock });
 	if (pouch.state !== 'active') throw new AppError('pouch_read_only', { state: pouch.state });
 	return pouch;
@@ -57,10 +62,18 @@ export function pouchView(pouch: PouchRow) {
 	};
 }
 
-export async function markPouchDeleted(tx: TenantTx, pouch: PouchRow, now: Date): Promise<PouchRow> {
+export async function markPouchDeleted(
+	tx: TenantTx,
+	pouch: PouchRow,
+	now: Date,
+): Promise<PouchRow> {
 	const [updated] = await tx
 		.update(pouches)
-		.set({ state: 'deleted', deleteAfter: addSeconds(now, Limits.undoWindowDays * 86400), updatedAt: now })
+		.set({
+			state: 'deleted',
+			deleteAfter: addSeconds(now, Limits.undoWindowDays * 86400),
+			updatedAt: now,
+		})
 		.where(eq(pouches.id, pouch.id))
 		.returning();
 	return updated!;

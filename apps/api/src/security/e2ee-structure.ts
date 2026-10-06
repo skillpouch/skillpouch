@@ -32,7 +32,9 @@ export const CONTEXT = {
 const encoder = new TextEncoder();
 
 export function concatBytes(...parts: (Uint8Array | string)[]): Buffer {
-	return Buffer.concat(parts.map((part) => (typeof part === 'string' ? encoder.encode(part) : part)));
+	return Buffer.concat(
+		parts.map((part) => (typeof part === 'string' ? encoder.encode(part) : part)),
+	);
 }
 
 /** Verifies a raw P-256 signature over `context ‖ message`. */
@@ -48,14 +50,23 @@ export function verifyMemberSignature(
 		const key = createPublicKey({ key: { kty: 'EC', crv: 'P-256', x, y }, format: 'jwk' });
 		const signature = fromBase64Url(signatureB64);
 		if (signature.length !== 64) return false;
-		return verify('sha256', concatBytes(context, message), { key, dsaEncoding: 'ieee-p1363' }, signature);
+		return verify(
+			'sha256',
+			concatBytes(context, message),
+			{ key, dsaEncoding: 'ieee-p1363' },
+			signature,
+		);
 	} catch {
 		return false;
 	}
 }
 
 /** Message signed for a revision (15 §5.3). */
-export function revisionSignedMessage(pouchId: string, revisionId: string, envelope: Uint8Array): Buffer {
+export function revisionSignedMessage(
+	pouchId: string,
+	revisionId: string,
+	envelope: Uint8Array,
+): Buffer {
 	return concatBytes(pouchId, revisionId, blake3Hash(envelope));
 }
 
@@ -96,6 +107,9 @@ export function checkSealed(bytes: Uint8Array, expectedKeyGen?: number): void {
 	}
 }
 
-export function samePublicKey(a: Pick<P256PublicJwk, 'x' | 'y'>, b: Record<string, string>): boolean {
+export function samePublicKey(
+	a: Pick<P256PublicJwk, 'x' | 'y'>,
+	b: Record<string, string>,
+): boolean {
 	return a.x === b.x && a.y === b.y;
 }

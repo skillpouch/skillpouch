@@ -60,9 +60,15 @@ export function toAppError(error: unknown): { appError: AppError; unexpected: bo
 			break;
 	}
 	if (error instanceof SyntaxError && fastifyError.statusCode === 400) {
-		return { appError: new AppError('validation_failed', { reason: 'invalid JSON' }), unexpected: false };
+		return {
+			appError: new AppError('validation_failed', { reason: 'invalid JSON' }),
+			unexpected: false,
+		};
 	}
-	return { appError: new AppError('internal_error', undefined, { cause: error }), unexpected: true };
+	return {
+		appError: new AppError('internal_error', undefined, { cause: error }),
+		unexpected: true,
+	};
 }
 
 export function sendError(request: FastifyRequest, reply: FastifyReply, error: unknown) {
@@ -86,7 +92,11 @@ export const envelopePlugin = fp(async (app: FastifyInstance) => {
 		if (reply.statusCode >= 400 || config?.raw || !config?.auth) return payload;
 		if (payload !== null && typeof payload === 'object' && NEXT_CURSOR in payload) {
 			const nextCursor = (payload as Record<symbol, unknown>)[NEXT_CURSOR] as string | null;
-			return { ok: true, data: payload, meta: { request_id: request.id, next_cursor: nextCursor } };
+			return {
+				ok: true,
+				data: payload,
+				meta: { request_id: request.id, next_cursor: nextCursor },
+			};
 		}
 		return { ok: true, data: payload ?? {}, meta: { request_id: request.id } };
 	});

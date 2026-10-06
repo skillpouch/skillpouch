@@ -33,7 +33,13 @@ import {
 	rosterStatementView,
 } from './roster.service';
 
-const GENERIC_APPEND_ACTIONS = new Set(['add', 'remove', 'rotate_keys', 'rename_pouch', 'archive_pouch']);
+const GENERIC_APPEND_ACTIONS = new Set([
+	'add',
+	'remove',
+	'rotate_keys',
+	'rename_pouch',
+	'archive_pouch',
+]);
 
 export async function rosterRoutes(app: ZodApp, deps: Deps) {
 	app.post(
@@ -42,7 +48,8 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'session' },
 			schema: {
 				tags: ['account'],
-				summary: 'Account genesis: roster #0 + first pouch + key envelopes (web onboarding only)',
+				summary:
+					'Account genesis: roster #0 + first pouch + key envelopes (web onboarding only)',
 				body: GenesisRequest,
 				response: { 200: z.object({ genesis_hash: z.string(), pouch_id: z.string() }) },
 			},
@@ -51,8 +58,13 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 			const principal = sessionOf(request);
 			const [genesis, createPouch] = request.body.statements;
 			const genesisBody = parseRosterStatement(genesis!.statement).body;
-			if (genesisBody.action !== 'genesis' || parseRosterStatement(createPouch!.statement).body.action !== 'create_pouch') {
-				throw new AppError('roster_invalid', { reason: 'expected [genesis, create_pouch]' });
+			if (
+				genesisBody.action !== 'genesis' ||
+				parseRosterStatement(createPouch!.statement).body.action !== 'create_pouch'
+			) {
+				throw new AppError('roster_invalid', {
+					reason: 'expected [genesis, create_pouch]',
+				});
 			}
 			// The browser doing genesis must be one of the members it creates.
 			const browserKeys = await Promise.all(
@@ -61,7 +73,9 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 					.map((member) => jwkThumbprint(member.sign_pub)),
 			);
 			if (!principal.jkt || !browserKeys.includes(principal.jkt)) {
-				throw new AppError('roster_invalid', { reason: 'genesis must include this browser' });
+				throw new AppError('roster_invalid', {
+					reason: 'genesis must include this browser',
+				});
 			}
 
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
@@ -75,9 +89,14 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 				const result = await appendStatements(tx, request.body.statements, {
 					storageAccountId: principal.storageAccountId,
 					allowedActions: new Set(['genesis', 'create_pouch']),
-					beforeCreatePouch: (innerTx) => assertPouchAllowance(innerTx, principal.storageAccountId),
+					beforeCreatePouch: (innerTx) =>
+						assertPouchAllowance(innerTx, principal.storageAccountId),
 				});
-				await insertKeyEnvelopes(tx, principal.storageAccountId, request.body.key_envelopes);
+				await insertKeyEnvelopes(
+					tx,
+					principal.storageAccountId,
+					request.body.key_envelopes,
+				);
 				await assertEnvelopeCoverage(tx);
 				await appendAudit(tx, {
 					storageAccountId: principal.storageAccountId,
@@ -126,7 +145,8 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any' },
 			schema: {
 				tags: ['account'],
-				summary: 'Append signed roster statements (+ key envelopes) — add browser/recovery, remove, rotate keys, rename/archive pouch',
+				summary:
+					'Append signed roster statements (+ key envelopes) — add browser/recovery, remove, rotate keys, rename/archive pouch',
 				body: RosterAppendRequest,
 				response: { 200: z.object({ head_seq: z.number().int() }) },
 			},
@@ -140,13 +160,20 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 					requiredSigner: signer,
 					allowedActions: GENERIC_APPEND_ACTIONS,
 				});
-				await insertKeyEnvelopes(tx, principal.storageAccountId, request.body.key_envelopes);
+				await insertKeyEnvelopes(
+					tx,
+					principal.storageAccountId,
+					request.body.key_envelopes,
+				);
 				await assertEnvelopeCoverage(tx);
 				await appendAudit(tx, {
 					storageAccountId: principal.storageAccountId,
 					actor: principalLabel(principal),
 					action: 'roster.append',
-					details: { actions: result.statements.map((s) => s.body.action), head_seq: result.headSeq },
+					details: {
+						actions: result.statements.map((s) => s.body.action),
+						head_seq: result.headSeq,
+					},
 				});
 				return { head_seq: result.headSeq };
 			});
@@ -177,7 +204,8 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any' },
 			schema: {
 				tags: ['account'],
-				summary: 'Key envelopes sealed to the calling member (all pouches, all generations)',
+				summary:
+					'Key envelopes sealed to the calling member (all pouches, all generations)',
 				response: { 200: z.object({ key_envelopes: z.array(KeyEnvelope) }) },
 			},
 		},

@@ -11,18 +11,21 @@ export function principalOf(request: FastifyRequest): Principal {
 
 export function sessionOf(request: FastifyRequest): SessionPrincipal {
 	const principal = principalOf(request);
-	if (principal.kind !== 'session') throw new AppError('forbidden', { reason: 'browser session required' });
+	if (principal.kind !== 'session')
+		throw new AppError('forbidden', { reason: 'browser session required' });
 	return principal;
 }
 
 export function deviceOf(request: FastifyRequest): DevicePrincipal {
 	const principal = principalOf(request);
-	if (principal.kind !== 'device') throw new AppError('forbidden', { reason: 'CLI device required' });
+	if (principal.kind !== 'device')
+		throw new AppError('forbidden', { reason: 'CLI device required' });
 	return principal;
 }
 
 /** The caller's roster member id — required for anything that signs E2EE data. */
 export function memberOf(principal: Principal): string {
-	if (!principal.memberId) throw new AppError('member_inactive', { reason: 'this client is not enrolled' });
+	if (!principal.memberId)
+		throw new AppError('member_inactive', { reason: 'this client is not enrolled' });
 	return principal.memberId;
 }

@@ -6,7 +6,11 @@
  */
 import { randomBytes } from 'node:crypto';
 import { blake3 } from '@noble/hashes/blake3.js';
-import { canonicalJson, type KeyEnvelopeInput, type RosterStatementInput } from '@skillpouch/contracts';
+import {
+	canonicalJson,
+	type KeyEnvelopeInput,
+	type RosterStatementInput,
+} from '@skillpouch/contracts';
 import { uuidv7 } from '../../src/lib/ids';
 import type { BaseClient } from './clients';
 import { TestKey, type PublicJwk } from './keys';
@@ -21,7 +25,12 @@ export interface MemberHandle {
 }
 
 export async function newMember(kind: MemberHandle['kind'], key?: TestKey): Promise<MemberHandle> {
-	return { id: uuidv7(), kind, key: key ?? (await TestKey.generate()), enc: await TestKey.generate() };
+	return {
+		id: uuidv7(),
+		kind,
+		key: key ?? (await TestKey.generate()),
+		enc: await TestKey.generate(),
+	};
 }
 
 export function memberJson(member: MemberHandle): Record<string, unknown> {
@@ -66,7 +75,10 @@ export async function statement(
 	const bytes = Buffer.from(canonicalJson(body));
 	head.seq += 1;
 	head.hash = b64(blake3(bytes));
-	return { statement: b64(bytes), signature: await signer.key.sign('skillpouch/v1/roster', bytes) };
+	return {
+		statement: b64(bytes),
+		signature: await signer.key.sign('skillpouch/v1/roster', bytes),
+	};
 }
 
 /** A well-formed sealed object (15 §5.1): 0x01 ‖ u32 gen ‖ nonce ‖ ciphertext ‖ tag. */
@@ -77,7 +89,12 @@ export function sealed(keyGen: number, plaintextBytes = 64): Buffer {
 	return Buffer.concat([header, randomBytes(24), randomBytes(plaintextBytes + 16)]);
 }
 
-export function keyEnvelope(pouchId: string, memberId: string, keyGen: number, createdBy: string): KeyEnvelopeInput {
+export function keyEnvelope(
+	pouchId: string,
+	memberId: string,
+	keyGen: number,
+	createdBy: string,
+): KeyEnvelopeInput {
 	return {
 		pouch_id: pouchId,
 		member_id: memberId,
@@ -89,7 +106,12 @@ export function keyEnvelope(pouchId: string, memberId: string, keyGen: number, c
 	};
 }
 
-export function envelopesFor(pouchId: string, members: MemberHandle[], keyGen: number, createdBy: string) {
+export function envelopesFor(
+	pouchId: string,
+	members: MemberHandle[],
+	keyGen: number,
+	createdBy: string,
+) {
 	return members.map((member) => keyEnvelope(pouchId, member.id, keyGen, createdBy));
 }
 

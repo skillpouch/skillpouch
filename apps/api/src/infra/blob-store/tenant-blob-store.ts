@@ -14,7 +14,11 @@ export class TenantBlobStore {
 	) {}
 
 	private key(blobId: Uint8Array) {
-		return { storageAccountId: this.storageAccountId, pouchId: this.pouchId, blobIdHex: toHex(blobId) };
+		return {
+			storageAccountId: this.storageAccountId,
+			pouchId: this.pouchId,
+			blobIdHex: toHex(blobId),
+		};
 	}
 
 	put(blobId: Uint8Array, body: Uint8Array) {

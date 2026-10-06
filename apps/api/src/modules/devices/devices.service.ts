@@ -16,7 +16,11 @@ import type { Principal } from '../../security/principal';
 import { principalLabel } from '../../security/principal';
 import type { TenantTx } from '../../security/tenant-tx';
 import { withTenantTx } from '../../security/tenant-tx';
-import { appendStatements, assertEnvelopeCoverage, insertKeyEnvelopes } from '../roster/roster.service';
+import {
+	appendStatements,
+	assertEnvelopeCoverage,
+	insertKeyEnvelopes,
+} from '../roster/roster.service';
 
 const REFRESH_PREFIX = 'spr1';
 
@@ -27,14 +31,24 @@ export interface ParsedRefreshToken {
 }
 
 /** `spr1.<storage account>.<device>.<secret>` — the ids let us open the right tenant transaction. */
-export function formatRefreshToken(storageAccountId: string, deviceId: string, secret: string): string {
+export function formatRefreshToken(
+	storageAccountId: string,
+	deviceId: string,
+	secret: string,
+): string {
 	return `${REFRESH_PREFIX}.${storageAccountId}.${deviceId}.${secret}`;
 }
 
 export function parseRefreshToken(token: string): ParsedRefreshToken {
 	const [prefix, storageAccountId, deviceId, secret, extra] = token.split('.');
 	const uuid = /^[0-9a-f-]{36}$/;
-	if (prefix !== REFRESH_PREFIX || extra !== undefined || !storageAccountId || !deviceId || !secret) {
+	if (
+		prefix !== REFRESH_PREFIX ||
+		extra !== undefined ||
+		!storageAccountId ||
+		!deviceId ||
+		!secret
+	) {
 		throw new AppError('refresh_invalid');
 	}
 	if (!uuid.test(storageAccountId) || !uuid.test(deviceId)) throw new AppError('refresh_invalid');
@@ -81,12 +95,22 @@ export async function issueDeviceTokens(
 export async function refreshDeviceTokens(deps: Deps, refreshToken: string, jkt: string) {
 	const parsed = parseRefreshToken(refreshToken);
 	const outcome = await withTenantTx(deps.db.app, parsed.storageAccountId, async (tx) => {
-		const [device] = await tx.select().from(devices).where(eq(devices.id, parsed.deviceId)).for('update');
+		const [device] = await tx
+			.select()
+			.from(devices)
+			.where(eq(devices.id, parsed.deviceId))
+			.for('update');
 		if (!device) throw new AppError('refresh_invalid');
 		const [key] = await tx
 			.select()
 			.from(deviceKeys)
-			.where(and(eq(deviceKeys.deviceId, device.id), eq(deviceKeys.jkt, jkt), isNull(deviceKeys.retiredAt)));
+			.where(
+				and(
+					eq(deviceKeys.deviceId, device.id),
+					eq(deviceKeys.jkt, jkt),
+					isNull(deviceKeys.retiredAt),
+				),
+			);
 		if (device.state === 'revoked') throw new AppError('device_revoked');
 		if (device.state === 'suspended') throw new AppError('device_suspended');
 		if (!key) throw new AppError('dpop_invalid', { reason: 'not this device’s key' });
@@ -122,7 +146,12 @@ export async function refreshDeviceTokens(deps: Deps, refreshToken: string, jkt:
 }
 
 /** Marks a device revoked: state, token version, keys retired, member flagged, notifications. */
-async function revokeDeviceRow(tx: TenantTx, device: typeof devices.$inferSelect, reason: string, now: Date) {
+async function revokeDeviceRow(
+	tx: TenantTx,
+	device: typeof devices.$inferSelect,
+	reason: string,
+	now: Date,
+) {
 	await tx
 		.update(devices)
 		.set({
@@ -134,7 +163,10 @@ async function revokeDeviceRow(tx: TenantTx, device: typeof devices.$inferSelect
 			prevRefreshHash: null,
 		})
 		.where(eq(devices.id, device.id));
-	await tx.update(deviceKeys).set({ retiredAt: now }).where(and(eq(deviceKeys.deviceId, device.id), isNull(deviceKeys.retiredAt)));
+	await tx
+		.update(deviceKeys)
+		.set({ retiredAt: now })
+		.where(and(eq(deviceKeys.deviceId, device.id), isNull(deviceKeys.retiredAt)));
 	await tx
 		.update(accountMembers)
 		.set({ revokedAt: now })
@@ -156,7 +188,11 @@ export async function revokeDevice(
 	input: { roster?: RosterAppendRequest | undefined; reason?: string | undefined },
 ) {
 	const result = await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-		const [device] = await tx.select().from(devices).where(eq(devices.id, deviceId)).for('update');
+		const [device] = await tx
+			.select()
+			.from(devices)
+			.where(eq(devices.id, deviceId))
+			.for('update');
 		if (!device) throw new AppError('not_found');
 		if (device.state !== 'revoked') {
 			await revokeDeviceRow(tx, device, input.reason ?? 'revoked_by_user', deps.now());
@@ -164,7 +200,11 @@ export async function revokeDevice(
 				storageAccountId: principal.storageAccountId,
 				kind: 'device.revoked',
 				severity: 'info',
-				details: { device_id: device.id, device_name: device.name, by: principalLabel(principal) },
+				details: {
+					device_id: device.id,
+					device_name: device.name,
+					by: principalLabel(principal),
+				},
 			});
 			await appendAudit(tx, {
 				storageAccountId: principal.storageAccountId,
@@ -195,9 +235,15 @@ export async function revokeBrowser(
 			.for('update');
 		if (!member) throw new AppError('not_found');
 		if (!member.revokedAt) {
-			await tx.update(accountMembers).set({ revokedAt: deps.now() }).where(eq(accountMembers.id, member.id));
-			if (member.sessionJkt) await tx.delete(sessions).where(eq(sessions.jkt, member.sessionJkt));
-			await notifyAccount(tx, principal.storageAccountId, 'device.revoked', { member_id: member.id });
+			await tx
+				.update(accountMembers)
+				.set({ revokedAt: deps.now() })
+				.where(eq(accountMembers.id, member.id));
+			if (member.sessionJkt)
+				await tx.delete(sessions).where(eq(sessions.jkt, member.sessionJkt));
+			await notifyAccount(tx, principal.storageAccountId, 'device.revoked', {
+				member_id: member.id,
+			});
 			await appendAudit(tx, {
 				storageAccountId: principal.storageAccountId,
 				actor: principalLabel(principal),
@@ -218,22 +264,35 @@ async function finishRemoval(
 	const [member] = await tx
 		.select()
 		.from(accountMembers)
-		.where(target.deviceId ? eq(accountMembers.deviceId, target.deviceId) : eq(accountMembers.id, target.memberId!));
+		.where(
+			target.deviceId
+				? eq(accountMembers.deviceId, target.deviceId)
+				: eq(accountMembers.id, target.memberId!),
+		);
 	if (roster && member && member.removedSeq === null) {
-		if (!principal.memberId || principal.memberId === member.id) throw new AppError('member_inactive');
+		if (!principal.memberId || principal.memberId === member.id)
+			throw new AppError('member_inactive');
 		const appended = await appendStatements(tx, roster.statements, {
 			storageAccountId: principal.storageAccountId,
 			requiredSigner: principal.memberId,
 			allowedActions: new Set(['remove', 'rotate_keys']),
 		});
 		if (!appended.removedMemberIds.includes(member.id)) {
-			throw new AppError('roster_invalid', { reason: 'statements must remove the revoked member' });
+			throw new AppError('roster_invalid', {
+				reason: 'statements must remove the revoked member',
+			});
 		}
 		await insertKeyEnvelopes(tx, principal.storageAccountId, roster.key_envelopes);
 		await assertEnvelopeCoverage(tx);
 	}
 	const [after] = member
-		? await tx.select({ removedSeq: accountMembers.removedSeq }).from(accountMembers).where(eq(accountMembers.id, member.id))
+		? await tx
+				.select({ removedSeq: accountMembers.removedSeq })
+				.from(accountMembers)
+				.where(eq(accountMembers.id, member.id))
 		: [];
-	return { revoked: true as const, rotation_pending: member !== undefined && after?.removedSeq === null };
+	return {
+		revoked: true as const,
+		rotation_pending: member !== undefined && after?.removedSeq === null,
+	};
 }

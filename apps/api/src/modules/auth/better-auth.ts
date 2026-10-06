@@ -28,10 +28,16 @@ export interface AuthDeps {
 export function createAuth({ env, db }: AuthDeps) {
 	const socialProviders: Record<string, { clientId: string; clientSecret: string }> = {};
 	if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
-		socialProviders.github = { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET };
+		socialProviders.github = {
+			clientId: env.GITHUB_CLIENT_ID,
+			clientSecret: env.GITHUB_CLIENT_SECRET,
+		};
 	}
 	if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
-		socialProviders.google = { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET };
+		socialProviders.google = {
+			clientId: env.GOOGLE_CLIENT_ID,
+			clientSecret: env.GOOGLE_CLIENT_SECRET,
+		};
 	}
 
 	return betterAuth({
@@ -42,7 +48,12 @@ export function createAuth({ env, db }: AuthDeps) {
 		trustedOrigins: [env.WEB_ORIGIN],
 		database: drizzleAdapter(db, {
 			provider: 'pg',
-			schema: { user: users, session: sessions, account: accounts, verification: verifications },
+			schema: {
+				user: users,
+				session: sessions,
+				account: accounts,
+				verification: verifications,
+			},
 		}),
 		emailAndPassword: { enabled: false },
 		socialProviders,

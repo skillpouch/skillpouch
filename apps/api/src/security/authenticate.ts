@@ -74,7 +74,11 @@ async function authenticateDevice(deps: Deps, request: FastifyRequest): Promise<
 
 	const status = await deps.deviceStatus.get(claims.sa, claims.did);
 	if (!status) throw new AppError('token_invalid');
-	if (status.state === 'revoked' || status.tokenVersion !== claims.ver || !status.keys.has(proof.jkt)) {
+	if (
+		status.state === 'revoked' ||
+		status.tokenVersion !== claims.ver ||
+		!status.keys.has(proof.jkt)
+	) {
 		throw new AppError('device_revoked');
 	}
 	if (status.state === 'suspended') throw new AppError('device_suspended');
@@ -100,13 +104,22 @@ async function authenticateSession(
 	if (!result) throw new AppError('unauthenticated');
 	const { session, user } = result as unknown as {
 		session: { id: string; jkt?: string | null; stepUpAt?: Date | string | null };
-		user: { id: string; email: string; role?: string | null; suspendedAt?: Date | string | null };
+		user: {
+			id: string;
+			email: string;
+			role?: string | null;
+			suspendedAt?: Date | string | null;
+		};
 	};
 	if (user.suspendedAt) throw new AppError('account_suspended');
 
 	if (UNSAFE_METHODS.has(request.method)) {
 		const client = request.headers['skillpouch-client'];
-		if (request.headers.origin !== deps.env.WEB_ORIGIN || typeof client !== 'string' || !client.startsWith('web')) {
+		if (
+			request.headers.origin !== deps.env.WEB_ORIGIN ||
+			typeof client !== 'string' ||
+			!client.startsWith('web')
+		) {
 			throw new AppError('csrf_rejected');
 		}
 	}
@@ -116,7 +129,8 @@ async function authenticateSession(
 	let memberId: string | null = null;
 	if (jkt) {
 		const proof = await verifyRequestDpop(deps, request);
-		if (proof.jkt !== jkt) throw new AppError('dpop_invalid', { reason: 'session key mismatch' });
+		if (proof.jkt !== jkt)
+			throw new AppError('dpop_invalid', { reason: 'session key mismatch' });
 		const member = await withTenantTx(deps.db.app, storageAccountId, async (tx) => {
 			const [row] = await tx
 				.select({
@@ -128,7 +142,8 @@ async function authenticateSession(
 				.where(eq(accountMembers.sessionJkt, jkt));
 			return row;
 		});
-		if (member && (member.revokedAt || member.removedSeq !== null)) throw new AppError('device_revoked');
+		if (member && (member.revokedAt || member.removedSeq !== null))
+			throw new AppError('device_revoked');
 		memberId = member?.id ?? null;
 	} else if (!allowUnbound) {
 		throw new AppError('session_unbound');
@@ -150,7 +165,10 @@ async function authenticateSession(
 async function waitForWritePause(deps: Deps): Promise<void> {
 	const deadline = Date.now() + WRITE_PAUSE_MAX_WAIT_MS;
 	while (await deps.settings.isWritePaused()) {
-		if (Date.now() >= deadline) throw new AppError('maintenance_write_pause', undefined, { headers: { 'Retry-After': '5' } });
+		if (Date.now() >= deadline)
+			throw new AppError('maintenance_write_pause', undefined, {
+				headers: { 'Retry-After': '5' },
+			});
 		await new Promise((resolve) => setTimeout(resolve, 500));
 		deps.settings.invalidate();
 	}
@@ -193,7 +211,11 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 				request.principal = await authenticateDevice(deps, request);
 				break;
 			case 'session':
-				request.principal = await authenticateSession(deps, request, config.allowUnbound === true);
+				request.principal = await authenticateSession(
+					deps,
+					request,
+					config.allowUnbound === true,
+				);
 				break;
 			case 'admin': {
 				const principal = await authenticateSession(deps, request, false);
@@ -209,10 +231,18 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 		}
 
 		const principal = request.principal;
-		if (config.stepUp && principal?.kind === 'session' && !isStepUpFresh(principal, deps.now())) {
+		if (
+			config.stepUp &&
+			principal?.kind === 'session' &&
+			!isStepUpFresh(principal, deps.now())
+		) {
 			throw new AppError('step_up_required', { max_age_seconds: Limits.stepUpMaxAgeSeconds });
 		}
-		if (mode === 'admin' && UNSAFE_METHODS.has(request.method) && principal?.kind === 'session') {
+		if (
+			mode === 'admin' &&
+			UNSAFE_METHODS.has(request.method) &&
+			principal?.kind === 'session'
+		) {
 			if (!isStepUpFresh(principal, deps.now())) throw new AppError('step_up_required');
 		}
 
@@ -224,9 +254,15 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 						? `d:${principal.deviceId}`
 						: `u:${principal.userId}`
 					: `ip:${clientIpHash(deps, request).toString('base64url')}`;
-				const retryAfter = await takeToken(deps.db.app, `${bucket}:${subject}`, BUCKETS[bucket]);
+				const retryAfter = await takeToken(
+					deps.db.app,
+					`${bucket}:${subject}`,
+					BUCKETS[bucket],
+				);
 				if (retryAfter > 0) {
-					throw new AppError('rate_limited', undefined, { headers: { 'Retry-After': String(retryAfter) } });
+					throw new AppError('rate_limited', undefined, {
+						headers: { 'Retry-After': String(retryAfter) },
+					});
 				}
 			}
 		}
@@ -243,4 +279,3 @@ export async function touchDevice(deps: Deps, principal: DevicePrincipal): Promi
 		tx.execute(sql`UPDATE devices SET last_seen_at = now() WHERE id = ${principal.deviceId}`),
 	);
 }
-

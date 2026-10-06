@@ -14,7 +14,11 @@ import { parseRosterStatement } from '../../security/e2ee-structure';
 import { principalLabel } from '../../security/principal';
 import { withTenantTx } from '../../security/tenant-tx';
 import { refreshEntitlementsInTx } from '../entitlements/entitlements.service';
-import { appendStatements, assertEnvelopeCoverage, insertKeyEnvelopes } from '../roster/roster.service';
+import {
+	appendStatements,
+	assertEnvelopeCoverage,
+	insertKeyEnvelopes,
+} from '../roster/roster.service';
 import { assertPouchAllowance, findPouch, markPouchDeleted, pouchView } from './pouches.service';
 
 export async function pouchesRoutes(app: ZodApp, deps: Deps) {
@@ -24,7 +28,8 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any' },
 			schema: {
 				tags: ['pouches'],
-				summary: 'List the account’s pouches (including deleted ones still in their undo window)',
+				summary:
+					'List the account’s pouches (including deleted ones still in their undo window)',
 				response: { 200: z.object({ pouches: z.array(Pouch) }) },
 			},
 		},
@@ -57,7 +62,8 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'any' },
 			schema: {
 				tags: ['pouches'],
-				summary: 'Create a pouch: signed create_pouch statement + key envelopes for every member',
+				summary:
+					'Create a pouch: signed create_pouch statement + key envelopes for every member',
 				body: PouchCreate,
 				response: { 200: Pouch },
 			},
@@ -70,10 +76,15 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 					storageAccountId: principal.storageAccountId,
 					requiredSigner: signer,
 					allowedActions: new Set(['create_pouch']),
-					beforeCreatePouch: (innerTx) => assertPouchAllowance(innerTx, principal.storageAccountId),
+					beforeCreatePouch: (innerTx) =>
+						assertPouchAllowance(innerTx, principal.storageAccountId),
 				});
 				const pouchId = result.createdPouchIds[0]!;
-				await insertKeyEnvelopes(tx, principal.storageAccountId, request.body.key_envelopes);
+				await insertKeyEnvelopes(
+					tx,
+					principal.storageAccountId,
+					request.body.key_envelopes,
+				);
 				await assertEnvelopeCoverage(tx, [pouchId]);
 				await appendAudit(tx, {
 					storageAccountId: principal.storageAccountId,
@@ -102,7 +113,8 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 			const principal = principalOf(request);
 			const signer = memberOf(principal);
 			const body = parseRosterStatement(request.body.statement.statement).body;
-			if (body.pouch?.id !== request.params.pouchId) throw new AppError('roster_invalid', { reason: 'pouch id' });
+			if (body.pouch?.id !== request.params.pouchId)
+				throw new AppError('roster_invalid', { reason: 'pouch id' });
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 				await appendStatements(tx, [request.body.statement], {
 					storageAccountId: principal.storageAccountId,
@@ -131,7 +143,9 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 				const pouch = await findPouch(tx, request.params.pouchId, { lock: true });
 				const deleted = await markPouchDeleted(tx, pouch, deps.now());
 				await refreshEntitlementsInTx(tx, principal.storageAccountId, deps.now());
-				await notifyAccount(tx, principal.storageAccountId, 'pouch.state_changed', { pouch_id: pouch.id });
+				await notifyAccount(tx, principal.storageAccountId, 'pouch.state_changed', {
+					pouch_id: pouch.id,
+				});
 				await appendAudit(tx, {
 					storageAccountId: principal.storageAccountId,
 					actor: principalLabel(principal),
@@ -157,16 +171,22 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 		async (request) => {
 			const principal = principalOf(request);
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				const pouch = await findPouch(tx, request.params.pouchId, { lock: true, includeDeleted: true });
+				const pouch = await findPouch(tx, request.params.pouchId, {
+					lock: true,
+					includeDeleted: true,
+				});
 				if (pouch.state !== 'deleted') return pouchView(pouch);
-				if (!pouch.deleteAfter || pouch.deleteAfter <= deps.now()) throw new AppError('not_found');
+				if (!pouch.deleteAfter || pouch.deleteAfter <= deps.now())
+					throw new AppError('not_found');
 				await assertPouchAllowance(tx, principal.storageAccountId);
 				await tx
 					.update(pouches)
 					.set({ state: 'active', deleteAfter: null, updatedAt: deps.now() })
 					.where(eq(pouches.id, pouch.id));
 				await refreshEntitlementsInTx(tx, principal.storageAccountId, deps.now());
-				await notifyAccount(tx, principal.storageAccountId, 'pouch.state_changed', { pouch_id: pouch.id });
+				await notifyAccount(tx, principal.storageAccountId, 'pouch.state_changed', {
+					pouch_id: pouch.id,
+				});
 				return pouchView(await findPouch(tx, pouch.id));
 			});
 		},

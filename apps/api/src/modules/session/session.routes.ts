@@ -20,7 +20,11 @@ export async function sessionRoutes(app: ZodApp, deps: Deps) {
 		'/v1/dpop/nonce',
 		{
 			config: { auth: 'public' },
-			schema: { tags: ['session'], summary: 'Current DPoP nonce', response: { 200: NonceResponse } },
+			schema: {
+				tags: ['session'],
+				summary: 'Current DPoP nonce',
+				response: { 200: NonceResponse },
+			},
 		},
 		async () => ({ nonce: deps.nonces.current() }),
 	);

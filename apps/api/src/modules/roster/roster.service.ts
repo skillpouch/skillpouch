@@ -120,17 +120,23 @@ export async function appendStatements(
 	for (const input of inputs) {
 		const parsed = parseRosterStatement(input.statement);
 		const body = parsed.body;
-		if (parsed.bytes.length > Limits.rosterStatementMaxBytes) throw new AppError('roster_invalid', { reason: 'too large' });
+		if (parsed.bytes.length > Limits.rosterStatementMaxBytes)
+			throw new AppError('roster_invalid', { reason: 'too large' });
 		if (!ctx.allowedActions.has(body.action)) {
-			throw new AppError('roster_invalid', { reason: `action ${body.action} not allowed here` });
+			throw new AppError('roster_invalid', {
+				reason: `action ${body.action} not allowed here`,
+			});
 		}
-		if (body.account_id !== ctx.storageAccountId) throw new AppError('roster_invalid', { reason: 'account_id' });
+		if (body.account_id !== ctx.storageAccountId)
+			throw new AppError('roster_invalid', { reason: 'account_id' });
 		const expectedPrev = headHash ? toBase64Url(headHash) : null;
 		if (body.seq !== seq + 1 || body.prev_hash !== expectedPrev) {
 			throw new AppError('roster_conflict', { expected_seq: seq + 1 });
 		}
 		if (ctx.requiredSigner !== undefined && body.signer_member_id !== ctx.requiredSigner) {
-			throw new AppError('member_inactive', { reason: 'statement must be signed by the caller' });
+			throw new AppError('member_inactive', {
+				reason: 'statement must be signed by the caller',
+			});
 		}
 
 		// Genesis is self-signed by one of the members it introduces.
@@ -193,8 +199,14 @@ async function applyEffect(
 			const list = body.members ?? [];
 			const browsers = list.filter((member) => member.kind === 'browser');
 			const recovery = list.filter((member) => member.kind === 'recovery');
-			if (browsers.length < 1 || recovery.length !== 1 || browsers.length + recovery.length !== list.length) {
-				throw new AppError('roster_invalid', { reason: 'genesis needs ≥1 browser and exactly 1 recovery member' });
+			if (
+				browsers.length < 1 ||
+				recovery.length !== 1 ||
+				browsers.length + recovery.length !== list.length
+			) {
+				throw new AppError('roster_invalid', {
+					reason: 'genesis needs ≥1 browser and exactly 1 recovery member',
+				});
 			}
 			for (const member of list) {
 				await insertMember(tx, ctx.storageAccountId, member, body.seq, null);
@@ -204,12 +216,20 @@ async function applyEffect(
 		}
 		case 'add': {
 			const member = body.member;
-			if (!member || members.has(member.id)) throw new AppError('roster_invalid', { reason: 'member' });
+			if (!member || members.has(member.id))
+				throw new AppError('roster_invalid', { reason: 'member' });
 			if (member.kind === 'device' && !ctx.deviceIdForNewMember) {
-				throw new AppError('roster_invalid', { reason: 'devices join only through CLI authorize' });
+				throw new AppError('roster_invalid', {
+					reason: 'devices join only through CLI authorize',
+				});
 			}
-			if (member.kind === 'recovery' && [...members.values()].some((m) => m.kind === 'recovery' && isActiveMember(m))) {
-				throw new AppError('roster_invalid', { reason: 'remove the old recovery member first' });
+			if (
+				member.kind === 'recovery' &&
+				[...members.values()].some((m) => m.kind === 'recovery' && isActiveMember(m))
+			) {
+				throw new AppError('roster_invalid', {
+					reason: 'remove the old recovery member first',
+				});
 			}
 			await insertMember(
 				tx,
@@ -223,12 +243,15 @@ async function applyEffect(
 		}
 		case 'remove': {
 			const target = body.member_id ? members.get(body.member_id) : undefined;
-			if (!target || target.removedSeq !== null) throw new AppError('roster_invalid', { reason: 'member_id' });
+			if (!target || target.removedSeq !== null)
+				throw new AppError('roster_invalid', { reason: 'member_id' });
 			const remainingHumans = [...members.values()].filter(
 				(m) => m.id !== target.id && m.kind !== 'recovery' && m.removedSeq === null,
 			);
 			if (target.kind !== 'recovery' && remainingHumans.length === 0) {
-				throw new AppError('roster_invalid', { reason: 'cannot remove the last non-recovery member' });
+				throw new AppError('roster_invalid', {
+					reason: 'cannot remove the last non-recovery member',
+				});
 			}
 			await tx
 				.update(accountMembers)
@@ -245,18 +268,27 @@ async function applyEffect(
 				.where(ne(pouches.state, 'deleted'));
 			for (const pouch of live) {
 				if (generations[pouch.id] !== pouch.keyGen + 1) {
-					throw new AppError('key_gen_invalid', { pouch_id: pouch.id, expected: pouch.keyGen + 1 });
+					throw new AppError('key_gen_invalid', {
+						pouch_id: pouch.id,
+						expected: pouch.keyGen + 1,
+					});
 				}
 			}
 			for (const pouch of live) {
-				await tx.update(pouches).set({ keyGen: pouch.keyGen + 1 }).where(eq(pouches.id, pouch.id));
+				await tx
+					.update(pouches)
+					.set({ keyGen: pouch.keyGen + 1 })
+					.where(eq(pouches.id, pouch.id));
 			}
 			return null;
 		}
 		case 'create_pouch': {
 			const pouchId = body.pouch?.id;
 			if (!pouchId) throw new AppError('roster_invalid', { reason: 'pouch' });
-			const [existing] = await tx.select({ id: pouches.id }).from(pouches).where(eq(pouches.id, pouchId));
+			const [existing] = await tx
+				.select({ id: pouches.id })
+				.from(pouches)
+				.where(eq(pouches.id, pouchId));
 			if (existing) throw new AppError('roster_invalid', { reason: 'pouch exists' });
 			await ctx.beforeCreatePouch?.(tx);
 			await tx.insert(pouches).values({
@@ -276,8 +308,13 @@ async function applyEffect(
 				: [];
 			if (!pouch || pouch.state === 'deleted') throw new AppError('not_found');
 			if (body.action === 'archive_pouch') {
-				await tx.update(pouches).set({ state: 'archived', updatedAt: new Date() }).where(eq(pouches.id, pouch.id));
-				await notifyAccount(tx, ctx.storageAccountId, 'pouch.state_changed', { pouch_id: pouch.id });
+				await tx
+					.update(pouches)
+					.set({ state: 'archived', updatedAt: new Date() })
+					.where(eq(pouches.id, pouch.id));
+				await notifyAccount(tx, ctx.storageAccountId, 'pouch.state_changed', {
+					pouch_id: pouch.id,
+				});
 			}
 			return pouch.id;
 		}
@@ -303,10 +340,14 @@ export async function insertKeyEnvelopes(
 	const byId = new Map(rows.map((row) => [row.id, row]));
 	for (const envelope of envelopes) {
 		const pouch = byId.get(envelope.pouch_id);
-		if (!pouch || pouch.state === 'deleted') throw new AppError('not_found', { pouch_id: envelope.pouch_id });
-		if (envelope.key_gen > pouch.keyGen) throw new AppError('key_gen_invalid', { pouch_id: pouch.id });
-		if (!members.has(envelope.member_id)) throw new AppError('roster_invalid', { reason: 'envelope member' });
-		if (!isActiveMember(members.get(envelope.created_by_member))) throw new AppError('member_inactive');
+		if (!pouch || pouch.state === 'deleted')
+			throw new AppError('not_found', { pouch_id: envelope.pouch_id });
+		if (envelope.key_gen > pouch.keyGen)
+			throw new AppError('key_gen_invalid', { pouch_id: pouch.id });
+		if (!members.has(envelope.member_id))
+			throw new AppError('roster_invalid', { reason: 'envelope member' });
+		if (!isActiveMember(members.get(envelope.created_by_member)))
+			throw new AppError('member_inactive');
 	}
 	await tx
 		.insert(keyEnvelopes)
@@ -335,7 +376,11 @@ export async function assertEnvelopeCoverage(tx: TenantTx, pouchIds?: string[]):
 	const live = await tx
 		.select({ id: pouches.id, keyGen: pouches.keyGen })
 		.from(pouches)
-		.where(pouchIds ? and(ne(pouches.state, 'deleted'), inArray(pouches.id, pouchIds)) : ne(pouches.state, 'deleted'));
+		.where(
+			pouchIds
+				? and(ne(pouches.state, 'deleted'), inArray(pouches.id, pouchIds))
+				: ne(pouches.state, 'deleted'),
+		);
 	for (const pouch of live) {
 		const present = await tx
 			.select({ memberId: keyEnvelopes.memberId })
@@ -390,4 +435,3 @@ export function memberView(row: MemberRow) {
 		last_seen_at: row.lastSeenAt?.toISOString() ?? null,
 	};
 }
-

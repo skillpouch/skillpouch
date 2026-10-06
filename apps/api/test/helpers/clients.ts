@@ -44,9 +44,16 @@ export abstract class BaseClient {
 	protected abstract authHeaders(options: RequestOptions): Record<string, string>;
 	protected abstract accessToken(): string | undefined;
 
-	async request<T = any>(method: string, path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+	async request<T = any>(
+		method: string,
+		path: string,
+		options: RequestOptions = {},
+	): Promise<ApiResponse<T>> {
 		for (let attempt = 0; attempt < 2; attempt++) {
-			const headers: Record<string, string> = { ...this.authHeaders(options), ...options.headers };
+			const headers: Record<string, string> = {
+				...this.authHeaders(options),
+				...options.headers,
+			};
 			if (!options.noDpop) {
 				const proofKey = options.dpopKey ?? this.key;
 				const accessToken = this.accessToken();
@@ -72,20 +79,27 @@ export abstract class BaseClient {
 			const nonce = response.headers['dpop-nonce'];
 			if (typeof nonce === 'string') nonces.set(this.harness, nonce);
 			const parsed = parse(response);
-			if (parsed.body?.error?.code === 'dpop_nonce_required' && attempt === 0 && !options.noDpop) continue;
+			if (
+				parsed.body?.error?.code === 'dpop_nonce_required' &&
+				attempt === 0 &&
+				!options.noDpop
+			)
+				continue;
 			return parsed as ApiResponse<T>;
 		}
 		throw new Error('unreachable');
 	}
 
-	get = <T = any>(path: string, options?: RequestOptions) => this.request<T>('GET', path, options);
+	get = <T = any>(path: string, options?: RequestOptions) =>
+		this.request<T>('GET', path, options);
 	post = <T = any>(path: string, body?: unknown, options: RequestOptions = {}) =>
 		this.request<T>('POST', path, { ...options, body: body ?? {} });
 	put = <T = any>(path: string, body?: unknown, options: RequestOptions = {}) =>
 		this.request<T>('PUT', path, { ...options, body: body ?? {} });
 	patch = <T = any>(path: string, body?: unknown, options: RequestOptions = {}) =>
 		this.request<T>('PATCH', path, { ...options, body: body ?? {} });
-	delete = <T = any>(path: string, options: RequestOptions = {}) => this.request<T>('DELETE', path, options);
+	delete = <T = any>(path: string, options: RequestOptions = {}) =>
+		this.request<T>('DELETE', path, options);
 }
 
 /** A signed-in browser tab. */
@@ -112,7 +126,8 @@ export class BrowserClient extends BaseClient {
 
 	async bind(): Promise<void> {
 		const response = await this.post('/v1/session/bind');
-		if (response.status !== 200) throw new Error(`bind failed: ${JSON.stringify(response.body)}`);
+		if (response.status !== 200)
+			throw new Error(`bind failed: ${JSON.stringify(response.body)}`);
 	}
 }
 
@@ -165,7 +180,11 @@ export async function signIn(
 	const { rows } = await harness.owner.query('SELECT id FROM users WHERE email = $1', [email]);
 	let userId = rows[0]?.id as string | undefined;
 	if (!userId) {
-		const user = context.test.createUser({ email, name: email.split('@')[0], emailVerified: options.emailVerified ?? true });
+		const user = context.test.createUser({
+			email,
+			name: email.split('@')[0],
+			emailVerified: options.emailVerified ?? true,
+		});
 		userId = (await context.test.saveUser(user)).id;
 	}
 	const { headers } = await context.test.login({ userId });

@@ -19,7 +19,9 @@ const EnvSchema = z
 		API_ROLE: z.enum(['api', 'worker', 'migrate']).default('api'),
 		HOST: z.string().default('0.0.0.0'),
 		PORT: z.coerce.number().int().min(0).max(65535).default(8080),
-		LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+		LOG_LEVEL: z
+			.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+			.default('info'),
 		TRUST_PROXY: bool.default(false),
 
 		/** Public origin of the API (DPoP `htu`, OAuth callbacks). */
@@ -108,7 +110,9 @@ function resolveRaw(source: NodeJS.ProcessEnv): Record<string, string | undefine
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
 	const parsed = EnvSchema.safeParse(resolveRaw(source));
 	if (!parsed.success) {
-		const problems = parsed.error.issues.map((issue) => `  ${issue.path.join('.')}: ${issue.message}`);
+		const problems = parsed.error.issues.map(
+			(issue) => `  ${issue.path.join('.')}: ${issue.message}`,
+		);
 		throw new Error(`Invalid environment:\n${problems.join('\n')}`);
 	}
 	if (parsed.data.NODE_ENV === 'production' && !parsed.data.JWT_SIGNING_KEY) {

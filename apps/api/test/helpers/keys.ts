@@ -39,7 +39,16 @@ export class TestKey {
 	}
 
 	/** A DPoP proof (RFC 9449) for one request. */
-	dpop(method: string, url: string, options: { nonce?: string | undefined; accessToken?: string; iat?: number; jti?: string } = {}) {
+	dpop(
+		method: string,
+		url: string,
+		options: {
+			nonce?: string | undefined;
+			accessToken?: string;
+			iat?: number;
+			jti?: string;
+		} = {},
+	) {
 		const payload: Record<string, unknown> = {
 			htm: method,
 			htu: url,

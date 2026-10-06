@@ -22,7 +22,10 @@ export async function healthRoutes(app: ZodApp, deps: Deps, state: HealthState) 
 		'/healthz',
 		{
 			config: { auth: 'public', raw: true },
-			schema: { tags: ['health'], response: { 200: rawSchema(z.object({ status: z.literal('ok') })) } },
+			schema: {
+				tags: ['health'],
+				response: { 200: rawSchema(z.object({ status: z.literal('ok') })) },
+			},
 		},
 		async () => ({ status: 'ok' as const }),
 	);
@@ -34,22 +37,33 @@ export async function healthRoutes(app: ZodApp, deps: Deps, state: HealthState) 
 			schema: {
 				tags: ['health'],
 				response: {
-					200: rawSchema(z.object({ status: z.literal('ready'), schema_version: z.number() })),
-					503: rawSchema(z.object({ status: z.string(), schema_version: z.number().nullable() })),
+					200: rawSchema(
+						z.object({ status: z.literal('ready'), schema_version: z.number() }),
+					),
+					503: rawSchema(
+						z.object({ status: z.string(), schema_version: z.number().nullable() }),
+					),
 				},
 			},
 		},
 		async (_request, reply) => {
-			if (state.draining) return reply.code(503).send({ status: 'draining', schema_version: null });
+			if (state.draining)
+				return reply.code(503).send({ status: 'draining', schema_version: null });
 			try {
-				const result = await deps.db.app.execute(sql`SELECT count(*)::int AS n FROM schema_migrations`);
+				const result = await deps.db.app.execute(
+					sql`SELECT count(*)::int AS n FROM schema_migrations`,
+				);
 				const version = Number(result.rows[0]?.n ?? 0);
 				if (version < expectedSchema) {
-					return reply.code(503).send({ status: 'schema_behind', schema_version: version });
+					return reply
+						.code(503)
+						.send({ status: 'schema_behind', schema_version: version });
 				}
 				return { status: 'ready' as const, schema_version: version };
 			} catch {
-				return reply.code(503).send({ status: 'database_unavailable', schema_version: null });
+				return reply
+					.code(503)
+					.send({ status: 'database_unavailable', schema_version: null });
 			}
 		},
 	);
