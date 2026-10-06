@@ -6,6 +6,7 @@ import { router } from './app/router';
 import { bootstrapSession } from './features/session/bootstrap';
 import './styles/globals.css';
 
+if (import.meta.env.DEV) void import('./lib/dev-tools').then((tools) => tools.installDevTools());
 void bootstrapSession();
 
 createRoot(document.getElementById('root')!).render(

@@ -50,12 +50,16 @@ test.describe('onboarding', () => {
 		await page.getByLabel('Master password').fill('short');
 		await page.getByLabel('Confirm password').fill('short');
 		await page.getByRole('button', { name: 'Continue' }).click();
-		await expect(page.getByRole('heading', { name: 'Create your master password' })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'Create your master password' }),
+		).toBeVisible();
 
 		await page.getByLabel('Master password').fill(PASSWORD);
 		await page.getByLabel('Confirm password').fill(`${PASSWORD}x`);
 		await page.getByRole('button', { name: 'Continue' }).click();
-		await expect(page.getByRole('heading', { name: 'Create your master password' })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: 'Create your master password' }),
+		).toBeVisible();
 	});
 
 	test('cannot continue past the Recovery Key until it is confirmed', async ({ page }) => {
@@ -116,8 +120,14 @@ test.describe('unlock', () => {
 		const account = await createAccount(page);
 		const other = await newBrowser(browser);
 		await signIn(other, account.email);
-		await unlock(other, 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon', 'recovery');
-		await expect(other.getByRole('alert').or(other.getByText(/Recovery Key/).last())).toBeVisible();
+		await unlock(
+			other,
+			'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon',
+			'recovery',
+		);
+		await expect(
+			other.getByRole('alert').or(other.getByText(/Recovery Key/).last()),
+		).toBeVisible();
 		await other.getByLabel('Recovery Key').fill(account.recoveryKey.toUpperCase());
 		await other.getByRole('button', { name: 'Unlock', exact: true }).click();
 		await expect(other.getByRole('heading', { name: 'Pouches' })).toBeVisible();

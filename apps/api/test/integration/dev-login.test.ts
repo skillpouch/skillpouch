@@ -2,6 +2,8 @@
 /** Development sign-in: only when DEV_LOGIN is on, never in production. */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadEnv } from '../../src/config/env';
+import { signIn } from '../helpers/clients';
+import { createPouch, setupAccount } from '../helpers/flows';
 import { createHarness, type Harness } from '../helpers/harness';
 
 describe('dev login', () => {
@@ -96,6 +98,36 @@ describe('dev login', () => {
 
 	it('does not exist unless enabled', async () => {
 		expect((await login(disabled, 'x@example.test')).statusCode).toBe(404);
+	});
+
+	it('switches the signed-in account between plans, locking extra pouches on the way down', async () => {
+		const account = await setupAccount(enabled, 'plan@example.test');
+		const up = await account.browser.post('/v1/dev/plan', { plan_slug: 'supporter' });
+		expect(up.status).toBe(200);
+		expect(up.body.data.plan_slug).toBe('supporter');
+		expect(
+			(await account.browser.get('/v1/me')).body.data.account.entitlements.pouch_limit,
+		).toBe(3);
+		expect((await createPouch(account)).status).toBe(200);
+
+		await account.browser.post('/v1/dev/plan', { plan_slug: 'free' });
+		const pouches = (await account.browser.get('/v1/pouches')).body.data.pouches as {
+			state: string;
+		}[];
+		expect(pouches.map((pouch) => pouch.state).sort()).toEqual(['active', 'locked']);
+	});
+
+	it('plan switching needs a session, a known plan, and DEV_LOGIN', async () => {
+		const anonymous = await enabled.app.inject({
+			method: 'POST',
+			url: '/v1/dev/plan',
+			payload: { plan_slug: 'supporter' },
+		});
+		expect(anonymous.statusCode).toBe(401);
+		const browser = await signIn(enabled, 'plan2@example.test');
+		expect((await browser.post('/v1/dev/plan', { plan_slug: 'nope' })).status).toBe(404);
+		const off = await signIn(disabled, 'plan3@example.test');
+		expect((await off.post('/v1/dev/plan', { plan_slug: 'supporter' })).status).toBe(404);
 	});
 
 	it('cannot be enabled in production', () => {

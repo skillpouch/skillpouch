@@ -247,4 +247,12 @@ describe('share links', () => {
 		await h.deps.db.maintenance.transaction((tx) => recalcAccountUsage(tx, alice.accountId));
 		expect(await usedBytes()).toBe(before);
 	});
+
+	it('the nightly usage recount counts share bundles too (no false drift)', async () => {
+		await share({ size: 5000 });
+		const before = await usedBytes();
+		const { recalcUsage } = await import('../../src/jobs/housekeeping');
+		await recalcUsage(h.deps);
+		expect(await usedBytes()).toBe(before);
+	});
 });

@@ -92,7 +92,8 @@ export async function recalcUsage(deps: Deps): Promise<number> {
 			WITH actual AS (
 				SELECT sa.id,
 					COALESCE((SELECT sum(stored_size) FROM blobs b WHERE b.storage_account_id = sa.id AND b.state = 'stored'), 0)
-					+ COALESCE((SELECT sum(octet_length(envelope)) FROM revisions r WHERE r.storage_account_id = sa.id), 0) AS used,
+					+ COALESCE((SELECT sum(octet_length(envelope)) FROM revisions r WHERE r.storage_account_id = sa.id), 0)
+					+ COALESCE((SELECT sum(stored_size) FROM shares s WHERE s.storage_account_id = sa.id), 0) AS used,
 					COALESCE((SELECT sum(stored_size) FROM blobs b WHERE b.storage_account_id = sa.id AND b.state = 'pending'), 0) AS pending
 				FROM storage_accounts sa
 			), changed AS (

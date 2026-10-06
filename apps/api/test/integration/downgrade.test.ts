@@ -338,15 +338,22 @@ describe('downgrade: locked pouches and storage limits', () => {
 			expect(after.artifacts.find((a) => a.id === keep)!.head_bytes).toBeGreaterThan(0);
 		});
 
-		it('deleting a pouch with skip_undo frees its space immediately', async () => {
+		it('the quota counts every pouch: deleting a locked pouch outright brings the account back under', async () => {
 			const before = await storage();
 			const p3Bytes = before.pouches.find((pouch) => pouch.id === p3)!.bytes;
+			expect(p3Bytes).toBeGreaterThan(0);
+			// Quota just below the total of all pouches, locked ones included.
+			await setLimits(1, before.used_bytes - 1);
+			expect((await states())[p3]).toBe('locked');
+			expect((await storage()).over_quota_since).not.toBeNull();
 			const response = await alice.browser.delete(`/v1/pouches/${p3}?skip_undo=true`);
 			expect(response.status).toBe(200);
 			const after = await storage();
 			expect(after.pouches.map((pouch) => pouch.id)).not.toContain(p3);
 			expect(after.used_bytes).toBe(before.used_bytes - p3Bytes);
 			expect(existsSync(join(h.blobRoot, alice.accountId, p3))).toBe(false);
+			expect(after.over_quota_since).toBeNull();
+			await clearLimits();
 		});
 	});
 

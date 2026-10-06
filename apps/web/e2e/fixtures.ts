@@ -38,7 +38,10 @@ export async function completeSetup(
 	await page.getByRole('button', { name: 'Continue' }).click();
 
 	await expect(page.getByRole('heading', { name: 'Save your Recovery Key' })).toBeVisible();
-	const words = await page.getByTestId('recovery-key').locator('li > span:last-child').allTextContents();
+	const words = await page
+		.getByTestId('recovery-key')
+		.locator('li > span:last-child')
+		.allTextContents();
 	expect(words).toHaveLength(12);
 	await page.getByRole('checkbox', { name: 'I saved my Recovery Key' }).click();
 	await page.getByRole('button', { name: 'Continue' }).click();
@@ -85,8 +88,20 @@ export async function newBrowser(browser: Browser): Promise<Page> {
 
 /** Opens the first pouch from the pouches grid. */
 export async function openFirstPouch(page: Page, name = 'Personal'): Promise<void> {
-	await page.getByRole('link', { name: new RegExp(name) }).first().click();
+	await page
+		.getByRole('link', { name: new RegExp(name) })
+		.first()
+		.click();
 	await expect(page).toHaveURL(/\/app\/p\/[0-9a-f-]+\/?$/);
+}
+
+/**
+ * Moves the signed-in account to another plan through the dev-only API
+ * (`free`, `supporter`). The page must be inside the app (`/app…`).
+ */
+export async function setPlan(page: Page, planSlug: string): Promise<void> {
+	await page.waitForFunction(() => window.__skillpouchDev !== undefined);
+	await page.evaluate((slug) => window.__skillpouchDev!.setPlan(slug), planSlug);
 }
 
 export const test = base;

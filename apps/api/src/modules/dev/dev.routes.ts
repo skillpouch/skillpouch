@@ -4,13 +4,23 @@
  * environment loader refuses in production. It creates (or reuses) a user by
  * email and starts a normal Better Auth session, so everything after sign-in
  * — binding, unlock, E2EE — runs exactly as it does after OAuth.
+ *
+ * `POST /v1/dev/plan` switches the signed-in account to another plan through
+ * the normal grant → entitlements path, so plan limits, locked pouches and
+ * downgrades can be tried without a payment provider.
  */
-import { users } from '@skillpouch/db';
+import { planGrants, plans, users } from '@skillpouch/db';
 import { makeSignature } from 'better-auth/crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Deps } from '../../deps';
+import { AppError } from '../../http/app-error';
+import { sessionOf } from '../../http/principal';
 import type { ZodApp } from '../../http/zod-app';
+import { withTenantTx } from '../../security/tenant-tx';
+import { refreshEntitlementsInTx } from '../entitlements/entitlements.service';
+
+const DevPlanBody = z.strictObject({ plan_slug: z.string().min(1).max(64) });
 
 const DevLoginBody = z.strictObject({
 	email: z.email().max(254),
@@ -74,6 +84,52 @@ export async function devRoutes(app: ZodApp, deps: Deps) {
 			if (cookie.attributes.secure) attributes.push('Secure');
 			reply.header('set-cookie', attributes.join('; '));
 			return { user_id: userId };
+		},
+	);
+	app.post(
+		'/v1/dev/plan',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['dev'],
+				summary:
+					'Development only: move the signed-in account to a plan (default plan = no grant)',
+				body: DevPlanBody,
+				response: { 200: z.object({ plan_slug: z.string() }) },
+			},
+		},
+		async (request) => {
+			const principal = sessionOf(request);
+			const [plan] = await deps.db.app
+				.select()
+				.from(plans)
+				.where(eq(plans.slug, request.body.plan_slug));
+			if (!plan) throw new AppError('not_found', { reason: 'plan' });
+			const effective = await withTenantTx(
+				deps.db.app,
+				principal.storageAccountId,
+				async (tx) => {
+					await tx
+						.update(planGrants)
+						.set({ revokedAt: deps.now() })
+						.where(
+							and(
+								eq(planGrants.storageAccountId, principal.storageAccountId),
+								isNull(planGrants.revokedAt),
+							),
+						);
+					if (!plan.isDefault) {
+						await tx.insert(planGrants).values({
+							storageAccountId: principal.storageAccountId,
+							planId: plan.id,
+							reason: 'dev',
+							grantedBy: principal.userId,
+						});
+					}
+					return refreshEntitlementsInTx(tx, principal.storageAccountId, deps.now());
+				},
+			);
+			return { plan_slug: effective.plan_slug };
 		},
 	);
 }
