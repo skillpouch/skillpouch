@@ -1,25 +1,25 @@
 # Graph Report - .  (2026-10-06)
 
 ## Corpus Check
-- 151 files · ~75,221 words
+- 151 files · ~75,669 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 887 nodes · 2123 edges · 52 communities detected
+- 890 nodes · 2130 edges · 52 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
-- Edge kinds: contains: 653 · imports: 559 · imports_from: 385 · MODIFIES: 213 · calls: 162 · method: 75 · references: 49 · ON_BRANCH: 9 · PARENT_OF: 8 · cites: 6 · implements: 2 · inherits: 2
+- Edge kinds: contains: 654 · imports: 559 · imports_from: 385 · MODIFIES: 215 · calls: 162 · method: 75 · references: 49 · ON_BRANCH: 11 · PARENT_OF: 10 · cites: 6 · implements: 2 · inherits: 2
 
 
 ## Input Scope
 - Requested: auto
 - Resolved: committed (source: default-auto)
 - Included files: 151 · Candidates: 182
-- Excluded: 0 untracked · 21711 ignored · 1 sensitive · 0 missing committed
+- Excluded: 0 untracked · 21759 ignored · 1 sensitive · 0 missing committed
 - Recommendation: Use --scope all or graphify.yaml inputs.corpus for a knowledge-base folder.
 
 ## Graph Freshness
-- Built from Git commit: `a7c2b9f`
+- Built from Git commit: `69e1c91`
 - Compare this hash to `git rev-parse HEAD` before trusting freshness-sensitive graph output.
 ## God Nodes (most connected - your core abstractions)
 1. `Deps` - 37 edges
@@ -37,11 +37,11 @@
 - `033ee44 chore: monorepo foundations and @skillpouch/contracts` --ON_BRANCH--> `main`  [EXTRACTED]
   git → git  _Bridges community 11 → community 28_
 - `033ee44 chore: monorepo foundations and @skillpouch/contracts` --PARENT_OF--> `fc3acb0 feat(db): schema, RLS, migration runner and catalog tests`  [EXTRACTED]
-  git → git  _Bridges community 11 → community 29_
+  git → git  _Bridges community 11 → community 27_
 - `41d7ef9 feat(api): sync protocol — blobs, commits, conflicts, events, snapshots, artifacts, bindings, checkpoints (+ integration tests)` --ON_BRANCH--> `main`  [EXTRACTED]
   git → git  _Bridges community 0 → community 28_
-- `a7c2b9f build: production bundle, Docker image, Compose blue/green stack, Caddy, deploy/rollback/backup scripts, CI workflow, docs` --ON_BRANCH--> `main`  [EXTRACTED]
-  git → git  _Bridges community 49 → community 28_
+- `41d7ef9 feat(api): sync protocol — blobs, commits, conflicts, events, snapshots, artifacts, bindings, checkpoints (+ integration tests)` --PARENT_OF--> `f4707a7 feat(api): master-password/passkey/Recovery Key unlock, trusted browsers, roster invariants (+ tests)`  [EXTRACTED]
+  git → git  _Bridges community 0 → community 41_
 - `c398dbc test(api): end-to-end journey over a real socket (SSE, long-poll, unlock, revoke, shutdown)` --ON_BRANCH--> `main`  [EXTRACTED]
   git → git  _Bridges community 1 → community 28_
 
@@ -112,8 +112,8 @@ Cohesion: 0.09
 Nodes (7): concatBytes(), revisionSignedMessage(), verifyMemberSignature(), commitPendingUnlock(), DEFAULT_KDF_PARAMS, lockUnlockRow(), ROSTER_FOLLOW_UPS
 
 ### Community 16 - "Community 16"
-Cohesion: 0.18
-Nodes (15): applyOne(), applyWithRetry(), loadMigrations(), migrate(), MigrateOptions, MigrationFile, MIGRATIONS_DIR, adminQuery() (+7 more)
+Cohesion: 0.13
+Nodes (18): billingEvents, entitlementOverrides, EntitlementsJson, planGrants, plans, storageAccounts, subscriptions, accounts (+10 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.21
@@ -144,8 +144,8 @@ Cohesion: 0.13
 Nodes (6): AccountNotification, CHANNELS, DeviceRevokedNotification, ListenHub, Logger, PouchNotification
 
 ### Community 24 - "Community 24"
-Cohesion: 0.17
-Nodes (13): bytea, tenantColumn(), tstz(), cliAuthRequests, CliAuthState, deviceKeys, devices, DeviceState (+5 more)
+Cohesion: 0.24
+Nodes (11): loadMigrations(), migrate(), MIGRATIONS_DIR, adminQuery(), createEmptyDatabase(), createTestDatabase(), ensureTemplate(), templateName() (+3 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.16
@@ -156,20 +156,20 @@ Cohesion: 0.13
 Nodes (14): artifacts, bindings, blobs, checkpoints, conflicts, ConflictType, deviceCursors, events (+6 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.15
-Nodes (12): billingEvents, entitlementOverrides, EntitlementsJson, planGrants, plans, storageAccounts, subscriptions, accounts (+4 more)
-
-### Community 28 - "Community 28"
-Cohesion: 0.19
-Nodes (7): main, ea262f2 chore(engram): initial code graph (portable graph.json + GRAPH_REPORT.md), f2015e2 feat(api): worker jobs, billing (Polar), admin dashboard API, GitHub import, metrics, entrypoints (+ tests), f4707a7 feat(api): master-password/passkey/Recovery Key unlock, trusted browsers, roster invariants (+ tests), ErrorCode, ErrorDef, errorDocsUrl()
-
-### Community 29 - "Community 29"
-Cohesion: 0.19
+Cohesion: 0.18
 Nodes (5): fc3acb0 feat(db): schema, RLS, migration runner and catalog tests, createPool(), Database, DbRole, PoolOptions
 
-### Community 30 - "Community 30"
+### Community 28 - "Community 28"
+Cohesion: 0.22
+Nodes (8): main, 4040b5c chore(engram): update code graph after backend milestone, 69e1c91 build(api): ship migrations inside the bundle; CI boots the worker and the env-free bundle, a7c2b9f build: production bundle, Docker image, Compose blue/green stack, Caddy, deploy/rollback/backup scripts, CI workflow, docs, applyOne(), applyWithRetry(), MigrateOptions, MigrationFile
+
+### Community 29 - "Community 29"
 Cohesion: 0.24
 Nodes (10): openStreams, createLogger(), JobDefinition, JOBS, closeDeps(), createDeps(), env, runJob() (+2 more)
+
+### Community 30 - "Community 30"
+Cohesion: 0.18
+Nodes (8): ErrorCode, errorCodeList, ErrorDef, errorDocsUrl(), Empty, ErrorBody, ErrorEnvelope, ResponseMeta
 
 ### Community 31 - "Community 31"
 Cohesion: 0.18
@@ -208,44 +208,44 @@ Cohesion: 0.32
 Nodes (4): basename(), detectItems(), dirname(), GithubImporter
 
 ### Community 40 - "Community 40"
+Cohesion: 0.25
+Nodes (7): tenantColumn(), cliAuthRequests, CliAuthState, deviceKeys, devices, DeviceState, dpopReplay
+
+### Community 41 - "Community 41"
+Cohesion: 0.29
+Nodes (3): ea262f2 chore(engram): initial code graph (portable graph.json + GRAPH_REPORT.md), f2015e2 feat(api): worker jobs, billing (Polar), admin dashboard API, GitHub import, metrics, entrypoints (+ tests), f4707a7 feat(api): master-password/passkey/Recovery Key unlock, trusted browsers, roster invariants (+ tests)
+
+### Community 42 - "Community 42"
 Cohesion: 0.33
 Nodes (7): cancelCliAuthRequest(), finishRedeem(), getCliAuthRequest(), isExpired(), loadRequest(), redeemCliAuthRequest(), requestView()
 
-### Community 41 - "Community 41"
+### Community 43 - "Community 43"
 Cohesion: 0.38
 Nodes (1): SseConnection
 
-### Community 42 - "Community 42"
-Cohesion: 0.29
-Nodes (5): errorCodeList, Empty, ErrorBody, ErrorEnvelope, ResponseMeta
-
-### Community 43 - "Community 43"
+### Community 44 - "Community 44"
 Cohesion: 0.40
 Nodes (1): DeviceStatusCache
 
-### Community 44 - "Community 44"
+### Community 45 - "Community 45"
 Cohesion: 0.60
 Nodes (1): NonceService
 
-### Community 45 - "Community 45"
+### Community 46 - "Community 46"
 Cohesion: 0.47
 Nodes (2): aad(), PepperBox
 
-### Community 46 - "Community 46"
+### Community 47 - "Community 47"
 Cohesion: 0.40
 Nodes (1): NewEvent
 
-### Community 47 - "Community 47"
+### Community 48 - "Community 48"
 Cohesion: 0.40
 Nodes (1): CliClient
 
-### Community 48 - "Community 48"
+### Community 49 - "Community 49"
 Cohesion: 0.40
 Nodes (1): Metrics
-
-### Community 49 - "Community 49"
-Cohesion: 0.50
-Nodes (1): a7c2b9f build: production bundle, Docker image, Compose blue/green stack, Caddy, deploy/rollback/backup scripts, CI workflow, docs
 
 ### Community 50 - "Community 50"
 Cohesion: 0.50
@@ -258,21 +258,19 @@ Nodes (3): overSocket(), parse(), request()
 ## Knowledge Gaps
 - **245 isolated node(s):** `bool`, `EnvSchema`, `SECRET_KEYS`, `AuthMode`, `SkillpouchRouteConfig` (+240 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 41`** (1 nodes): `SseConnection`
+- **Thin community `Community 43`** (1 nodes): `SseConnection`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (1 nodes): `DeviceStatusCache`
+- **Thin community `Community 44`** (1 nodes): `DeviceStatusCache`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (1 nodes): `NonceService`
+- **Thin community `Community 45`** (1 nodes): `NonceService`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (2 nodes): `aad()`, `PepperBox`
+- **Thin community `Community 46`** (2 nodes): `aad()`, `PepperBox`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (1 nodes): `NewEvent`
+- **Thin community `Community 47`** (1 nodes): `NewEvent`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (1 nodes): `CliClient`
+- **Thin community `Community 48`** (1 nodes): `CliClient`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (1 nodes): `Metrics`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 49`** (1 nodes): `a7c2b9f build: production bundle, Docker image, Compose blue/green stack, Caddy, deploy/rollback/backup scripts, CI workflow, docs`
+- **Thin community `Community 49`** (1 nodes): `Metrics`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 50`** (1 nodes): `RevisionRow`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -282,7 +280,7 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `AppError` connect `Community 18` to `Community 17`, `Community 6`, `Community 2`, `Community 0`, `Community 8`, `Community 37`, `Community 7`, `Community 4`, `Community 20`, `Community 32`, `Community 19`, `Community 12`, `Community 15`?**
   _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Why does `Deps` connect `Community 0` to `Community 17`, `Community 2`, `Community 8`, `Community 37`, `Community 7`, `Community 4`, `Community 1`, `Community 9`, `Community 12`, `Community 31`, `Community 30`, `Community 15`?**
+- **Why does `Deps` connect `Community 0` to `Community 17`, `Community 2`, `Community 8`, `Community 37`, `Community 7`, `Community 4`, `Community 1`, `Community 9`, `Community 12`, `Community 31`, `Community 29`, `Community 15`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
 - **Why does `ListenHub` connect `Community 23` to `Community 0`?**
   _High betweenness centrality (0.020) - this node is a cross-community bridge._
