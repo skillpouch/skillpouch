@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * `/unlock` — this browser is signed in but can't open the pouches yet
- * (a new browser, or a trusted one unused for longer than the trust window).
+ * (a new browser, a trusted one unused for longer than the trust window, or one
+ * that was never trusted and asks for the secret after every reload).
  * Master password first; the Recovery Key is the fallback.
  */
 import { useState, type FormEvent } from 'react';
@@ -12,15 +13,23 @@ import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
 import { Avatar } from '@/features/account/avatar';
 import { bootstrapSession, signOut } from '@/features/session/bootstrap';
-import { getSession, useSession } from '@/features/session/session-store';
-import { unlockBrowser, type UnlockMethod } from '@/features/vault/unlock';
+import { getSession, useSession, type LockReason } from '@/features/session/session-store';
+import { unlockBrowser, type UnlockContext, type UnlockMethod } from '@/features/vault/unlock';
 import { describeError } from '@/lib/api/errors';
+
+const MEMBERSHIP: Record<LockReason, UnlockContext['membership']> = {
+	new_browser: 'none',
+	trust_expired: 'expired',
+	untrusted: 'untrusted',
+};
 
 export function UnlockPage() {
 	const session = useSession();
 	const [method, setMethod] = useState<UnlockMethod>('password');
 	const [secret, setSecret] = useState('');
-	const [trust, setTrust] = useState(true);
+	const [trust, setTrust] = useState(
+		() => session.status !== 'locked' || session.reason !== 'untrusted',
+	);
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -34,13 +43,13 @@ export function UnlockPage() {
 		setError(null);
 		try {
 			await unlockBrowser(
-				{ accountId: me.account.id, browser, trustExpired: reason === 'trust_expired' },
+				{ accountId: me.account.id, browser, membership: MEMBERSHIP[reason] },
 				method,
 				secret,
 				{ trust },
 			);
 			setSecret('');
-			await bootstrapSession();
+			await bootstrapSession({ secretProven: true });
 		} catch (caught) {
 			setError(describeError(caught));
 			setBusy(false);

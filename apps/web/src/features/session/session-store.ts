@@ -16,7 +16,11 @@ import { useSyncExternalStore } from 'react';
 import type { Me } from '@/lib/api/types';
 import type { StoredBrowserKey } from '../vault/key-store';
 
-export type LockReason = 'new_browser' | 'trust_expired';
+/**
+ * Why the pouches are closed: this browser isn't a member yet, its trust
+ * window lapsed, or it was never trusted (it opens only after the secret).
+ */
+export type LockReason = 'new_browser' | 'trust_expired' | 'untrusted';
 
 export type SessionState =
 	| { status: 'loading' }

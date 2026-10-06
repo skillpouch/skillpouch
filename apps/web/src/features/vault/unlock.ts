@@ -34,8 +34,11 @@ export type UnlockMethod = 'password' | 'recovery';
 export interface UnlockContext {
 	accountId: string;
 	browser: StoredBrowserKey;
-	/** The browser is a member whose trust window lapsed: renew instead of enrolling. */
-	trustExpired: boolean;
+	/**
+	 * What this browser already is: not a member (enroll it), a member whose
+	 * trust window lapsed (renew it), or an untrusted member (re-prove the secret).
+	 */
+	membership: 'none' | 'expired' | 'untrusted';
 }
 
 export const RENEW_TRUST_CONTEXT = 'skillpouch/v1/renew-trust';
@@ -144,8 +147,10 @@ export async function unlockBrowser(
 	options: { trust: boolean },
 ): Promise<void> {
 	const keyring = await openWithSecret(context, method, secretText);
-	const memberId = context.trustExpired
-		? await renewTrust(keyring, context.browser)
-		: await enrollBrowser(keyring, context.browser);
+	let memberId: string;
+	if (context.membership === 'expired') memberId = await renewTrust(keyring, context.browser);
+	else if (context.membership === 'untrusted' && context.browser.memberId)
+		memberId = context.browser.memberId;
+	else memberId = await enrollBrowser(keyring, context.browser);
 	await updateBrowserKey(context.browser.userId, { memberId, trusted: options.trust });
 }

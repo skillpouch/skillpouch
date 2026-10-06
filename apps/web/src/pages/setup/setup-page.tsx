@@ -55,7 +55,7 @@ export function SetupPage() {
 				recoveryKey,
 				trustBrowser: trust,
 			});
-			await bootstrapSession();
+			await bootstrapSession({ secretProven: true });
 		} catch (caught) {
 			setError(describeError(caught));
 			setBusy(false);

@@ -88,10 +88,22 @@ export async function openBrowserKeyring(
 	);
 }
 
-async function resolve(): Promise<SessionState> {
+export interface BootstrapOptions {
+	/**
+	 * The secret was proven on this page a moment ago (setup or unlock), so an
+	 * untrusted browser may open its pouches until the page is reloaded.
+	 */
+	secretProven?: boolean;
+}
+
+/** User whose secret was proven in this page; memory only, gone on reload. */
+let provenUser: string | null = null;
+
+async function resolve(options: BootstrapOptions): Promise<SessionState> {
 	const auth = await readAuthSession();
 	if (!auth) return { status: 'signed_out' };
 
+	if (options.secretProven) provenUser = auth.user.id;
 	let browser = await loadOrCreateKey(auth.user.id);
 	setDpopKey(browser.keys);
 
@@ -132,15 +144,19 @@ async function resolve(): Promise<SessionState> {
 	if (browser.memberId !== member.id) {
 		browser = (await updateBrowserKey(browser.userId, { memberId: member.id }))!;
 	}
+	// An untrusted browser keeps its key only so the bound session survives a
+	// reload; the pouches stay closed until the secret is proven again.
+	if (!browser.trusted && provenUser !== auth.user.id)
+		return { status: 'locked', me, browser, reason: 'untrusted' };
 	const keyring = await openBrowserKeyring(roster, browser, member);
 	return { status: 'unlocked', me, browser, keyring };
 }
 
 /** Runs (or re-runs) the startup sequence and publishes the result. */
-export async function bootstrapSession(): Promise<SessionState> {
+export async function bootstrapSession(options: BootstrapOptions = {}): Promise<SessionState> {
 	let next: SessionState;
 	try {
-		next = await resolve();
+		next = await resolve(options);
 	} catch (error) {
 		next = {
 			status: 'error',
@@ -152,6 +168,7 @@ export async function bootstrapSession(): Promise<SessionState> {
 }
 
 async function signOutQuietly(userId: string): Promise<void> {
+	provenUser = null;
 	setDpopKey(null);
 	await deleteBrowserKey(userId);
 	await fetch('/v1/auth/sign-out', {
@@ -167,6 +184,7 @@ async function signOutQuietly(userId: string): Promise<void> {
  * so nothing that could open the pouches is left behind.
  */
 export async function signOut(state: SessionState): Promise<void> {
+	provenUser = null;
 	if ('browser' in state) {
 		const { browser } = state;
 		if (!browser.trusted && browser.memberId) {
