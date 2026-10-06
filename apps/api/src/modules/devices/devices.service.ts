@@ -146,7 +146,7 @@ export async function refreshDeviceTokens(deps: Deps, refreshToken: string, jkt:
 }
 
 /** Marks a device revoked: state, token version, keys retired, member flagged, notifications. */
-async function revokeDeviceRow(
+export async function revokeDeviceRow(
 	tx: TenantTx,
 	device: typeof devices.$inferSelect,
 	reason: string,

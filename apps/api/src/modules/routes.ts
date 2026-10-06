@@ -3,12 +3,15 @@
 import type { Deps } from '../deps';
 import type { ZodApp } from '../http/zod-app';
 import { accountRoutes } from './account/account.routes';
+import { adminRoutes } from './admin/admin.routes';
 import { artifactsRoutes } from './artifacts/artifacts.routes';
+import { billingRoutes } from './billing/billing.routes';
 import { blobsRoutes } from './blobs/blobs.routes';
 import { cliAuthRoutes } from './cli-auth/cli-auth.routes';
 import { conflictsRoutes } from './conflicts/conflicts.routes';
 import { devicesRoutes } from './devices/devices.routes';
 import { eventsRoutes } from './events/events.routes';
+import { importRoutes } from './import/import.routes';
 import { healthRoutes, type HealthState } from './health/health.routes';
 import { operationsRoutes } from './operations/operations.routes';
 import { pouchesRoutes } from './pouches/pouches.routes';
@@ -32,4 +35,7 @@ export async function registerModules(app: ZodApp, deps: Deps, health: HealthSta
 	await snapshotsRoutes(app, deps);
 	await artifactsRoutes(app, deps);
 	await conflictsRoutes(app, deps);
+	await billingRoutes(app, deps);
+	await adminRoutes(app, deps);
+	await importRoutes(app, deps);
 }

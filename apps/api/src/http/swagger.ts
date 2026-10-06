@@ -52,13 +52,19 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 				{ name: 'devices', description: 'CLIs and browsers, refresh, revoke' },
 				{
 					name: 'account',
-					description: 'Me, roster (E2EE membership), key envelopes, join requests',
+					description: 'Me, roster (E2EE membership), key envelopes',
+				},
+				{
+					name: 'unlock',
+					description:
+						'Master password, passkeys, Recovery Key, trusted browsers (15 §8)',
 				},
 				{ name: 'pouches' },
 				{ name: 'sync', description: 'Blobs, operations, events, snapshots' },
 				{ name: 'artifacts' },
-				{ name: 'billing' },
-				{ name: 'admin' },
+				{ name: 'billing', description: 'Plans, Polar checkout/portal, webhooks' },
+				{ name: 'admin', description: 'Admin dashboard (role admin + step-up)' },
+				{ name: 'import', description: 'Public GitHub repository scan (16 §8)' },
 			],
 		},
 		transform: envelopeJsonSchemaTransform,

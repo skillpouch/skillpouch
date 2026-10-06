@@ -12,6 +12,9 @@ import { createDatabases, type Databases } from './infra/db';
 import { ListenHub } from './infra/listen-hub';
 import { SettingsCache } from './infra/settings';
 import { createAuth, type Auth } from './modules/auth/better-auth';
+import { PolarProvider } from './modules/billing/polar';
+import type { BillingProvider } from './modules/billing/provider';
+import { GithubImporter } from './modules/import/github.service';
 import { AccessTokens } from './security/access-token';
 import { DeviceStatusCache } from './security/device-status';
 import { NonceService } from './security/nonce';
@@ -30,6 +33,10 @@ export interface Deps {
 	hub: ListenHub;
 	deviceStatus: DeviceStatusCache;
 	settings: SettingsCache;
+	/** Null when no billing provider is configured (self-hosting, dev): billing routes answer `billing_unavailable`. */
+	billing: BillingProvider | null;
+	/** Public GitHub repository scanner (16 §8); tests swap its fetch. */
+	github: GithubImporter;
 	now: () => Date;
 }
 
@@ -49,6 +56,16 @@ export async function createDeps(env: Env, log: pino.Logger, role: string): Prom
 		hub,
 		deviceStatus: new DeviceStatusCache(db.app),
 		settings: new SettingsCache(db.app, env.MAINTENANCE_WRITE_PAUSE),
+		billing:
+			env.POLAR_ACCESS_TOKEN && env.POLAR_WEBHOOK_SECRET
+				? new PolarProvider({
+						accessToken: env.POLAR_ACCESS_TOKEN,
+						webhookSecret: env.POLAR_WEBHOOK_SECRET,
+						server: env.POLAR_SERVER,
+						now,
+					})
+				: null,
+		github: new GithubImporter(),
 		now,
 	};
 }

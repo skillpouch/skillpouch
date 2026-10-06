@@ -66,6 +66,12 @@ const EnvSchema = z
 		BLOB_DRIVER: z.enum(['fs']).default('fs'),
 		BLOB_FS_ROOT: z.string().default('./data/blobs'),
 
+		/** Internal Prometheus port (never exposed by the proxy); 0 disables. */
+		METRICS_PORT: z.coerce.number().int().min(0).max(65535).default(9464),
+		/** pg-boss connection (needs CREATE on its own schema); defaults to the migration URL. */
+		JOBS_DATABASE_URL: z.string().optional(),
+		/** Graceful shutdown: how long in-flight requests may take to finish. */
+		SHUTDOWN_GRACE_MS: z.coerce.number().int().min(0).default(25_000),
 		/** Swagger UI at /docs — on by default outside production. */
 		SWAGGER: bool.optional(),
 		RATE_LIMIT_ENABLED: bool.default(true),
@@ -95,6 +101,7 @@ const SECRET_KEYS = [
 	'DATABASE_URL_MAINTENANCE',
 	'DATABASE_URL_ADMIN',
 	'MIGRATION_DATABASE_URL',
+	'JOBS_DATABASE_URL',
 	'BETTER_AUTH_SECRET',
 	'GITHUB_CLIENT_SECRET',
 	'GOOGLE_CLIENT_SECRET',

@@ -52,6 +52,7 @@ Every API error uses the envelope from plan 17 §2. Clients branch on `code`;
 | `envelope_invalid` | 422 | no | Encrypted payload is malformed. |
 | `snapshot_expired` | 410 | no | Snapshot lease expired; start again. |
 | `billing_unavailable` | 503 | no | Billing is not configured. |
+| `upstream_unavailable` | 502 | yes | An upstream service (e.g. GitHub) did not answer as expected. |
 | `webhook_invalid` | 401 | no | Webhook signature invalid. |
 | `last_admin` | 409 | no | The last admin cannot be demoted. |
 | `validation_failed` | 400 | no | Invalid request. |

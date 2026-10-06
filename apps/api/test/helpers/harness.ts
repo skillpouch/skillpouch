@@ -30,7 +30,15 @@ export interface Harness {
 	close(): Promise<void>;
 }
 
-export async function createHarness(overrides: Record<string, string> = {}): Promise<Harness> {
+export interface HarnessOptions {
+	/** Adjust the dependency container before the server is built (fakes, clocks). */
+	configure?: (deps: Deps) => void;
+}
+
+export async function createHarness(
+	overrides: Record<string, string> = {},
+	options: HarnessOptions = {},
+): Promise<Harness> {
 	const database = await createTestDatabase();
 	const blobRoot = mkdtempSync(join(tmpdir(), 'sp-blobs-'));
 	const env = loadEnv({
@@ -47,6 +55,7 @@ export async function createHarness(overrides: Record<string, string> = {}): Pro
 	const log = pino({ level: process.env.TEST_LOG_LEVEL ?? 'silent' });
 	const deps = await createDeps(env, log, 'test');
 	await deps.hub.start();
+	options.configure?.(deps);
 	const { app } = await buildServer(deps);
 	await app.ready();
 	const owner = new pg.Pool({ connectionString: database.url, max: 2 });

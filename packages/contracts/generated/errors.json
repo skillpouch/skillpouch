@@ -269,6 +269,12 @@
 		"message": "Billing is not configured.",
 		"docs_url": "https://docs.skillpouch.net/errors/billing_unavailable"
 	},
+	"upstream_unavailable": {
+		"status": 502,
+		"retryable": true,
+		"message": "An upstream service (e.g. GitHub) did not answer as expected.",
+		"docs_url": "https://docs.skillpouch.net/errors/upstream_unavailable"
+	},
 	"webhook_invalid": {
 		"status": 401,
 		"retryable": false,

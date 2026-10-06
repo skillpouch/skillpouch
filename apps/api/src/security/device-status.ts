@@ -36,6 +36,11 @@ export class DeviceStatusCache {
 		this.entries.delete(deviceId);
 	}
 
+	/** Drops every cached entry of this instance (e.g. after an admin suspends a user). */
+	invalidateAll(): void {
+		this.entries.clear();
+	}
+
 	private load(storageAccountId: string, deviceId: string): Promise<DeviceStatus | null> {
 		return withTenantTx(this.db, storageAccountId, async (tx) => {
 			const [device] = await tx

@@ -1,0 +1,389 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+/**
+ * Plans, billing and the admin dashboard (plan 09 §4, 18): Polar checkout +
+ * signed webhooks → entitlements, reconcile, admin grants/overrides/roles/
+ * suspension, step-up and audit. Polar's HTTP API is replaced by a recorder;
+ * signature verification is the real code.
+ */
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { PolarProvider, signStandardWebhook } from '../../src/modules/billing/polar';
+import { signIn, type BrowserClient } from '../helpers/clients';
+import { authorizeCli, setupAccount, type Account } from '../helpers/flows';
+import { createHarness, type Harness } from '../helpers/harness';
+
+const WEBHOOK_SECRET = 'polar-test-webhook-secret';
+const PRODUCT = 'prod_supporter';
+
+interface Call {
+	method: string;
+	url: string;
+	body: Record<string, unknown> | null;
+}
+
+describe('billing and admin', () => {
+	let h: Harness;
+	let alice: Account;
+	let admin: BrowserClient;
+	const calls: Call[] = [];
+	let remoteSubscription: Record<string, unknown> = {};
+
+	const fakePolar: typeof fetch = async (input, init) => {
+		const url = String(input);
+		const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null;
+		calls.push({ method: init?.method ?? 'GET', url, body });
+		const json = (value: unknown) =>
+			new Response(JSON.stringify(value), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			});
+		if (url.endsWith('/v1/checkouts/'))
+			return json({ url: 'https://sandbox.polar.sh/checkout/abc' });
+		if (url.endsWith('/v1/customer-sessions/'))
+			return json({ customer_portal_url: 'https://sandbox.polar.sh/portal/xyz' });
+		if (url.includes('/v1/subscriptions/')) return json(remoteSubscription);
+		if (url.includes('/v1/products')) return json({ id: 'prod_new' });
+		return new Response('not found', { status: 404 });
+	};
+
+	/** Delivers a signed Polar webhook. */
+	async function webhook(
+		payload: unknown,
+		options: { id?: string; secret?: string; timestamp?: number } = {},
+	) {
+		const body = JSON.stringify(payload);
+		const id = options.id ?? `evt_${Math.random().toString(36).slice(2)}`;
+		const timestamp = options.timestamp ?? Math.floor(Date.now() / 1000);
+		return h.app.inject({
+			method: 'POST',
+			url: '/v1/billing/webhooks/polar',
+			headers: {
+				'content-type': 'application/json',
+				'webhook-id': id,
+				'webhook-timestamp': String(timestamp),
+				'webhook-signature': `v1,${signStandardWebhook(options.secret ?? WEBHOOK_SECRET, id, timestamp, body)}`,
+			},
+			payload: body,
+		});
+	}
+
+	function subscriptionEvent(type: string, overrides: Record<string, unknown> = {}) {
+		return {
+			type,
+			data: {
+				id: 'sub_1',
+				status: 'active',
+				customer_id: 'cus_1',
+				customer: { external_id: alice.accountId },
+				product_id: PRODUCT,
+				recurring_interval: 'month',
+				amount: 500,
+				current_period_end: new Date(Date.now() + 30 * 86400_000).toISOString(),
+				cancel_at_period_end: false,
+				...overrides,
+			},
+		};
+	}
+
+	const entitlements = async (client: BrowserClient) =>
+		(await client.get('/v1/me')).body.data.account.entitlements;
+
+	beforeAll(async () => {
+		h = await createHarness(
+			{},
+			{
+				configure: (deps) => {
+					deps.billing = new PolarProvider({
+						accessToken: 'polar_token',
+						webhookSecret: WEBHOOK_SECRET,
+						server: 'sandbox',
+						fetch: fakePolar,
+					});
+				},
+			},
+		);
+		await h.owner.query(`UPDATE plans SET polar_product_id = $1 WHERE slug = 'supporter'`, [
+			PRODUCT,
+		]);
+		alice = await setupAccount(h, 'alice@skillpouch.test');
+		admin = await signIn(h, 'admin@skillpouch.test');
+	});
+	afterAll(async () => {
+		await h.close();
+	});
+
+	describe('plans and checkout', () => {
+		it('lists public plans', async () => {
+			const plans = (await alice.browser.get('/v1/plans')).body.data.plans;
+			expect(plans.map((plan: { slug: string }) => plan.slug)).toEqual(['free', 'supporter']);
+		});
+
+		it('creates a Polar checkout bound to the storage account', async () => {
+			const response = await alice.browser.post('/v1/billing/checkout', {
+				plan_slug: 'supporter',
+			});
+			expect(response.body.data.url).toBe('https://sandbox.polar.sh/checkout/abc');
+			expect(calls.at(-1)?.body).toMatchObject({
+				products: [PRODUCT],
+				external_customer_id: alice.accountId,
+			});
+			expect(
+				(await alice.browser.post('/v1/billing/checkout', { plan_slug: 'free' })).status,
+			).toBe(404);
+		});
+
+		it('opens the customer portal', async () => {
+			const response = await alice.browser.post('/v1/billing/portal');
+			expect(response.body.data.url).toBe('https://sandbox.polar.sh/portal/xyz');
+		});
+	});
+
+	describe('webhooks', () => {
+		it('rejects bad signatures and stale timestamps', async () => {
+			expect(
+				(await webhook(subscriptionEvent('subscription.active'), { secret: 'wrong' }))
+					.statusCode,
+			).toBe(401);
+			const stale = await webhook(subscriptionEvent('subscription.active'), {
+				timestamp: Math.floor(Date.now() / 1000) - 3600,
+			});
+			expect(stale.json().error.details.reason).toBe('timestamp');
+			expect((await entitlements(alice.browser)).plan_slug).toBe('free');
+		});
+
+		it('activates Supporter from a signed subscription webhook, once', async () => {
+			const first = await webhook(subscriptionEvent('subscription.active'), {
+				id: 'evt_active',
+			});
+			expect(first.statusCode).toBe(200);
+			expect(first.json()).toEqual({ received: true });
+			expect(await entitlements(alice.browser)).toMatchObject({
+				plan_slug: 'supporter',
+				source: 'subscription',
+				pouch_limit: 3,
+			});
+			expect(
+				(await webhook(subscriptionEvent('subscription.active'), { id: 'evt_active' }))
+					.statusCode,
+			).toBe(200);
+			const billing = await alice.browser.get('/v1/billing');
+			expect(billing.body.data.subscriptions).toEqual([
+				expect.objectContaining({ status: 'active', plan_slug: 'supporter' }),
+			]);
+		});
+
+		it('falls back to Free when the subscription ends, without deleting anything', async () => {
+			await webhook(
+				subscriptionEvent('subscription.revoked', {
+					status: 'revoked',
+					current_period_end: new Date(Date.now() - 1000).toISOString(),
+				}),
+			);
+			expect((await entitlements(alice.browser)).plan_slug).toBe('free');
+			expect((await alice.browser.get('/v1/pouches')).body.data.pouches).toHaveLength(1);
+		});
+
+		it('reconcile pulls the provider state for open subscriptions', async () => {
+			await h.owner.query(`UPDATE subscriptions SET status = 'active'`);
+			remoteSubscription = subscriptionEvent('x', {
+				status: 'canceled',
+				current_period_end: new Date(Date.now() - 1000).toISOString(),
+			}).data;
+			const { reconcileSubscriptions } =
+				await import('../../src/modules/billing/billing.service');
+			expect(await reconcileSubscriptions(h.deps)).toBe(1);
+			const { rows } = await h.owner.query(
+				`SELECT status FROM subscriptions WHERE external_subscription_id = 'sub_1'`,
+			);
+			expect(rows[0].status).toBe('canceled');
+		});
+	});
+
+	describe('admin dashboard', () => {
+		it('is closed to non-admins', async () => {
+			expect((await alice.browser.get('/v1/admin/overview')).status).toBe(403);
+		});
+
+		it('bootstraps the admin role from ADMIN_EMAILS and shows the overview', async () => {
+			const overview = await admin.get('/v1/admin/overview');
+			expect(overview.status).toBe(200);
+			expect(overview.body.data.users).toBeGreaterThanOrEqual(2);
+		});
+
+		it('searches users and shows metadata, never content', async () => {
+			await authorizeCli(h, alice);
+			const list = await admin.get('/v1/admin/users?q=alice');
+			expect(list.body.data.items).toEqual([
+				expect.objectContaining({
+					email: 'alice@skillpouch.test',
+					device_count: 1,
+					pouch_count: 1,
+				}),
+			]);
+			const detail = await admin.get(`/v1/admin/users/${alice.browser.userId}`);
+			expect(detail.body.data.pouches).toEqual([
+				expect.objectContaining({ id: alice.pouchId, state: 'active' }),
+			]);
+			expect(JSON.stringify(detail.body.data)).not.toContain('envelope');
+		});
+
+		it('requires a reason and a fresh sign-in for mutations', async () => {
+			const noReason = await admin.post(`/v1/admin/users/${alice.browser.userId}/grants`, {
+				plan_slug: 'supporter',
+			});
+			expect(noReason.status).toBe(400);
+			await h.owner.query(
+				`UPDATE sessions SET step_up_at = now() - interval '1 hour' WHERE user_id = $1`,
+				[admin.userId],
+			);
+			const stale = await admin.post(`/v1/admin/users/${alice.browser.userId}/grants`, {
+				plan_slug: 'supporter',
+				reason: 'beta tester',
+			});
+			expect(stale.body.error.code).toBe('step_up_required');
+			await h.owner.query(`UPDATE sessions SET step_up_at = now() WHERE user_id = $1`, [
+				admin.userId,
+			]);
+		});
+
+		it('grants a plan, then revokes the grant', async () => {
+			const grant = await admin.post(`/v1/admin/users/${alice.browser.userId}/grants`, {
+				plan_slug: 'supporter',
+				reason: 'beta tester',
+			});
+			expect(grant.status).toBe(200);
+			expect(await entitlements(alice.browser)).toMatchObject({
+				plan_slug: 'supporter',
+				source: 'grant',
+			});
+			expect(
+				(
+					await admin.post(`/v1/admin/grants/${grant.body.data.id}/revoke`, {
+						reason: 'beta over',
+					})
+				).status,
+			).toBe(200);
+			expect((await entitlements(alice.browser)).plan_slug).toBe('free');
+		});
+
+		it('sets and clears per-user overrides', async () => {
+			const set = await admin.put(`/v1/admin/users/${alice.browser.userId}/override`, {
+				pouch_limit: 5,
+				storage_bytes: null,
+				note: 'friend',
+				reason: 'friend of the project',
+			});
+			expect(set.status).toBe(200);
+			expect(await entitlements(alice.browser)).toMatchObject({
+				pouch_limit: 5,
+				source: 'override',
+			});
+			await admin.delete(`/v1/admin/users/${alice.browser.userId}/override`, {
+				body: { reason: 'cleanup' },
+			});
+			expect((await entitlements(alice.browser)).pouch_limit).toBe(1);
+		});
+
+		it('suspends and unsuspends a user (web and CLI blocked meanwhile)', async () => {
+			const cli = await authorizeCli(h, alice, 'suspend-test');
+			expect(
+				(
+					await admin.post(`/v1/admin/users/${alice.browser.userId}/suspend`, {
+						reason: 'abuse report',
+					})
+				).status,
+			).toBe(200);
+			expect((await cli.get('/v1/pouches')).status).toBe(403);
+			expect((await alice.browser.get('/v1/pouches')).status).toBe(401);
+			expect(
+				(
+					await admin.post(`/v1/admin/users/${alice.browser.userId}/unsuspend`, {
+						reason: 'resolved',
+					})
+				).status,
+			).toBe(200);
+			expect((await cli.get('/v1/pouches')).status).toBe(200);
+			alice.browser = await signIn(h, 'alice@skillpouch.test');
+		});
+
+		it('revokes all devices of a user', async () => {
+			const response = await admin.post(
+				`/v1/admin/users/${alice.browser.userId}/revoke-devices`,
+				{ reason: 'lost laptop' },
+			);
+			expect(response.body.data.revoked).toBeGreaterThanOrEqual(1);
+		});
+
+		it('never demotes the last admin', async () => {
+			const response = await admin.post(`/v1/admin/users/${admin.userId}/role`, {
+				role: 'user',
+				reason: 'testing',
+			});
+			expect(response.body.error.code).toBe('last_admin');
+		});
+
+		it('creates and edits plans; paid plans get a Polar product', async () => {
+			const created = await admin.post('/v1/admin/plans', {
+				slug: 'supporter-plus',
+				name: 'Supporter+',
+				price_cents: 1000,
+				interval: 'month',
+				pouch_limit: 10,
+				storage_bytes: 10 * 1024 ** 3,
+				reason: 'new tier',
+			});
+			expect(created.body.data).toMatchObject({
+				slug: 'supporter-plus',
+				polar_product_id: 'prod_new',
+			});
+			const edited = await admin.put(`/v1/admin/plans/${created.body.data.id}`, {
+				name: 'Supporter+',
+				price_cents: 1000,
+				interval: 'month',
+				pouch_limit: 12,
+				storage_bytes: 10 * 1024 ** 3,
+				reason: 'more pouches',
+			});
+			expect(edited.body.data.pouch_limit).toBe(12);
+			const free = (await admin.get('/v1/admin/plans')).body.data.plans.find(
+				(plan: { slug: string }) => plan.slug === 'free',
+			);
+			const breakFree = await admin.put(`/v1/admin/plans/${free.id}`, {
+				...free,
+				price_cents: 100,
+				interval: 'month',
+				reason: 'nope',
+			});
+			expect(breakFree.status).toBe(400);
+		});
+
+		it('toggles the maintenance write pause', async () => {
+			expect(
+				(
+					await admin.put('/v1/admin/system/write-pause', {
+						enabled: true,
+						reason: 'db switchover',
+					})
+				).body.data.write_pause,
+			).toBe(true);
+			expect((await admin.get('/v1/admin/system')).body.data.write_pause).toBe(true);
+			await h.owner.query(
+				`UPDATE system_settings SET value = '{"enabled": false}' WHERE key = 'maintenance_write_pause'`,
+			);
+			h.deps.settings.invalidate();
+		});
+
+		it('records every admin action in the audit log', async () => {
+			const audit = await admin.get('/v1/admin/audit?limit=100');
+			const actions = audit.body.data.items.map((entry: { action: string }) => entry.action);
+			expect(actions).toEqual(
+				expect.arrayContaining([
+					'admin.plan_granted',
+					'admin.override_set',
+					'admin.user_suspended',
+					'admin.devices_revoked',
+					'admin.plan_created',
+				]),
+			);
+		});
+	});
+});

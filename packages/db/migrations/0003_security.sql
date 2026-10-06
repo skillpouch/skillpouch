@@ -43,6 +43,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO sp_mainte
 GRANT SELECT ON users, storage_accounts, devices, pouches, plans, plan_grants,
 	entitlement_overrides, subscriptions, audit_log, security_events, system_settings,
 	account_members, sessions, billing_events TO sp_admin;
+-- Per-pouch sizes for the dashboard: sizes only, never blob ids or ciphertext hashes.
+GRANT SELECT (storage_account_id, pouch_id, stored_size, state) ON blobs TO sp_admin;
 GRANT UPDATE ON users, storage_accounts, devices, plans, system_settings, sessions, subscriptions TO sp_admin;
 GRANT INSERT ON plans, plan_grants, audit_log, system_settings, security_events TO sp_admin;
 GRANT INSERT, UPDATE, DELETE ON entitlement_overrides TO sp_admin;

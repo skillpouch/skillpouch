@@ -10,6 +10,7 @@ import { Limits } from '@skillpouch/contracts';
 import Fastify, { type FastifyBaseLogger } from 'fastify';
 import { validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { Deps } from './deps';
+import type { Metrics } from './infra/metrics';
 import { envelopePlugin } from './http/envelope';
 import { envelopeSerializerCompiler } from './http/serialization';
 import { registerSwagger } from './http/swagger';
@@ -25,7 +26,12 @@ export interface BuiltServer {
 	health: HealthState;
 }
 
-export async function buildServer(deps: Deps): Promise<BuiltServer> {
+export interface BuildOptions {
+	/** Records request metrics when given (production entrypoint). */
+	metrics?: Metrics;
+}
+
+export async function buildServer(deps: Deps, options: BuildOptions = {}): Promise<BuiltServer> {
 	const app = Fastify({
 		loggerInstance: deps.log as FastifyBaseLogger,
 		trustProxy: deps.env.TRUST_PROXY,
@@ -39,6 +45,7 @@ export async function buildServer(deps: Deps): Promise<BuiltServer> {
 		},
 	}).withTypeProvider<ZodTypeProvider>();
 
+	options.metrics?.instrument(app);
 	app.setValidatorCompiler(validatorCompiler);
 	app.setSerializerCompiler(envelopeSerializerCompiler);
 

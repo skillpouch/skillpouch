@@ -162,6 +162,11 @@ export const ErrorCodes = {
 		retryable: false,
 		message: 'Billing is not configured.',
 	},
+	upstream_unavailable: {
+		status: 502,
+		retryable: true,
+		message: 'An upstream service (e.g. GitHub) did not answer as expected.',
+	},
 	webhook_invalid: { status: 401, retryable: false, message: 'Webhook signature invalid.' },
 	last_admin: { status: 409, retryable: false, message: 'The last admin cannot be demoted.' },
 
