@@ -20,57 +20,54 @@ import {
 	createRootRoute,
 	createRoute,
 	createRouter,
-	lazyRouteComponent,
 	Navigate,
 	Outlet,
 } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
+import { lazy, type ReactNode } from 'react';
 import { SessionGate, type GateRequirement } from '@/features/session/session-gate';
 import { NotFoundPage } from '@/pages/not-found-page';
 import type { IngredientsSearch } from '@/pages/pouch/ingredients-page';
 import { RootLayout, UnlockedRoot } from './root';
 
-// Every page is its own chunk, loaded on first visit (and preloaded on hover).
-const AccountLayout = lazyRouteComponent(
-	() => import('@/pages/account/account-layout'),
-	'AccountLayout',
-);
-const BillingPage = lazyRouteComponent(() => import('@/pages/account/billing-page'), 'BillingPage');
-const DevicesPage = lazyRouteComponent(() => import('@/pages/account/devices-page'), 'DevicesPage');
-const ProfilePage = lazyRouteComponent(() => import('@/pages/account/profile-page'), 'ProfilePage');
-const SecurityPage = lazyRouteComponent(
-	() => import('@/pages/account/security-page'),
-	'SecurityPage',
-);
-const CliAuthorizePage = lazyRouteComponent(
+// Every page is its own chunk, loaded on first visit. React's own `lazy`
+// (the router wraps each route in Suspense) keeps rendering free of
+// conditional `use()` calls.
+function lazyPage<K extends string>(
+	load: () => Promise<Record<K, () => ReactNode>>,
+	name: K,
+): () => ReactNode {
+	const Page = lazy(async () => ({ default: (await load())[name] as () => ReactNode }));
+	return () => <Page />;
+}
+
+const AccountLayout = lazyPage(() => import('@/pages/account/account-layout'), 'AccountLayout');
+const BillingPage = lazyPage(() => import('@/pages/account/billing-page'), 'BillingPage');
+const DevicesPage = lazyPage(() => import('@/pages/account/devices-page'), 'DevicesPage');
+const ProfilePage = lazyPage(() => import('@/pages/account/profile-page'), 'ProfilePage');
+const SecurityPage = lazyPage(() => import('@/pages/account/security-page'), 'SecurityPage');
+const CliAuthorizePage = lazyPage(
 	() => import('@/pages/cli-authorize/cli-authorize-page'),
 	'CliAuthorizePage',
 );
-const IngredientsPage = lazyRouteComponent(
-	() => import('@/pages/pouch/ingredients-page'),
-	'IngredientsPage',
-);
-const OverviewPage = lazyRouteComponent(
-	() => import('@/pages/pouch/overview-page'),
-	'OverviewPage',
-);
-const PouchLayout = lazyRouteComponent(() => import('@/pages/pouch/pouch-layout'), 'PouchLayout');
-const PouchSettingsPage = lazyRouteComponent(
+const IngredientsPage = lazyPage(() => import('@/pages/pouch/ingredients-page'), 'IngredientsPage');
+const OverviewPage = lazyPage(() => import('@/pages/pouch/overview-page'), 'OverviewPage');
+const PouchLayout = lazyPage(() => import('@/pages/pouch/pouch-layout'), 'PouchLayout');
+const PouchSettingsPage = lazyPage(
 	() => import('@/pages/pouch/pouch-settings-page'),
 	'PouchSettingsPage',
 );
-const SharedLinksPage = lazyRouteComponent(
+const SharedLinksPage = lazyPage(
 	() => import('@/pages/pouch/shared-links-page'),
 	'SharedLinksPage',
 );
-const PouchesPage = lazyRouteComponent(() => import('@/pages/pouches/pouches-page'), 'PouchesPage');
-const PublicSharePage = lazyRouteComponent(
+const PouchesPage = lazyPage(() => import('@/pages/pouches/pouches-page'), 'PouchesPage');
+const PublicSharePage = lazyPage(
 	() => import('@/pages/share/public-share-page'),
 	'PublicSharePage',
 );
-const SignInPage = lazyRouteComponent(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage');
-const SetupPage = lazyRouteComponent(() => import('@/pages/setup/setup-page'), 'SetupPage');
-const UnlockPage = lazyRouteComponent(() => import('@/pages/unlock/unlock-page'), 'UnlockPage');
+const SignInPage = lazyPage(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage');
+const SetupPage = lazyPage(() => import('@/pages/setup/setup-page'), 'SetupPage');
+const UnlockPage = lazyPage(() => import('@/pages/unlock/unlock-page'), 'UnlockPage');
 
 const gated = (require: GateRequirement, page: () => ReactNode) => () => (
 	<SessionGate require={require}>{page()}</SessionGate>
