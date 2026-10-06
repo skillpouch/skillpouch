@@ -54,7 +54,7 @@ import {
 import type { Principal } from '../../security/principal';
 import { withTenantTx, type TenantTx } from '../../security/tenant-tx';
 import { appendEvent } from '../events/events.repo';
-import { findPouch, type PouchRow } from '../pouches/pouches.service';
+import { assertCommitAllowed, findPouch, type PouchRow } from '../pouches/pouches.service';
 import { isActiveMember, loadMembers } from '../roster/roster.service';
 
 type ArtifactRow = typeof artifacts.$inferSelect;
@@ -134,8 +134,8 @@ export async function commitOperations(
 			}
 
 			const pouch = await findPouch(tx, input.pouchId, { lock: true });
-			if (pouch.state !== 'active')
-				throw new AppError('pouch_read_only', { state: pouch.state });
+			const deletesOnly = input.request.ops.every((op) => op.type === 'delete');
+			assertCommitAllowed(pouch, principal, deletesOnly);
 			if (pouch.epoch !== input.request.epoch)
 				throw new AppError('epoch_mismatch', { epoch: pouch.epoch });
 
@@ -187,7 +187,8 @@ export async function commitOperations(
 						used: storageAccounts.usedBytes,
 						quota: storageAccounts.quotaBytes,
 					});
-				if (account && account.used > account.quota) {
+				// Deletes always go through, even over quota: they are how users get back under it (09 §3).
+				if (account && account.used > account.quota && !deletesOnly) {
 					throw new AppError('quota_exceeded', {
 						quota_bytes: account.quota,
 						used_bytes: account.used,

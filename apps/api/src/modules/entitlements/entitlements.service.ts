@@ -16,7 +16,7 @@ import {
 	type Database,
 	type EntitlementsJson,
 } from '@skillpouch/db';
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { notifyAccount } from '../../infra/notify';
 import { withTenantTx, type TenantTx } from '../../security/tenant-tx';
 import { resolveEntitlements, type PlanLimits } from './resolve';
@@ -109,7 +109,11 @@ export async function refreshEntitlementsInTx(
 		.where(eq(storageAccounts.id, storageAccountId));
 	await tx
 		.update(storageAccounts)
-		.set({ overQuotaSince: overQuota ? now : null })
+		.set({
+			overQuotaSince: overQuota
+				? sql`COALESCE(${storageAccounts.overQuotaSince}, ${now})`
+				: null,
+		})
 		.where(and(eq(storageAccounts.id, storageAccountId)));
 
 	await applyPouchLimit(tx, storageAccountId, effective.pouch_limit);
@@ -119,7 +123,12 @@ export async function refreshEntitlementsInTx(
 	return effective;
 }
 
-/** Oldest `limit` writable pouches stay active, the rest become read-only (and back). */
+/**
+ * Keeps at most `limit` pouches active; the rest become `locked` (18 §3.3).
+ * Pouches that are active now win (so the user's "Make active" choice
+ * survives a recompute), then the oldest. Raising the limit unlocks the
+ * oldest locked pouches again. Nothing is ever deleted here.
+ */
 async function applyPouchLimit(tx: TenantTx, storageAccountId: string, limit: number) {
 	const live = await tx
 		.select({ id: pouches.id, state: pouches.state })
@@ -127,12 +136,13 @@ async function applyPouchLimit(tx: TenantTx, storageAccountId: string, limit: nu
 		.where(
 			and(
 				eq(pouches.storageAccountId, storageAccountId),
-				inArray(pouches.state, ['active', 'read_only']),
+				inArray(pouches.state, ['active', 'locked']),
 			),
 		)
 		.orderBy(asc(pouches.createdAt), asc(pouches.id));
+	live.sort((a, b) => Number(b.state === 'active') - Number(a.state === 'active'));
 	const keep = new Set(live.slice(0, Math.max(0, limit)).map((pouch) => pouch.id));
-	const toActivate = live.filter((pouch) => keep.has(pouch.id) && pouch.state === 'read_only');
+	const toActivate = live.filter((pouch) => keep.has(pouch.id) && pouch.state === 'locked');
 	const toFreeze = live.filter((pouch) => !keep.has(pouch.id) && pouch.state === 'active');
 	if (toActivate.length > 0) {
 		await tx
@@ -148,7 +158,7 @@ async function applyPouchLimit(tx: TenantTx, storageAccountId: string, limit: nu
 	if (toFreeze.length > 0) {
 		await tx
 			.update(pouches)
-			.set({ state: 'read_only' })
+			.set({ state: 'locked' })
 			.where(
 				inArray(
 					pouches.id,

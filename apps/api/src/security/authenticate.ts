@@ -14,7 +14,7 @@
  *  admin   — session with role = admin.
  */
 import { Limits } from '@skillpouch/contracts';
-import { accountMembers, dpopReplay, storageAccounts } from '@skillpouch/db';
+import { accountMembers, dpopReplay, pouches, storageAccounts } from '@skillpouch/db';
 import { fromNodeHeaders } from 'better-auth/node';
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -302,6 +302,27 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 			}
 		}
 	});
+
+	// After validation: params/body are parsed, so the pouch id is trustworthy here.
+	app.addHook('preHandler', async (request) => {
+		const principal = request.principal;
+		if (principal?.kind !== 'device' || request.routeOptions.config?.lockedPouchOk) return;
+		const pouchId = pouchIdOf(request);
+		if (!pouchId) return;
+		const [row] = await withTenantTx(deps.db.app, principal.storageAccountId, (tx) =>
+			tx.select({ state: pouches.state }).from(pouches).where(eq(pouches.id, pouchId)),
+		);
+		if (row?.state === 'locked') throw new AppError('pouch_locked');
+	});
+}
+
+/** The pouch a request is about: `:pouchId` in the path or `pouch_id` in the body. */
+function pouchIdOf(request: FastifyRequest): string | null {
+	const params = request.params as { pouchId?: unknown } | undefined;
+	if (typeof params?.pouchId === 'string') return params.pouchId;
+	const body = request.body as { pouch_id?: unknown } | undefined;
+	if (body && typeof body === 'object' && typeof body.pouch_id === 'string') return body.pouch_id;
+	return null;
 }
 
 /** Marks a device as seen at most once a minute per instance. */

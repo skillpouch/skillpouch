@@ -37,14 +37,55 @@ async function purgePouchRows(tx: Tx, pouchId: string): Promise<void> {
 	await tx.execute(sql`DELETE FROM pouches WHERE id = ${pouchId}`);
 }
 
-/** Recomputes used bytes from what is actually stored (blobs + envelopes). */
+/**
+ * Recomputes used bytes from what is actually stored (blobs + envelopes) and
+ * sets or clears `over_quota_since` to match.
+ */
 export async function recalcAccountUsage(tx: Tx, storageAccountId: string): Promise<void> {
 	await tx.execute(sql`
+		WITH actual AS (
+			SELECT
+				COALESCE((SELECT sum(stored_size) FROM blobs WHERE storage_account_id = ${storageAccountId} AND state = 'stored'), 0)
+					+ COALESCE((SELECT sum(octet_length(envelope)) FROM revisions WHERE storage_account_id = ${storageAccountId}), 0) AS used,
+				COALESCE((SELECT sum(stored_size) FROM blobs WHERE storage_account_id = ${storageAccountId} AND state = 'pending'), 0) AS pending
+		)
 		UPDATE storage_accounts sa SET
-			used_bytes = COALESCE((SELECT sum(stored_size) FROM blobs WHERE storage_account_id = sa.id AND state = 'stored'), 0)
-				+ COALESCE((SELECT sum(octet_length(envelope)) FROM revisions WHERE storage_account_id = sa.id), 0),
-			pending_bytes = COALESCE((SELECT sum(stored_size) FROM blobs WHERE storage_account_id = sa.id AND state = 'pending'), 0)
+			used_bytes = actual.used,
+			pending_bytes = actual.pending,
+			over_quota_since = CASE WHEN actual.used > sa.quota_bytes THEN COALESCE(sa.over_quota_since, now()) ELSE NULL END
+		FROM actual
 		WHERE sa.id = ${storageAccountId}`);
+}
+
+/**
+ * Purges one deleted pouch right away instead of after the 7-day undo window
+ * (`DELETE /v1/pouches/:id?skip_undo=true`, 09 §3.1). The caller has already
+ * checked ownership and marked the pouch deleted.
+ */
+export async function purgePouchNow(
+	deps: Deps,
+	storageAccountId: string,
+	pouchId: string,
+): Promise<void> {
+	const purged = await deps.db.maintenance.transaction(async (tx) => {
+		const [locked] = rows<{ id: string }>(
+			await tx.execute(
+				sql`SELECT id FROM pouches WHERE id = ${pouchId} AND storage_account_id = ${storageAccountId} AND state = 'deleted' FOR UPDATE`,
+			),
+		);
+		if (!locked) return false;
+		await purgePouchRows(tx, pouchId);
+		await recalcAccountUsage(tx, storageAccountId);
+		await appendAudit(tx, {
+			storageAccountId,
+			actor: 'user',
+			action: 'pouch.purged',
+			target: pouchId,
+			details: { skipped_undo: true },
+		});
+		return true;
+	});
+	if (purged) await deps.blobs.deletePouch(storageAccountId, pouchId);
 }
 
 /** Pouches deleted more than 7 days ago (and not restored). */

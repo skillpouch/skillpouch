@@ -98,7 +98,7 @@ export const ActivePouchReport = z.strictObject({ pouch_id: Uuid.nullable() });
 
 export const Pouch = z.object({
 	id: Uuid,
-	state: z.enum(['active', 'read_only', 'archived', 'deleted']),
+	state: z.enum(['active', 'locked', 'archived', 'deleted']),
 	epoch: Uuid,
 	event_seq: z.number().int(),
 	key_gen: z.number().int(),
@@ -114,6 +114,68 @@ export const PouchCreate = z.strictObject({
 });
 
 export const PouchUpdate = z.strictObject({ statement: RosterStatementInput });
+
+/** Query of `DELETE /v1/pouches/:id`: `skip_undo` frees the space right away (09 §3). */
+export const PouchDeleteQuery = z.strictObject({
+	skip_undo: z.enum(['true', 'false']).default('false'),
+});
+
+/**
+ * `POST /v1/pouches/:id/activate` — make a locked pouch the active one
+ * (18 §3.3). At the pouch limit, `lock_pouch_id` names the active pouch that
+ * takes its place as locked.
+ */
+export const PouchActivate = z.strictObject({ lock_pouch_id: Uuid.optional() });
+
+/**
+ * Storage used by one artifact, for the "Free up space" picker (09 §3.1).
+ * Name and kind are encrypted; the browser joins them by `id`.
+ */
+export const ArtifactUsage = z.object({
+	id: Uuid,
+	deleted: z.boolean(),
+	/** Bytes of the current version (blobs + envelope). */
+	head_bytes: z.number().int(),
+	/** Bytes only older versions use — freed by removing history. */
+	history_bytes: z.number().int(),
+	updated_at: Timestamp,
+});
+
+export const PouchUsage = z.object({
+	id: Uuid,
+	state: Pouch.shape.state,
+	/** Everything this pouch stores (blobs + envelopes). */
+	bytes: z.number().int(),
+	/** Freed by "Old versions & trash" (non-current revisions, not pinned by open conflicts). */
+	history_bytes: z.number().int(),
+	artifacts: z.array(ArtifactUsage),
+});
+
+export const StorageUsage = z.object({
+	used_bytes: z.number().int(),
+	quota_bytes: z.number().int(),
+	over_quota_since: Timestamp.nullable(),
+	pouch_limit: z.number().int(),
+	pouches: z.array(PouchUsage),
+});
+
+/**
+ * `POST /v1/pouches/:id/free-space`. Without `artifact_ids`: removes every
+ * older version and trashed item of the pouch. With them: removes all older
+ * versions of those artifacts, which must already be deleted by a signed
+ * `delete` operation (content stays end-to-end encrypted; the server never
+ * decides what to delete).
+ */
+export const FreeSpaceRequest = z.strictObject({
+	artifact_ids: z.array(Uuid).min(1).max(5000).optional(),
+});
+
+export const FreeSpaceResponse = z.object({
+	freed_bytes: z.number().int(),
+	used_bytes: z.number().int(),
+	quota_bytes: z.number().int(),
+	over_quota: z.boolean(),
+});
 
 export const SecurityEvent = z.object({
 	id: Uuid,

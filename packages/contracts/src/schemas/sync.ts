@@ -179,6 +179,7 @@ export const AccountEventType = z.enum([
 	'pouch.state_changed',
 	'device.revoked',
 	'entitlements.changed',
+	'usage.changed',
 	'cli_auth.approved',
 ]);
 

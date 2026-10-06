@@ -19,6 +19,12 @@ export interface SkillpouchRouteConfig {
 	raw?: boolean;
 	/** Mutating route held/blocked by the write pause even though it is GET. */
 	rateLimit?: RateLimitBucket;
+	/**
+	 * CLI devices may call this route for a `locked` pouch. Every other route
+	 * that names a pouch (`:pouchId` or body `pouch_id`) answers a device with
+	 * `pouch_locked` — locked pouches are not synced (18 §3.3).
+	 */
+	lockedPouchOk?: boolean;
 }
 
 declare module 'fastify' {
@@ -28,6 +34,7 @@ declare module 'fastify' {
 		stepUp?: boolean;
 		raw?: boolean;
 		rateLimit?: RateLimitBucket;
+		lockedPouchOk?: boolean;
 	}
 	interface FastifyRequest {
 		principal: Principal | null;

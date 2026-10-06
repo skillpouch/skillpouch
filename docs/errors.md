@@ -41,6 +41,8 @@ Every API error uses the envelope from plan 17 §2. Clients branch on `code`;
 | `not_found` | 404 | no | Not found. |
 | `pouch_limit_reached` | 403 | no | Pouch limit reached for your plan. |
 | `pouch_read_only` | 409 | no | This pouch is read-only. |
+| `pouch_locked` | 409 | no | This pouch is locked because your plan includes fewer pouches. Choose the active pouch or upgrade on skillpouch.net. |
+| `artifact_not_deleted` | 409 | no | Delete the item first, then free its space. |
 | `quota_exceeded` | 413 | no | Storage quota exceeded. |
 | `precondition_failed` | 412 | no | Base revision is out of date. |
 | `epoch_mismatch` | 409 | no | Server restored; rebase required. |

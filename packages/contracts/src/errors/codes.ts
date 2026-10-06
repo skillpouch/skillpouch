@@ -121,6 +121,17 @@ export const ErrorCodes = {
 		message: 'Pouch limit reached for your plan.',
 	},
 	pouch_read_only: { status: 409, retryable: false, message: 'This pouch is read-only.' },
+	pouch_locked: {
+		status: 409,
+		retryable: false,
+		message:
+			'This pouch is locked because your plan includes fewer pouches. Choose the active pouch or upgrade on skillpouch.net.',
+	},
+	artifact_not_deleted: {
+		status: 409,
+		retryable: false,
+		message: 'Delete the item first, then free its space.',
+	},
 	quota_exceeded: { status: 413, retryable: false, message: 'Storage quota exceeded.' },
 	precondition_failed: {
 		status: 412,

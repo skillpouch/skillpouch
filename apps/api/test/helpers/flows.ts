@@ -151,6 +151,20 @@ export async function authorizeCli(
 	return cli;
 }
 
+/** Creates another pouch from the web (signed `create_pouch` + envelopes for every member). */
+export async function createPouch(account: Account) {
+	const pouchId = uuidv7();
+	const head = await rosterHead(account.browser);
+	const created = await statement(account.browserMember, account.accountId, head, {
+		action: 'create_pouch',
+		pouch: { id: pouchId, name_enc: 'bmFtZQ' },
+	});
+	return account.browser.post('/v1/pouches', {
+		statement: created,
+		key_envelopes: envelopesFor(pouchId, account.members, 1, account.browserMember.id),
+	});
+}
+
 export function newId(): string {
 	return uuidv7();
 }

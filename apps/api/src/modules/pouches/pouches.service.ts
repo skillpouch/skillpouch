@@ -9,6 +9,7 @@ import { pouches, storageAccounts } from '@skillpouch/db';
 import { eq } from 'drizzle-orm';
 import { AppError } from '../../http/app-error';
 import { addSeconds } from '../../lib/dates';
+import type { Principal } from '../../security/principal';
 import type { TenantTx } from '../../security/tenant-tx';
 import { countedPouches } from '../entitlements/entitlements.service';
 
@@ -45,8 +46,28 @@ export async function findWritablePouch(
 	lock = false,
 ): Promise<PouchRow> {
 	const pouch = await findPouch(tx, pouchId, { lock });
-	if (pouch.state !== 'active') throw new AppError('pouch_read_only', { state: pouch.state });
+	assertWritable(pouch);
 	return pouch;
+}
+
+/** `pouch_locked` for pouches over the plan limit, `pouch_read_only` for archived ones. */
+export function assertWritable(pouch: PouchRow): void {
+	if (pouch.state === 'locked') throw new AppError('pouch_locked');
+	if (pouch.state !== 'active') throw new AppError('pouch_read_only', { state: pouch.state });
+}
+
+/**
+ * Who may commit to a pouch (18 §3.3). A locked pouch is read-only on the web
+ * and invisible to the CLI — except that a browser may delete items in it,
+ * because deleting is how the user frees space without upgrading.
+ */
+export function assertCommitAllowed(
+	pouch: PouchRow,
+	principal: Principal,
+	deletesOnly: boolean,
+): void {
+	if (pouch.state === 'locked' && principal.kind === 'session' && deletesOnly) return;
+	assertWritable(pouch);
 }
 
 export function pouchView(pouch: PouchRow) {

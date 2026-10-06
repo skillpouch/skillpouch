@@ -203,6 +203,18 @@
 		"message": "This pouch is read-only.",
 		"docs_url": "https://docs.skillpouch.net/errors/pouch_read_only"
 	},
+	"pouch_locked": {
+		"status": 409,
+		"retryable": false,
+		"message": "This pouch is locked because your plan includes fewer pouches. Choose the active pouch or upgrade on skillpouch.net.",
+		"docs_url": "https://docs.skillpouch.net/errors/pouch_locked"
+	},
+	"artifact_not_deleted": {
+		"status": 409,
+		"retryable": false,
+		"message": "Delete the item first, then free its space.",
+		"docs_url": "https://docs.skillpouch.net/errors/artifact_not_deleted"
+	},
 	"quota_exceeded": {
 		"status": 413,
 		"retryable": false,

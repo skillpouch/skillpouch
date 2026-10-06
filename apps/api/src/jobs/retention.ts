@@ -39,31 +39,10 @@ export async function expireRevisions(deps: Deps): Promise<number> {
 					FOR UPDATE OF r SKIP LOCKED`),
 			);
 			if (expired.length === 0) return 0;
-			const ids = expired.map((row) => row.id);
-			await tx.execute(sql`
-				WITH released AS (
-					DELETE FROM revision_blobs WHERE revision_id = ANY(${sql.param(ids)}::uuid[])
-					RETURNING storage_account_id, pouch_id, blob_id
-				), counts AS (
-					SELECT storage_account_id, pouch_id, blob_id, count(*) AS n FROM released GROUP BY 1, 2, 3
-				)
-				UPDATE blobs b
-				SET ref_count = GREATEST(0, b.ref_count - counts.n),
-					unreferenced_since = CASE WHEN b.ref_count - counts.n <= 0 THEN now() ELSE b.unreferenced_since END
-				FROM counts
-				WHERE b.storage_account_id = counts.storage_account_id
-					AND b.pouch_id = counts.pouch_id AND b.blob_id = counts.blob_id`);
-			// Children keep their history readable: a deleted parent becomes a dangling (null) link.
-			await tx.execute(
-				sql`UPDATE revisions SET parent_id = NULL WHERE parent_id = ANY(${sql.param(ids)}::uuid[])`,
+			await releaseRevisions(
+				tx,
+				expired.map((row) => row.id),
 			);
-			await tx.execute(
-				sql`UPDATE revisions SET merge_parent_id = NULL WHERE merge_parent_id = ANY(${sql.param(ids)}::uuid[])`,
-			);
-			await tx.execute(
-				sql`UPDATE conflicts SET incoming_revision_id = NULL WHERE state <> 'open' AND incoming_revision_id = ANY(${sql.param(ids)}::uuid[])`,
-			);
-			await tx.execute(sql`DELETE FROM revisions WHERE id = ANY(${sql.param(ids)}::uuid[])`);
 			const perAccount = new Map<string, number>();
 			for (const row of expired) {
 				perAccount.set(
@@ -81,6 +60,53 @@ export async function expireRevisions(deps: Deps): Promise<number> {
 		total += deleted;
 		if (deleted < BATCH) return total;
 	}
+}
+
+type Tx = Parameters<Parameters<Deps['db']['maintenance']['transaction']>[0]>[0];
+
+export interface ReleasedBlob {
+	storage_account_id: string;
+	pouch_id: string;
+	blob_id: Buffer;
+	ref_count: number;
+}
+
+/**
+ * Deletes revisions and releases their blob references. Blobs that drop to
+ * `ref_count = 0` are returned; `gc.blobs` removes them after the grace
+ * period, or the caller removes them right away (`storage/free-space`).
+ * Callers must have excluded head revisions and revisions open conflicts pin.
+ */
+export async function releaseRevisions(tx: Tx, ids: string[]): Promise<ReleasedBlob[]> {
+	if (ids.length === 0) return [];
+	const released = rows<ReleasedBlob>(
+		await tx.execute(sql`
+			WITH released AS (
+				DELETE FROM revision_blobs WHERE revision_id = ANY(${sql.param(ids)}::uuid[])
+				RETURNING storage_account_id, pouch_id, blob_id
+			), counts AS (
+				SELECT storage_account_id, pouch_id, blob_id, count(*) AS n FROM released GROUP BY 1, 2, 3
+			)
+			UPDATE blobs b
+			SET ref_count = GREATEST(0, b.ref_count - counts.n),
+				unreferenced_since = CASE WHEN b.ref_count - counts.n <= 0 THEN now() ELSE b.unreferenced_since END
+			FROM counts
+			WHERE b.storage_account_id = counts.storage_account_id
+				AND b.pouch_id = counts.pouch_id AND b.blob_id = counts.blob_id
+			RETURNING b.storage_account_id, b.pouch_id, b.blob_id, b.ref_count`),
+	);
+	// Children keep their history readable: a deleted parent becomes a dangling (null) link.
+	await tx.execute(
+		sql`UPDATE revisions SET parent_id = NULL WHERE parent_id = ANY(${sql.param(ids)}::uuid[])`,
+	);
+	await tx.execute(
+		sql`UPDATE revisions SET merge_parent_id = NULL WHERE merge_parent_id = ANY(${sql.param(ids)}::uuid[])`,
+	);
+	await tx.execute(
+		sql`UPDATE conflicts SET incoming_revision_id = NULL WHERE state <> 'open' AND incoming_revision_id = ANY(${sql.param(ids)}::uuid[])`,
+	);
+	await tx.execute(sql`DELETE FROM revisions WHERE id = ANY(${sql.param(ids)}::uuid[])`);
+	return released.filter((row) => Number(row.ref_count) === 0);
 }
 
 /** Deletes events older than 90 days and records the purge horizon per pouch. */

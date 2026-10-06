@@ -107,7 +107,7 @@ CREATE TABLE pouches (
 	storage_account_id     uuid NOT NULL REFERENCES storage_accounts (id),
 	created_seq            bigint NOT NULL,
 	state                  text NOT NULL DEFAULT 'active'
-	                       CHECK (state IN ('active', 'read_only', 'archived', 'deleted')),
+	                       CHECK (state IN ('active', 'locked', 'archived', 'deleted')),
 	epoch                  uuid NOT NULL,
 	event_seq              bigint NOT NULL DEFAULT 0,
 	events_purged_through  bigint NOT NULL DEFAULT 0,

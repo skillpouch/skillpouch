@@ -7,7 +7,7 @@ export const pouches = pgTable('pouches', {
 	id: uuid('id').primaryKey(),
 	storageAccountId: tenantColumn(),
 	createdSeq: int8('created_seq').notNull(),
-	state: text('state', { enum: ['active', 'read_only', 'archived', 'deleted'] })
+	state: text('state', { enum: ['active', 'locked', 'archived', 'deleted'] })
 		.notNull()
 		.default('active'),
 	epoch: uuid('epoch').notNull(),
