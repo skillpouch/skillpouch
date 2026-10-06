@@ -257,7 +257,7 @@ export async function userDetail(deps: Deps, userId: string) {
 				id: pouches.id,
 				state: pouches.state,
 				created_at: pouches.createdAt,
-				stored_bytes: sql<string>`(SELECT COALESCE(sum(stored_size), 0) FROM blobs b WHERE b.pouch_id = ${pouches.id})`,
+				stored_bytes: sql<string>`(SELECT COALESCE(sum(stored_size), 0) FROM blobs b WHERE b.storage_account_id = ${pouches.storageAccountId} AND b.pouch_id = ${pouches.id})`,
 			})
 			.from(pouches)
 			.where(eq(pouches.storageAccountId, account.id)),

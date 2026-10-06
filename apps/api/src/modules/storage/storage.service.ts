@@ -50,7 +50,9 @@ export async function storageUsage(tx: TenantTx, storageAccountId: string) {
 		.where(eq(storageAccounts.id, storageAccountId));
 	if (!account) throw new AppError('not_found');
 
-	// A revision is "kept" by "Free up space" when it is a head or an open conflict pins it.
+	// A revision is "kept" by "Free up space" when it is a head or an open conflict
+	// pins it; everything else is history. Both queries aggregate in one pass
+	// (no per-row subqueries), so a pouch with thousands of items stays fast.
 	const pouchRows = rows<PouchUsageRow>(
 		await tx.execute(sql`
 			WITH kept AS (
@@ -59,49 +61,72 @@ export async function storageUsage(tx: TenantTx, storageAccountId: string) {
 				SELECT unnest(ARRAY[base_revision_id, server_revision_id, incoming_revision_id])
 				FROM conflicts WHERE state = 'open'
 			), kept_blobs AS (
-				SELECT DISTINCT rb.pouch_id, rb.blob_id FROM revision_blobs rb JOIN kept ON kept.id = rb.revision_id
+				SELECT DISTINCT rb.pouch_id, rb.blob_id
+				FROM revision_blobs rb JOIN kept ON kept.id = rb.revision_id
+			), blob_totals AS (
+				SELECT b.pouch_id, sum(b.stored_size) AS bytes,
+					sum(b.stored_size) FILTER (WHERE k.blob_id IS NULL) AS history
+				FROM blobs b
+				LEFT JOIN kept_blobs k ON k.pouch_id = b.pouch_id AND k.blob_id = b.blob_id
+				WHERE b.state = 'stored'
+				GROUP BY b.pouch_id
+			), revision_totals AS (
+				SELECT r.pouch_id, sum(octet_length(r.envelope)) AS bytes,
+					sum(octet_length(r.envelope)) FILTER (WHERE kept.id IS NULL) AS history
+				FROM revisions r
+				LEFT JOIN kept ON kept.id = r.id
+				GROUP BY r.pouch_id
 			)
 			SELECT p.id, p.state,
-				(COALESCE((SELECT sum(b.stored_size) FROM blobs b WHERE b.pouch_id = p.id AND b.state = 'stored'), 0)
-					+ COALESCE((SELECT sum(octet_length(r.envelope)) FROM revisions r WHERE r.pouch_id = p.id), 0))::bigint AS bytes,
-				(COALESCE((
-					SELECT sum(b.stored_size) FROM blobs b
-					WHERE b.pouch_id = p.id AND b.state = 'stored'
-						AND NOT EXISTS (SELECT 1 FROM kept_blobs k WHERE k.pouch_id = b.pouch_id AND k.blob_id = b.blob_id)
-				), 0)
-					+ COALESCE((
-						SELECT sum(octet_length(r.envelope)) FROM revisions r
-						WHERE r.pouch_id = p.id AND NOT EXISTS (SELECT 1 FROM kept WHERE kept.id = r.id)
-					), 0))::bigint AS history_bytes
+				(COALESCE(bt.bytes, 0) + COALESCE(rt.bytes, 0))::bigint AS bytes,
+				(COALESCE(bt.history, 0) + COALESCE(rt.history, 0))::bigint AS history_bytes
 			FROM pouches p
+			LEFT JOIN blob_totals bt ON bt.pouch_id = p.id
+			LEFT JOIN revision_totals rt ON rt.pouch_id = p.id
 			ORDER BY p.created_at, p.id`),
 	);
 
+	// Per item: the head version's bytes, and what only older versions hold
+	// (their envelopes plus blobs the head no longer references).
 	const artifactRows = rows<ArtifactUsageRow>(
 		await tx.execute(sql`
+			WITH head_blobs AS NOT MATERIALIZED (
+				SELECT DISTINCT a.id AS artifact_id, rb.storage_account_id, rb.pouch_id, rb.blob_id
+				FROM artifacts a JOIN revision_blobs rb ON rb.revision_id = a.head_revision_id
+			), old_revisions AS NOT MATERIALIZED (
+				SELECT r.id, r.artifact_id, octet_length(r.envelope) AS envelope_bytes
+				FROM revisions r JOIN artifacts a ON a.id = r.artifact_id
+				WHERE r.id IS DISTINCT FROM a.head_revision_id
+			), old_blobs AS (
+				SELECT DISTINCT o.artifact_id, rb.storage_account_id, rb.pouch_id, rb.blob_id
+				FROM old_revisions o JOIN revision_blobs rb ON rb.revision_id = o.id
+			), head_bytes AS (
+				SELECT h.artifact_id, sum(b.stored_size) AS bytes
+				FROM head_blobs h
+				JOIN blobs b ON b.storage_account_id = h.storage_account_id
+					AND b.pouch_id = h.pouch_id AND b.blob_id = h.blob_id
+				GROUP BY h.artifact_id
+			), history_blob_bytes AS (
+				SELECT o.artifact_id, sum(b.stored_size) AS bytes
+				FROM old_blobs o
+				JOIN blobs b ON b.storage_account_id = o.storage_account_id
+					AND b.pouch_id = o.pouch_id AND b.blob_id = o.blob_id
+				WHERE NOT EXISTS (
+					SELECT 1 FROM head_blobs h
+					WHERE h.artifact_id = o.artifact_id AND h.pouch_id = o.pouch_id AND h.blob_id = o.blob_id
+				)
+				GROUP BY o.artifact_id
+			), history_envelope_bytes AS (
+				SELECT artifact_id, sum(envelope_bytes) AS bytes FROM old_revisions GROUP BY artifact_id
+			)
 			SELECT a.id, a.pouch_id, a.deleted_at IS NOT NULL AS deleted, a.updated_at,
-				(COALESCE((SELECT octet_length(r.envelope) FROM revisions r WHERE r.id = a.head_revision_id), 0)
-					+ COALESCE((
-						SELECT sum(b.stored_size) FROM blobs b
-						WHERE b.pouch_id = a.pouch_id
-							AND b.blob_id IN (SELECT rb.blob_id FROM revision_blobs rb WHERE rb.revision_id = a.head_revision_id)
-					), 0))::bigint AS head_bytes,
-				(COALESCE((
-					SELECT sum(octet_length(r.envelope)) FROM revisions r
-					WHERE r.artifact_id = a.id AND r.id IS DISTINCT FROM a.head_revision_id
-				), 0)
-					+ COALESCE((
-						SELECT sum(b.stored_size) FROM blobs b
-						WHERE b.pouch_id = a.pouch_id
-							AND b.blob_id IN (
-								SELECT rb.blob_id FROM revision_blobs rb JOIN revisions r ON r.id = rb.revision_id
-								WHERE r.artifact_id = a.id AND r.id IS DISTINCT FROM a.head_revision_id
-							)
-							AND b.blob_id NOT IN (
-								SELECT rb.blob_id FROM revision_blobs rb WHERE rb.revision_id = a.head_revision_id
-							)
-					), 0))::bigint AS history_bytes
+				(COALESCE(octet_length(head.envelope), 0) + COALESCE(hb.bytes, 0))::bigint AS head_bytes,
+				(COALESCE(he.bytes, 0) + COALESCE(hbb.bytes, 0))::bigint AS history_bytes
 			FROM artifacts a
+			LEFT JOIN revisions head ON head.id = a.head_revision_id
+			LEFT JOIN head_bytes hb ON hb.artifact_id = a.id
+			LEFT JOIN history_envelope_bytes he ON he.artifact_id = a.id
+			LEFT JOIN history_blob_bytes hbb ON hbb.artifact_id = a.id
 			ORDER BY a.pouch_id, a.id`),
 	);
 
@@ -179,15 +204,15 @@ export async function freeSpace(
 	const removedBlobs = await deps.db.maintenance.transaction(async (tx) => {
 		const ids = rows<{ id: string }>(
 			await tx.execute(sql`
+				WITH pinned AS (
+					SELECT unnest(ARRAY[base_revision_id, server_revision_id, incoming_revision_id]) AS id
+					FROM conflicts WHERE pouch_id = ${input.pouchId} AND state = 'open'
+				)
 				SELECT r.id FROM revisions r
 				WHERE r.storage_account_id = ${input.storageAccountId} AND r.pouch_id = ${input.pouchId}
 					${artifactFilter}
 					AND NOT EXISTS (SELECT 1 FROM artifacts a WHERE a.head_revision_id = r.id)
-					AND NOT EXISTS (
-						SELECT 1 FROM conflicts c
-						WHERE c.state = 'open'
-							AND r.id IN (c.base_revision_id, c.server_revision_id, c.incoming_revision_id)
-					)
+					AND NOT EXISTS (SELECT 1 FROM pinned p WHERE p.id = r.id)
 				FOR UPDATE OF r`),
 		).map((row) => row.id);
 		const released = await releaseRevisions(tx, ids);

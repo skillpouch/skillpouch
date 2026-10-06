@@ -46,6 +46,8 @@ export async function expireBrowserTrust(deps: Deps): Promise<number> {
 		WHERE sa.id = m.storage_account_id
 			AND m.kind = 'browser' AND m.removed_seq IS NULL AND m.revoked_at IS NULL
 			AND m.trust_expired_at IS NULL
+			-- No account allows less than the minimum: lets the partial index skip recent browsers.
+			AND COALESCE(m.last_seen_at, m.created_at) < now() - make_interval(days => ${Limits.browserTrustDaysMin})
 			AND COALESCE(m.last_seen_at, m.created_at) < now() - make_interval(days =>
 				LEAST(${Limits.browserTrustDaysMax}, GREATEST(${Limits.browserTrustDaysMin},
 					COALESCE((sa.security_settings->>'browser_trust_days')::int, ${Limits.browserTrustDaysDefault}))))`);
@@ -125,8 +127,9 @@ export async function verifyBlobSample(
 		ciphertext_hash: Buffer;
 	}>(
 		await deps.db.maintenance.execute(sql`
-			SELECT storage_account_id, pouch_id, blob_id, ciphertext_hash FROM blobs
-			WHERE state = 'stored' AND ciphertext_hash IS NOT NULL AND random() < ${fraction}
+			SELECT storage_account_id, pouch_id, blob_id, ciphertext_hash
+			FROM blobs TABLESAMPLE SYSTEM (${fraction * 100})
+			WHERE state = 'stored' AND ciphertext_hash IS NOT NULL
 			LIMIT ${limit}`),
 	);
 	let bad = 0;

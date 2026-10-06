@@ -130,6 +130,17 @@ async function applyWithRetry(
 	}
 }
 
+/**
+ * Splits a no-transaction migration into statements at lines ending in `;`.
+ * Those files hold plain DDL (no functions or DO blocks), so this is enough.
+ */
+export function splitStatements(sql: string): string[] {
+	return sql
+		.split(/;[ \t]*(?:--[^\n]*)?$/m)
+		.map((part) => part.trim())
+		.filter((part) => part.replace(/^--.*$/gm, '').trim().length > 0);
+}
+
 async function applyOne(client: pg.Client, file: MigrationFile): Promise<void> {
 	const record = () =>
 		client.query('INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)', [
@@ -137,8 +148,12 @@ async function applyOne(client: pg.Client, file: MigrationFile): Promise<void> {
 			file.checksum,
 		]);
 	if (!file.transactional) {
-		await client.query("SET lock_timeout = '3s'; SET statement_timeout = '60s'");
-		await client.query(file.sql);
+		// One statement per round trip: a multi-statement string would run in an
+		// implicit transaction, which CREATE INDEX CONCURRENTLY refuses. No
+		// statement timeout — a concurrent build may take long, but blocks nobody.
+		await client.query("SET lock_timeout = '3s'; SET statement_timeout = 0");
+		for (const statement of splitStatements(file.sql)) await client.query(statement);
+		await client.query('RESET statement_timeout');
 		await record();
 		return;
 	}

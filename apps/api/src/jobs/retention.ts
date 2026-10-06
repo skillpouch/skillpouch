@@ -24,16 +24,17 @@ export async function expireRevisions(deps: Deps): Promise<number> {
 				storage_account_id: string;
 				envelope_bytes: number;
 			}>(
+				// Open conflicts are collected once (a hashed set), not searched per revision.
 				await tx.execute(sql`
+					WITH pinned AS (
+						SELECT unnest(ARRAY[base_revision_id, server_revision_id, incoming_revision_id]) AS id
+						FROM conflicts WHERE state = 'open'
+					)
 					SELECT r.id, r.storage_account_id, octet_length(r.envelope) AS envelope_bytes
 					FROM revisions r
 					WHERE r.expires_at < now()
 						AND NOT EXISTS (SELECT 1 FROM artifacts a WHERE a.head_revision_id = r.id)
-						AND NOT EXISTS (
-							SELECT 1 FROM conflicts c
-							WHERE c.state = 'open'
-								AND r.id IN (c.base_revision_id, c.server_revision_id, c.incoming_revision_id)
-						)
+						AND NOT EXISTS (SELECT 1 FROM pinned p WHERE p.id = r.id)
 					ORDER BY r.expires_at
 					LIMIT ${BATCH}
 					FOR UPDATE OF r SKIP LOCKED`),

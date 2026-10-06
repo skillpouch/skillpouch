@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { MIGRATIONS_DIR, loadMigrations, migrate } from '../src/migrate';
+import { MIGRATIONS_DIR, loadMigrations, migrate, splitStatements } from '../src/migrate';
 import { createEmptyDatabase, type TestDatabase } from '../src/testing';
 
 describe('migration runner', () => {
@@ -17,6 +17,17 @@ describe('migration runner', () => {
 		await db.drop();
 	});
 
+	it('splits no-transaction files into single statements (comments ignored)', () => {
+		expect(
+			splitStatements(
+				'-- phase: expand\n-- no-transaction\n-- why\nCREATE INDEX CONCURRENTLY a ON t (x);\n\nCREATE INDEX CONCURRENTLY b\n\tON t (y) WHERE y > 0; -- trailing\n',
+			),
+		).toEqual([
+			'-- phase: expand\n-- no-transaction\n-- why\nCREATE INDEX CONCURRENTLY a ON t (x)',
+			'CREATE INDEX CONCURRENTLY b\n\tON t (y) WHERE y > 0',
+		]);
+	});
+
 	it('every migration declares its phase', () => {
 		for (const file of loadMigrations()) expect(['expand', 'contract']).toContain(file.phase);
 	});
@@ -25,6 +36,21 @@ describe('migration runner', () => {
 		const first = await migrate({ connectionString: db.url });
 		expect(first).toEqual(loadMigrations().map((file) => file.name));
 		expect(await migrate({ connectionString: db.url })).toEqual([]);
+	});
+
+	it('builds the concurrent indexes completely (none left invalid)', async () => {
+		const client = new pg.Client({ connectionString: db.url });
+		await client.connect();
+		try {
+			const { rows } = await client.query(
+				`SELECT c.relname, i.indisvalid FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid
+				 WHERE c.relname IN ('artifacts_head_revision_idx', 'audit_log_created_idx', 'device_cursors_pouch_idx')`,
+			);
+			expect(rows).toHaveLength(3);
+			expect(rows.every((row) => row.indisvalid)).toBe(true);
+		} finally {
+			await client.end();
+		}
 	});
 
 	it('refuses to run when an applied migration was edited', async () => {
