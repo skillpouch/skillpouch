@@ -1,0 +1,5 @@
+# Engram: only the portable graph + report are committed (never branch/worktree/cache state).
+*
+!.gitignore
+!graph.json
+!GRAPH_REPORT.md

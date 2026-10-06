@@ -20,7 +20,7 @@
 		"dev:api": "pnpm --filter @skillpouch/api dev",
 		"db:migrate": "pnpm --filter @skillpouch/db migrate",
 		"contracts:generate": "pnpm --filter @skillpouch/contracts generate",
-		"engram": "node scripts/engram-update.mjs"
+		"engram": "engram update . --no-description --no-label"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.5",
