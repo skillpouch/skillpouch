@@ -14,34 +14,63 @@
  *   /s/:shareId              public share link
  *
  * `/` belongs to the future landing page; for now it forwards to `/app`.
+ * Pages are code-split; the shell, session gate and crypto load up front.
  */
 import {
 	createRootRoute,
 	createRoute,
 	createRouter,
+	lazyRouteComponent,
 	Navigate,
 	Outlet,
 } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { SessionGate, type GateRequirement } from '@/features/session/session-gate';
-import { AccountLayout } from '@/pages/account/account-layout';
-import { BillingPage } from '@/pages/account/billing-page';
-import { DevicesPage } from '@/pages/account/devices-page';
-import { ProfilePage } from '@/pages/account/profile-page';
-import { SecurityPage } from '@/pages/account/security-page';
-import { CliAuthorizePage } from '@/pages/cli-authorize/cli-authorize-page';
 import { NotFoundPage } from '@/pages/not-found-page';
-import { IngredientsPage, type IngredientsSearch } from '@/pages/pouch/ingredients-page';
-import { OverviewPage } from '@/pages/pouch/overview-page';
-import { PouchLayout } from '@/pages/pouch/pouch-layout';
-import { PouchSettingsPage } from '@/pages/pouch/pouch-settings-page';
-import { SharedLinksPage } from '@/pages/pouch/shared-links-page';
-import { PouchesPage } from '@/pages/pouches/pouches-page';
-import { PublicSharePage } from '@/pages/share/public-share-page';
-import { SignInPage } from '@/pages/sign-in/sign-in-page';
-import { SetupPage } from '@/pages/setup/setup-page';
-import { UnlockPage } from '@/pages/unlock/unlock-page';
+import type { IngredientsSearch } from '@/pages/pouch/ingredients-page';
 import { RootLayout, UnlockedRoot } from './root';
+
+// Every page is its own chunk, loaded on first visit (and preloaded on hover).
+const AccountLayout = lazyRouteComponent(
+	() => import('@/pages/account/account-layout'),
+	'AccountLayout',
+);
+const BillingPage = lazyRouteComponent(() => import('@/pages/account/billing-page'), 'BillingPage');
+const DevicesPage = lazyRouteComponent(() => import('@/pages/account/devices-page'), 'DevicesPage');
+const ProfilePage = lazyRouteComponent(() => import('@/pages/account/profile-page'), 'ProfilePage');
+const SecurityPage = lazyRouteComponent(
+	() => import('@/pages/account/security-page'),
+	'SecurityPage',
+);
+const CliAuthorizePage = lazyRouteComponent(
+	() => import('@/pages/cli-authorize/cli-authorize-page'),
+	'CliAuthorizePage',
+);
+const IngredientsPage = lazyRouteComponent(
+	() => import('@/pages/pouch/ingredients-page'),
+	'IngredientsPage',
+);
+const OverviewPage = lazyRouteComponent(
+	() => import('@/pages/pouch/overview-page'),
+	'OverviewPage',
+);
+const PouchLayout = lazyRouteComponent(() => import('@/pages/pouch/pouch-layout'), 'PouchLayout');
+const PouchSettingsPage = lazyRouteComponent(
+	() => import('@/pages/pouch/pouch-settings-page'),
+	'PouchSettingsPage',
+);
+const SharedLinksPage = lazyRouteComponent(
+	() => import('@/pages/pouch/shared-links-page'),
+	'SharedLinksPage',
+);
+const PouchesPage = lazyRouteComponent(() => import('@/pages/pouches/pouches-page'), 'PouchesPage');
+const PublicSharePage = lazyRouteComponent(
+	() => import('@/pages/share/public-share-page'),
+	'PublicSharePage',
+);
+const SignInPage = lazyRouteComponent(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage');
+const SetupPage = lazyRouteComponent(() => import('@/pages/setup/setup-page'), 'SetupPage');
+const UnlockPage = lazyRouteComponent(() => import('@/pages/unlock/unlock-page'), 'UnlockPage');
 
 const gated = (require: GateRequirement, page: () => ReactNode) => () => (
 	<SessionGate require={require}>{page()}</SessionGate>
