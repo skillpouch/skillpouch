@@ -29,7 +29,7 @@ import {
 	type StoredBrowserKey,
 } from '../vault/key-store';
 import { fetchMembers, loadVerifiedRoster } from '../vault/roster';
-import { setSession, type SessionState } from './session-store';
+import { getSession, setSession, type SessionState } from './session-store';
 
 interface AuthSession {
 	user: { id: string; email: string };
@@ -163,6 +163,17 @@ export async function bootstrapSession(options: BootstrapOptions = {}): Promise<
 			message: error instanceof Error ? error.message : 'Could not load your account.',
 		};
 	}
+	// Keep the reason a user was just signed out (e.g. revoked) when a late
+	// re-run finds the same signed-out state without one.
+	const current = getSession();
+	if (
+		next.status === 'signed_out' &&
+		!next.notice &&
+		current.status === 'signed_out' &&
+		current.notice
+	) {
+		next = current;
+	}
 	setSession(next);
 	return next;
 }
@@ -177,6 +188,18 @@ async function signOutQuietly(userId: string): Promise<void> {
 		headers: { 'content-type': 'application/json', 'skillpouch-client': 'web' },
 		body: '{}',
 	}).catch(() => undefined);
+}
+
+/**
+ * This browser was revoked from another device: its session is already gone
+ * on the server, so forget the key and show why the user is signed out.
+ */
+export async function endRevokedBrowser(state: SessionState): Promise<void> {
+	if ('browser' in state) await signOutQuietly(state.browser.userId);
+	setSession({
+		status: 'signed_out',
+		notice: 'This browser was removed from your account. Sign in again.',
+	});
 }
 
 /**

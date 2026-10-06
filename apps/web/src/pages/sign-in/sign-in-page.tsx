@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * `/sign-in` — GitHub or Google. `?from=cli` adds a line for people who
- * arrived from the terminal; `?error=cancelled` shows why they are back.
+ * arrived from the terminal; `?error=cancelled` shows why they are back, and
+ * a session notice (revoked browser, ended session) says why they were signed out.
  */
 import { useSearch } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
@@ -18,6 +19,7 @@ import {
 } from '@/lib/auth';
 import { GitHubIcon, GoogleIcon } from '@/features/auth/provider-icons';
 import { bootstrapSession } from '@/features/session/bootstrap';
+import { useSession } from '@/features/session/session-store';
 import { describeError } from '@/lib/api/errors';
 
 export interface SignInSearch {
@@ -28,6 +30,8 @@ export interface SignInSearch {
 
 export function SignInPage() {
 	const search = useSearch({ strict: false }) as SignInSearch;
+	const session = useSession();
+	const notice = session.status === 'signed_out' ? session.notice : undefined;
 	const [pending, setPending] = useState<OAuthProvider | null>(null);
 	const [error, setError] = useState<string | null>(
 		search.error ? 'Sign-in was cancelled. Try again.' : null,
@@ -84,6 +88,10 @@ export function SignInPage() {
 				{error ? (
 					<p className="text-center text-[13px] text-danger" role="alert">
 						{error}
+					</p>
+				) : notice ? (
+					<p className="text-center text-[13px] text-warn" role="status">
+						{notice}
 					</p>
 				) : null}
 				{import.meta.env.DEV ? <DevSignIn /> : null}

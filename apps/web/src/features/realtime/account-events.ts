@@ -9,9 +9,11 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { isApiError } from '@/lib/api/errors';
 import { queryKeys } from '@/lib/api/query-keys';
 import { readEventStream, type SseMessage } from '@/lib/api/sse';
-import { bootstrapSession } from '../session/bootstrap';
+import { bootstrapSession, endRevokedBrowser } from '../session/bootstrap';
+import { getSession } from '../session/session-store';
 import { reloadKeyring } from '../vault/keyring';
 
 export interface AccountEvent {
@@ -50,7 +52,15 @@ export async function handleMessage(client: QueryClient, message: SseMessage): P
 			await reloadKeyring();
 			await client.invalidateQueries({ queryKey: queryKeys.devices });
 			break;
-		case 'device.revoked':
+		case 'device.revoked': {
+			const session = getSession();
+			if ('browser' in session && event.data.member_id === session.browser.memberId) {
+				await endRevokedBrowser(session);
+				return;
+			}
+			await client.invalidateQueries({ queryKey: queryKeys.devices });
+			break;
+		}
 		case 'browser.trusted':
 		case 'cli_auth.approved':
 			await client.invalidateQueries({ queryKey: queryKeys.devices });
@@ -73,6 +83,17 @@ export async function handleMessage(client: QueryClient, message: SseMessage): P
 	}
 }
 
+/**
+ * A frame's follow-up request failed. A lost session (signed out or revoked
+ * elsewhere) re-runs startup, which shows the sign-in page; anything else is
+ * left to the queries' own refetching.
+ */
+function onHandlerError(error: unknown): void {
+	if (isApiError(error, 'unauthenticated') || isApiError(error, 'dpop_invalid')) {
+		void bootstrapSession();
+	}
+}
+
 /** Keeps the stream open while mounted. */
 export function useAccountEvents(enabled: boolean): void {
 	const client = useQueryClient();
@@ -90,7 +111,7 @@ export function useAccountEvents(enabled: boolean): void {
 							attempt = 0;
 							if (message.id) lastEventId = message.id;
 							if (message.event === 'reconnect') return;
-							void handleMessage(client, message);
+							handleMessage(client, message).catch(onHandlerError);
 						},
 						controller.signal,
 						lastEventId,
