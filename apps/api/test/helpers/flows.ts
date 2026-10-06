@@ -5,6 +5,7 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { uuidv7 } from '../../src/lib/ids';
+import { cliConfirmCode } from '../../src/modules/cli-auth/cli-auth.service';
 import type { BrowserClient } from './clients';
 import { CliClient, signIn } from './clients';
 import {
@@ -129,10 +130,22 @@ export async function authorizeCli(
 		.flatMap((pouch) =>
 			envelopesFor(pouch.id, [deviceMember], pouch.key_gen, account.browserMember.id),
 		);
+	// The user types the code their terminal printed (link logins only).
+	const view = (await account.browser.get(`/v1/cli-auth/requests/${requestId}`)).body.data;
 	const approved = await account.browser.post(`/v1/cli-auth/requests/${requestId}/approve`, {
 		statement: add,
 		welcome: Buffer.from('sealed-welcome').toString('base64url'),
 		key_envelopes: envelopes,
+		...(options.connectToken
+			? {}
+			: {
+					confirm_code: cliConfirmCode({
+						id: requestId,
+						signPub: view.sign_pub,
+						encPub: view.enc_pub,
+						jkt: view.jkt,
+					}),
+				}),
 	});
 	if (approved.status !== 200)
 		throw new Error(`approve failed: ${JSON.stringify(approved.body)}`);

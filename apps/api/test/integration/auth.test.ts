@@ -4,6 +4,7 @@
  *, account genesis, "Authorize CLI", DPoP-bound
  * tokens, refresh rotation + reuse detection and web revoke.
  */
+import { cliConfirmCode } from '../../src/modules/cli-auth/cli-auth.service';
 import { createHash, randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { CliClient, signIn } from '../helpers/clients';
@@ -264,6 +265,40 @@ describe('authentication', () => {
 				code_verifier: verifier,
 			});
 			expect(token.body.error.code).toBe('cli_auth_denied');
+		});
+
+		it('a link login cannot be approved without the code from the terminal (phishing)', async () => {
+			// The attacker opens a request with their own keys and sends the link to the victim.
+			const attacker = new CliClient(h, await TestKey.generate(), await TestKey.generate());
+			const verifier = randomBytes(32).toString('base64url');
+			const requestId = (await openRequest(attacker, verifier)).body.data.request_id;
+			const approve = (confirm_code?: string) =>
+				account.browser.post(`/v1/cli-auth/requests/${requestId}/approve`, {
+					statement: { statement: 'e30', signature: 'AA' },
+					welcome: 'AA',
+					key_envelopes: [],
+					...(confirm_code ? { confirm_code } : {}),
+				});
+			// Checked before the roster statement is even parsed.
+			for (const code of [undefined, '0000-0000', '12345678']) {
+				const refused = await approve(code);
+				expect(refused.body.error?.code).toBe('cli_auth_code_mismatch');
+			}
+			const { rows } = await h.owner.query(
+				'SELECT state, device_id FROM cli_auth_requests WHERE id = $1',
+				[requestId],
+			);
+			expect(rows[0]).toEqual({ state: 'open', device_id: null });
+		});
+
+		it('the server’s confirm code matches the one the browser and CLI compute', async () => {
+			const { confirmCode } = await import('@skillpouch/crypto');
+			const key = await TestKey.generate();
+			const enc = await TestKey.generate();
+			const id = '0192f0c4-1111-7000-8000-000000000001';
+			expect(cliConfirmCode({ id, signPub: key.jwk, encPub: enc.jwk, jkt: key.jkt })).toBe(
+				confirmCode(id, key.jwk as never, enc.jwk as never, key.jkt),
+			);
 		});
 
 		it('another user cannot see or approve someone else’s approved request', async () => {

@@ -57,6 +57,11 @@ export const ErrorCodes = {
 	// --- CLI authorization --------------------------------------------
 	cli_auth_expired: { status: 410, retryable: false, message: 'This login request expired.' },
 	cli_auth_denied: { status: 403, retryable: false, message: 'This login request was denied.' },
+	cli_auth_code_mismatch: {
+		status: 403,
+		retryable: false,
+		message: 'That code doesn’t match the one in your terminal.',
+	},
 	cli_auth_final: {
 		status: 409,
 		retryable: false,

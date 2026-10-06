@@ -32,7 +32,7 @@ export async function importRoutes(app: ZodApp, deps: Deps) {
 	app.get(
 		'/v1/import/github/scan',
 		{
-			config: { auth: 'any' },
+			config: { auth: 'any', rateLimit: 'import' },
 			schema: {
 				tags: ['import'],
 				summary:

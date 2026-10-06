@@ -47,7 +47,9 @@ test.describe('connect a computer', () => {
 		await expect(row).toContainText('OpenCode');
 	});
 
-	test('the authorize link shows the same confirm code the CLI prints', async ({ page }) => {
+	test('the authorize link needs the code the CLI prints, and never shows it', async ({
+		page,
+	}) => {
 		await createAccount(page);
 		const cli = await FakeCli.create(baseURL, 'linked-pc');
 		let request!: { authorizeUrl: string; confirmCode: string };
@@ -62,8 +64,19 @@ test.describe('connect a computer', () => {
 		await requested;
 		await page.goto(request.authorizeUrl);
 		await expect(page.getByRole('heading', { name: 'Authorize this computer?' })).toBeVisible();
-		await expect(page.getByTestId('confirm-code')).toHaveText(request.confirmCode);
-		await page.getByRole('button', { name: 'Authorize' }).click();
+		await expect(page.getByText(request.confirmCode)).toHaveCount(0);
+		const authorize = page.getByRole('button', { name: 'Authorize' });
+		await expect(authorize).toBeDisabled();
+
+		const field = page.getByLabel('Code from your terminal');
+		const wrong = request.confirmCode.endsWith('0') ? '00000001' : '00000000';
+		await field.fill(wrong);
+		await expect(page.getByText('That isn’t the code in your terminal.')).toBeVisible();
+		await expect(authorize).toBeDisabled();
+
+		await field.fill(request.confirmCode.replace('-', ''));
+		await expect(field).toHaveValue(request.confirmCode);
+		await authorize.click();
 		await expect(page.getByRole('heading', { name: 'linked-pc is connected' })).toBeVisible();
 	});
 

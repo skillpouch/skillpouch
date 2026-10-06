@@ -17,6 +17,10 @@ const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_ARTIFACT_BYTES = 20 * 1024 * 1024;
 const MAX_ARTIFACT_FILES = 2000;
 const MAX_TOTAL_FILES = 400;
+/** Everything one scan downloads, all items together. */
+const MAX_SCAN_BYTES = 20 * 1024 * 1024;
+/** All cached scans together; the oldest are evicted first. */
+const MAX_CACHE_BYTES = 64 * 1024 * 1024;
 
 export const REPO_PATTERN = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/;
 export const REF_PATTERN = /^[A-Za-z0-9._/-]{1,200}$/;
@@ -132,7 +136,12 @@ export function detectItems(
 }
 
 export class GithubImporter {
-	private readonly cache = new Map<string, { expires: number; result: ScanResult }>();
+	/** Insertion order is recency order: a hit re-inserts the entry. */
+	private readonly cache = new Map<
+		string,
+		{ expires: number; bytes: number; result: ScanResult }
+	>();
+	private cacheBytes = 0;
 
 	constructor(private readonly http: typeof fetch = fetch) {}
 
@@ -171,12 +180,20 @@ export class GithubImporter {
 		);
 		const key = `${repo.toLowerCase()}@${commit.sha}`;
 		const cached = this.cache.get(key);
-		if (cached && cached.expires > Date.now()) return cached.result;
+		if (cached) {
+			this.cache.delete(key);
+			if (cached.expires > Date.now()) {
+				this.cache.set(key, cached);
+				return cached.result;
+			}
+			this.cacheBytes -= cached.bytes;
+		}
 
 		const tree = await this.json<{ tree: TreeEntry[]; truncated?: boolean }>(
 			`${API}/repos/${repo}/git/trees/${commit.sha}?recursive=1`,
 		);
 		let budget = MAX_TOTAL_FILES;
+		let scanBytes = 0;
 		const items: ScannedItem[] = [];
 		for (const item of detectItems(tree.tree)) {
 			const files: ScannedFile[] = [];
@@ -188,6 +205,7 @@ export class GithubImporter {
 					size > MAX_FILE_BYTES ||
 					bytes + size > MAX_ARTIFACT_BYTES ||
 					files.length >= MAX_ARTIFACT_FILES ||
+					scanBytes + size > MAX_SCAN_BYTES ||
 					budget <= 0
 				) {
 					truncated = true;
@@ -195,6 +213,7 @@ export class GithubImporter {
 				}
 				const content = await this.raw(repo, commit.sha, entry.path);
 				bytes += content.length;
+				scanBytes += content.length;
 				budget -= 1;
 				files.push({
 					path: entry.path,
@@ -205,7 +224,26 @@ export class GithubImporter {
 			items.push({ kind: item.kind, path: item.path, name: item.name, files, truncated });
 		}
 		const result = { repo, ref: resolvedRef, sha: commit.sha, items };
-		this.cache.set(key, { expires: Date.now() + CACHE_TTL_MS, result });
+		this.remember(key, result, scanBytes);
 		return result;
+	}
+
+	/** Cached bytes right now (for tests and metrics). */
+	get cachedBytes(): number {
+		return this.cacheBytes;
+	}
+
+	private remember(key: string, result: ScanResult, bytes: number): void {
+		// base64 in memory is 4/3 of the raw size.
+		const cost = Math.ceil((bytes * 4) / 3) + 1024;
+		if (cost > MAX_CACHE_BYTES) return;
+		const now = Date.now();
+		for (const [oldKey, entry] of this.cache) {
+			if (this.cacheBytes + cost <= MAX_CACHE_BYTES && entry.expires > now) break;
+			this.cache.delete(oldKey);
+			this.cacheBytes -= entry.bytes;
+		}
+		this.cache.set(key, { expires: now + CACHE_TTL_MS, bytes: cost, result });
+		this.cacheBytes += cost;
 	}
 }

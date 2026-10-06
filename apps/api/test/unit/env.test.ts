@@ -89,3 +89,38 @@ describe('loadEnv secrets', () => {
 		expect(env.PEPPER_KEY).not.toBe(PEPPER);
 	});
 });
+
+describe('development defaults never reach a public host', () => {
+	const base = { DATABASE_URL: 'postgres://x/y' };
+
+	it('refuses the built-in secrets on a real domain, even without NODE_ENV', () => {
+		expect(() => loadEnv({ ...base, API_PUBLIC_URL: 'https://skillpouch.net' })).toThrow(
+			/development secrets/,
+		);
+	});
+
+	it('refuses DEV_LOGIN on a real domain even with real secrets', () => {
+		expect(() =>
+			loadEnv({
+				...base,
+				...VALUES,
+				NODE_ENV: 'development',
+				DEV_LOGIN: 'true',
+				API_PUBLIC_URL: 'https://staging.skillpouch.net',
+			}),
+		).toThrow(/development secrets or DEV_LOGIN/);
+	});
+
+	it('allows them on loopback hosts, and real secrets anywhere', () => {
+		for (const url of [
+			'http://localhost:8080',
+			'http://127.0.0.1:18080',
+			'http://app.localhost',
+		]) {
+			expect(loadEnv({ ...base, API_PUBLIC_URL: url }).API_PUBLIC_URL).toBe(url);
+		}
+		expect(
+			loadEnv({ ...base, ...VALUES, API_PUBLIC_URL: 'https://skillpouch.net' }).NODE_ENV,
+		).toBe('development');
+	});
+});

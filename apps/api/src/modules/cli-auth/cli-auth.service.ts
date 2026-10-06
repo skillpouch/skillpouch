@@ -18,8 +18,10 @@
  * browser authorizes it without the user opening a link.
  */
 import { createHash, randomUUID } from 'node:crypto';
+import { blake3 } from '@noble/hashes/blake3.js';
 import {
 	Limits,
+	canonicalJson,
 	fromBase64Url,
 	toBase64Url,
 	type CliAuthApprove,
@@ -55,6 +57,30 @@ import {
 
 type RequestRow = typeof cliAuthRequests.$inferSelect;
 
+/**
+ * The 8-digit code the CLI prints and the browser shows: BLAKE3 over the
+ * request id and the CLI's keys. Must match `confirmCode` in @skillpouch/crypto.
+ */
+export function cliConfirmCode(row: {
+	id: string;
+	signPub: object;
+	encPub: object;
+	jkt: string;
+}): string {
+	const digest = blake3(
+		Buffer.concat([
+			Buffer.from('skillpouch/v1/cli-confirm'),
+			Buffer.from(row.id),
+			Buffer.from(canonicalJson(row.signPub)),
+			Buffer.from(canonicalJson(row.encPub)),
+			Buffer.from(row.jkt),
+		]),
+	);
+	const value = Buffer.from(digest).readBigUInt64BE(0);
+	const digits = (value % 100_000_000n).toString().padStart(8, '0');
+	return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+}
+
 const MAX_OPEN_PER_IP = 5;
 const POLL_INTERVAL_MS = 400;
 
@@ -67,11 +93,6 @@ export async function createCliAuthRequest(
 	if ((await jwkThumbprint(input.sign_pub)) !== proofJkt) {
 		throw new AppError('dpop_invalid', { reason: 'proof must be signed by sign_pub' });
 	}
-	const open = await deps.db.app.execute(
-		sql`SELECT count(*)::int AS n FROM cli_auth_requests WHERE ip_hash = ${ipHash} AND state = 'open' AND expires_at > now()`,
-	);
-	if (Number(open.rows[0]?.n ?? 0) >= MAX_OPEN_PER_IP) throw new AppError('rate_limited');
-
 	const id = randomUUID();
 	const values = {
 		id,
@@ -88,33 +109,42 @@ export async function createCliAuthRequest(
 		ipHash,
 		expiresAt: addSeconds(deps.now(), Limits.cliAuthTtlSeconds),
 	};
-	if (input.connect_token) {
-		await deps.db.app.transaction(async (tx) => {
-			const [token] = await tx
-				.update(cliConnectTokens)
-				.set({ usedAt: deps.now(), requestId: id })
-				.where(
-					and(
-						eq(cliConnectTokens.tokenHash, sha256(input.connect_token!)),
-						isNull(cliConnectTokens.usedAt),
-						gt(cliConnectTokens.expiresAt, deps.now()),
-					),
-				)
-				.returning();
-			if (!token) throw new AppError('connect_token_invalid');
-			await tx.insert(cliAuthRequests).values({
-				...values,
-				storageAccountId: token.storageAccountId,
-				connectTokenId: token.id,
-			});
-			await notifyAccount(tx, token.storageAccountId, 'cli_auth.requested', {
-				request_id: id,
-				connect_token_id: token.id,
-			});
+	await deps.db.app.transaction(async (tx) => {
+		// Count and insert under one per-IP lock, so parallel requests can't overshoot the cap.
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${'cli-auth:' + ipHash.toString('base64url')}, 0))`,
+		);
+		const open = await tx.execute(
+			sql`SELECT count(*)::int AS n FROM cli_auth_requests WHERE ip_hash = ${ipHash} AND state = 'open' AND expires_at > now()`,
+		);
+		if (Number(open.rows[0]?.n ?? 0) >= MAX_OPEN_PER_IP) throw new AppError('rate_limited');
+
+		if (!input.connect_token) {
+			await tx.insert(cliAuthRequests).values(values);
+			return;
+		}
+		const [token] = await tx
+			.update(cliConnectTokens)
+			.set({ usedAt: deps.now(), requestId: id })
+			.where(
+				and(
+					eq(cliConnectTokens.tokenHash, sha256(input.connect_token)),
+					isNull(cliConnectTokens.usedAt),
+					gt(cliConnectTokens.expiresAt, deps.now()),
+				),
+			)
+			.returning();
+		if (!token) throw new AppError('connect_token_invalid');
+		await tx.insert(cliAuthRequests).values({
+			...values,
+			storageAccountId: token.storageAccountId,
+			connectTokenId: token.id,
 		});
-	} else {
-		await deps.db.app.insert(cliAuthRequests).values(values);
-	}
+		await notifyAccount(tx, token.storageAccountId, 'cli_auth.requested', {
+			request_id: id,
+			connect_token_id: token.id,
+		});
+	});
 	return {
 		request_id: id,
 		authorize_url: `${deps.env.WEB_ORIGIN}/cli/authorize?request=${id}`,
@@ -172,7 +202,6 @@ export async function approveCliAuthRequest(
 ) {
 	if (!principal.memberId)
 		throw new AppError('member_inactive', { reason: 'unlock this browser first' });
-	const statement = parseRosterStatement(input.statement.statement).body;
 	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 		const [row] = await tx
 			.select()
@@ -184,7 +213,16 @@ export async function approveCliAuthRequest(
 		}
 		if (row.state !== 'open') throw new AppError('cli_auth_final', { state: row.state });
 		if (isExpired(deps, row)) throw new AppError('cli_auth_expired');
+		// A link can come from anyone; only the person at that terminal knows its code.
+		if (!row.connectTokenId) {
+			const typed = input.confirm_code?.replace('-', '');
+			const expected = cliConfirmCode(row).replace('-', '');
+			if (!typed || !bytesEqualBuffers(Buffer.from(typed), Buffer.from(expected))) {
+				throw new AppError('cli_auth_code_mismatch');
+			}
+		}
 
+		const statement = parseRosterStatement(input.statement.statement).body;
 		const member = statement.member;
 		if (
 			statement.action !== 'add' ||
@@ -375,23 +413,27 @@ const CONNECT_TOKEN_PREFIX = 'sp_lt_';
 export async function createConnectToken(deps: Deps, principal: SessionPrincipal) {
 	if (!principal.memberId)
 		throw new AppError('member_inactive', { reason: 'unlock this browser first' });
-	const open = await deps.db.app.execute(
-		sql`SELECT count(*)::int AS n FROM cli_connect_tokens
-			WHERE storage_account_id = ${principal.storageAccountId}
-				AND used_at IS NULL AND expires_at > now()`,
-	);
-	if (Number(open.rows[0]?.n ?? 0) >= Limits.connectTokensMaxOpen)
-		throw new AppError('rate_limited');
-
 	const id = randomUUID();
 	const token = CONNECT_TOKEN_PREFIX + randomToken(24);
 	const expiresAt = addSeconds(deps.now(), Limits.connectTokenTtlSeconds);
-	await deps.db.app.insert(cliConnectTokens).values({
-		id,
-		tokenHash: sha256(token),
-		storageAccountId: principal.storageAccountId,
-		createdByMember: principal.memberId,
-		expiresAt,
+	await deps.db.app.transaction(async (tx) => {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${'connect-token:' + principal.storageAccountId}, 0))`,
+		);
+		const open = await tx.execute(
+			sql`SELECT count(*)::int AS n FROM cli_connect_tokens
+				WHERE storage_account_id = ${principal.storageAccountId}
+					AND used_at IS NULL AND expires_at > now()`,
+		);
+		if (Number(open.rows[0]?.n ?? 0) >= Limits.connectTokensMaxOpen)
+			throw new AppError('rate_limited');
+		await tx.insert(cliConnectTokens).values({
+			id,
+			tokenHash: sha256(token),
+			storageAccountId: principal.storageAccountId,
+			createdByMember: principal.memberId!,
+			expiresAt,
+		});
 	});
 	return {
 		id,

@@ -21,7 +21,7 @@ export async function healthRoutes(app: ZodApp, deps: Deps, state: HealthState) 
 	app.get(
 		'/healthz',
 		{
-			config: { auth: 'public', raw: true },
+			config: { auth: 'public', raw: true, rateLimit: false },
 			schema: {
 				tags: ['health'],
 				response: { 200: rawSchema(z.object({ status: z.literal('ok') })) },
@@ -33,7 +33,7 @@ export async function healthRoutes(app: ZodApp, deps: Deps, state: HealthState) 
 	app.get(
 		'/readyz',
 		{
-			config: { auth: 'public', raw: true },
+			config: { auth: 'public', raw: true, rateLimit: false },
 			schema: {
 				tags: ['health'],
 				response: {

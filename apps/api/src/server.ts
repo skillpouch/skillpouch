@@ -31,10 +31,19 @@ export interface BuildOptions {
 	metrics?: Metrics;
 }
 
+/**
+ * Trusts only the proxy in front of us (the socket peer), so `request.ip` is
+ * the address the proxy saw. Never `true`: that would also believe whatever
+ * `X-Forwarded-For` entries a client sent itself.
+ */
+export function trustOneProxyHop(_address: string, hop: number): boolean {
+	return hop === 0;
+}
+
 export async function buildServer(deps: Deps, options: BuildOptions = {}): Promise<BuiltServer> {
 	const app = Fastify({
 		loggerInstance: deps.log as FastifyBaseLogger,
-		trustProxy: deps.env.TRUST_PROXY,
+		trustProxy: deps.env.TRUST_PROXY ? trustOneProxyHop : false,
 		bodyLimit: 1024 * 1024,
 		requestIdHeader: false,
 		genReqId: (request) => {

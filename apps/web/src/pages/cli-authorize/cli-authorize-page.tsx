@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * `/cli/authorize?request=…` — opened by `skillpouch login` on a computer.
- * The user compares the confirm code with the terminal and authorizes; this
- * browser then adds the computer's keys to the account.
+ * The user types the code their terminal printed and authorizes; this browser
+ * then adds the computer's keys to the account.
+ *
+ * The code is never shown here. Anyone can create a login link and send it to
+ * someone else; only the person sitting at that terminal can read its code.
  */
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { AuthHeading, AuthLayout } from '@/components/layout/auth-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/ui/error-message';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { LoadingBlock } from '@/components/ui/spinner';
 import {
 	approveCliRequest,
@@ -19,6 +25,7 @@ import {
 	fetchCliRequest,
 } from '@/features/devices/cli-login';
 import { assistantLabel, OS_LABEL } from '@/features/devices/devices';
+import type { CliAuthRequest } from '@/lib/api/types';
 import { formatRelative } from '@/lib/format';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -32,7 +39,11 @@ export function CliAuthorizePage() {
 		enabled: valid,
 		refetchInterval: (query) => (query.state.data?.state === 'open' ? 5000 : false),
 	});
-	const approve = useMutation({ mutationFn: approveCliRequest });
+	const [code, setCode] = useState('');
+	const approve = useMutation({
+		mutationFn: (input: { request: CliAuthRequest; code: string }) =>
+			approveCliRequest(input.request, input.code),
+	});
 	const deny = useMutation({ mutationFn: denyCliRequest });
 
 	const body = () => {
@@ -74,6 +85,9 @@ export function CliAuthorizePage() {
 				/>
 			);
 		}
+		const complete = code.replace('-', '').length === 8;
+		const codeMatches = complete && code === confirmCodeOf(data);
+		const codeError = complete && !codeMatches ? 'That isn’t the code in your terminal.' : null;
 		return (
 			<div className="flex flex-col gap-6">
 				<AuthHeading
@@ -106,15 +120,28 @@ export function CliAuthorizePage() {
 						</>
 					) : null}
 				</dl>
-				<div className="flex flex-col items-center gap-2 rounded-lg border border-accent/40 p-5">
-					<p className="text-xs text-muted">Confirm code</p>
-					<p className="font-mono text-3xl tracking-[0.2em]" data-testid="confirm-code">
-						{confirmCodeOf(data)}
-					</p>
-					<p className="text-center text-xs text-muted">
-						Make sure your terminal shows the same code. If it doesn’t, deny.
-					</p>
-				</div>
+				<p className="rounded-lg border border-warn/40 bg-warn/10 p-3 text-[13px] text-warn">
+					Only continue if you ran <code className="font-mono">skillpouch login</code> on
+					this computer yourself. Never authorize a link or code someone sent you.
+				</p>
+				<Field
+					label="Code from your terminal"
+					hint="8 digits, printed under the login link."
+					error={codeError}
+				>
+					{(control) => (
+						<Input
+							{...control}
+							inputMode="numeric"
+							autoComplete="off"
+							autoFocus
+							placeholder="0000-0000"
+							className="font-mono tracking-[0.2em]"
+							value={code}
+							onChange={(event) => setCode(formatCode(event.target.value))}
+						/>
+					)}
+				</Field>
 				<ErrorMessage error={approve.error ?? deny.error} />
 				<div className="flex gap-2">
 					<Button
@@ -130,8 +157,8 @@ export function CliAuthorizePage() {
 						variant="primary"
 						className="flex-1"
 						loading={approve.isPending}
-						disabled={deny.isPending}
-						onClick={() => approve.mutate(data)}
+						disabled={deny.isPending || !codeMatches}
+						onClick={() => approve.mutate({ request: data, code })}
 					>
 						Authorize
 					</Button>
@@ -141,6 +168,12 @@ export function CliAuthorizePage() {
 	};
 
 	return <AuthLayout width="md">{body()}</AuthLayout>;
+}
+
+/** Keeps digits only and adds the dash: `12345678` → `1234-5678`. */
+function formatCode(value: string): string {
+	const digits = value.replace(/\D/g, '').slice(0, 8);
+	return digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits;
 }
 
 function Outcome({ tone, title, text }: { tone: 'ok' | 'error'; title: string; text: string }) {

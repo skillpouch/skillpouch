@@ -41,7 +41,15 @@ export function confirmCodeOf(request: CliAuthRequest): string {
 	});
 }
 
-export async function approveCliRequest(request: CliAuthRequest): Promise<{ deviceId: string }> {
+/**
+ * Authorizes a CLI. Requests opened from a link need `confirmCode`, the code
+ * the terminal printed: anyone can create such a link and send it to you, but
+ * only the person at that terminal can read its code.
+ */
+export async function approveCliRequest(
+	request: CliAuthRequest,
+	confirmCode?: string,
+): Promise<{ deviceId: string }> {
 	if (jwkThumbprint(request.sign_pub) !== request.jkt) {
 		throw new Error('This request’s keys don’t match. It was not approved.');
 	}
@@ -58,7 +66,7 @@ export async function approveCliRequest(request: CliAuthRequest): Promise<{ devi
 		);
 		const { device_id } = await api.post<{ device_id: string }>(
 			`/v1/cli-auth/requests/${request.request_id}/approve`,
-			approval,
+			{ ...approval, ...(confirmCode ? { confirm_code: confirmCode } : {}) },
 		);
 		return { deviceId: device_id };
 	});

@@ -35,6 +35,10 @@ const EnvSchema = z
 		LOG_LEVEL: z
 			.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
 			.default('info'),
+		/**
+		 * Behind exactly one reverse proxy (Caddy). Only the last
+		 * `X-Forwarded-For` hop is trusted, so clients cannot spoof their IP.
+		 */
 		TRUST_PROXY: bool.default(false),
 
 		/** Public origin of the API (DPoP `htu`, OAuth callbacks). */
@@ -107,6 +111,14 @@ const EnvSchema = z
 		message: 'DEV_LOGIN cannot be enabled in production',
 		path: ['DEV_LOGIN'],
 	})
+	// The development defaults are public (this file is open source). A server
+	// reachable on a real host name must never run with them, even when
+	// NODE_ENV was lost on the way.
+	.refine((env) => isLoopback(env.API_PUBLIC_URL) || !usesDevDefaults(env), {
+		message:
+			'development secrets or DEV_LOGIN on a public URL — set NODE_ENV=production and real secrets',
+		path: ['NODE_ENV'],
+	})
 	.transform((env) => ({
 		...env,
 		DB_SET_ROLE: env.DB_SET_ROLE ?? env.NODE_ENV !== 'production',
@@ -118,6 +130,30 @@ const EnvSchema = z
 	}));
 
 export type Env = z.infer<typeof EnvSchema>;
+
+function isLoopback(url: string): boolean {
+	const host = new URL(url).hostname;
+	return (
+		host === 'localhost' ||
+		host.endsWith('.localhost') ||
+		host === '[::1]' ||
+		/^127(\.\d{1,3}){3}$/.test(host)
+	);
+}
+
+function usesDevDefaults(env: {
+	DEV_LOGIN: boolean;
+	BETTER_AUTH_SECRET: string;
+	DPOP_NONCE_SECRET: string;
+	IP_HASH_SECRET: string;
+	PEPPER_KEY: string;
+}): boolean {
+	return (
+		env.DEV_LOGIN ||
+		env.PEPPER_KEY === DEV_PEPPER_KEY ||
+		[env.BETTER_AUTH_SECRET, env.DPOP_NONCE_SECRET, env.IP_HASH_SECRET].includes(DEV_SECRET)
+	);
+}
 
 const SECRET_KEYS = [
 	'DATABASE_URL',

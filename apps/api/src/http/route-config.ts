@@ -7,7 +7,11 @@ import type { Principal } from '../security/principal';
 
 export type AuthMode = 'public' | 'session' | 'device' | 'any' | 'admin';
 
-export type RateLimitBucket = 'auth' | 'general' | 'operations' | 'blobs';
+/**
+ * Token buckets. Public routes without an explicit bucket use `public`
+ * (keyed by client IP).
+ */
+export type RateLimitBucket = 'auth' | 'general' | 'operations' | 'blobs' | 'import' | 'public';
 
 export interface SkillpouchRouteConfig {
 	auth: AuthMode;
@@ -18,7 +22,8 @@ export interface SkillpouchRouteConfig {
 	/** Response is not wrapped in the envelope. */
 	raw?: boolean;
 	/** Mutating route held/blocked by the write pause even though it is GET. */
-	rateLimit?: RateLimitBucket;
+	/** `false`: never rate limited (health probes). */
+	rateLimit?: RateLimitBucket | false;
 	/**
 	 * CLI devices may call this route for a `locked` pouch. Every other route
 	 * that names a pouch (`:pouchId` or body `pouch_id`) answers a device with
@@ -33,7 +38,7 @@ declare module 'fastify' {
 		allowUnbound?: boolean;
 		stepUp?: boolean;
 		raw?: boolean;
-		rateLimit?: RateLimitBucket;
+		rateLimit?: RateLimitBucket | false;
 		lockedPouchOk?: boolean;
 	}
 	interface FastifyRequest {

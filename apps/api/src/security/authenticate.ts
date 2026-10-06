@@ -281,24 +281,22 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 			if (!isStepUpFresh(principal, deps.now())) throw new AppError('step_up_required');
 		}
 
-		if (deps.env.RATE_LIMIT_ENABLED) {
-			const bucket = config.rateLimit ?? (mode === 'public' ? null : 'general');
-			if (bucket) {
-				const subject = principal
-					? principal.kind === 'device'
-						? `d:${principal.deviceId}`
-						: `u:${principal.userId}`
-					: `ip:${clientIpHash(deps, request).toString('base64url')}`;
-				const retryAfter = await takeToken(
-					deps.db.app,
-					`${bucket}:${subject}`,
-					BUCKETS[bucket],
-				);
-				if (retryAfter > 0) {
-					throw new AppError('rate_limited', undefined, {
-						headers: { 'Retry-After': String(retryAfter) },
-					});
-				}
+		const bucket = config.rateLimit ?? (mode === 'public' ? 'public' : 'general');
+		if (deps.env.RATE_LIMIT_ENABLED && bucket) {
+			const subject = principal
+				? principal.kind === 'device'
+					? `d:${principal.deviceId}`
+					: `u:${principal.userId}`
+				: `ip:${clientIpHash(deps, request).toString('base64url')}`;
+			const retryAfter = await takeToken(
+				deps.db.app,
+				`${bucket}:${subject}`,
+				BUCKETS[bucket],
+			);
+			if (retryAfter > 0) {
+				throw new AppError('rate_limited', undefined, {
+					headers: { 'Retry-After': String(retryAfter) },
+				});
 			}
 		}
 	});
@@ -325,12 +323,23 @@ function pouchIdOf(request: FastifyRequest): string | null {
 	return null;
 }
 
-/** Marks a device as seen at most once a minute per instance. */
+/**
+ * Marks a device as seen at most once a minute per instance. Entries older
+ * than that window are useless, so the map is cleared of them as it grows.
+ */
 const lastSeenWrites = new Map<string, number>();
+const LAST_SEEN_WINDOW_MS = 60_000;
+const LAST_SEEN_PRUNE_AT = 10_000;
 export async function touchDevice(deps: Deps, principal: DevicePrincipal): Promise<void> {
+	const now = Date.now();
 	const last = lastSeenWrites.get(principal.deviceId) ?? 0;
-	if (Date.now() - last < 60_000) return;
-	lastSeenWrites.set(principal.deviceId, Date.now());
+	if (now - last < LAST_SEEN_WINDOW_MS) return;
+	if (lastSeenWrites.size >= LAST_SEEN_PRUNE_AT) {
+		for (const [deviceId, at] of lastSeenWrites) {
+			if (now - at >= LAST_SEEN_WINDOW_MS) lastSeenWrites.delete(deviceId);
+		}
+	}
+	lastSeenWrites.set(principal.deviceId, now);
 	await withTenantTx(deps.db.app, principal.storageAccountId, (tx) =>
 		tx.execute(sql`UPDATE devices SET last_seen_at = now() WHERE id = ${principal.deviceId}`),
 	);

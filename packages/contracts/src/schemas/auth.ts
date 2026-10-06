@@ -100,6 +100,15 @@ export const CliAuthApprove = z.strictObject({
 	/** HPKE-sealed welcome for the CLI. */
 	welcome: b64urlMax(Limits.welcomeMaxBytes),
 	key_envelopes: z.array(KeyEnvelopeInput).max(2000),
+	/**
+	 * The 8-digit code the terminal printed, typed by the user. Required for
+	 * requests opened from a link (anyone can make one and send it to you);
+	 * not needed for connect-token logins, which the browser started itself.
+	 */
+	confirm_code: z
+		.string()
+		.regex(/^\d{4}-?\d{4}$/)
+		.optional(),
 });
 
 export const CliAuthTokenRequest = z.strictObject({

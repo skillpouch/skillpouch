@@ -19,6 +19,10 @@ export const BUCKETS: Record<RateLimitBucket, BucketPolicy> = {
 	general: { capacity: 300, perMinute: 300 },
 	operations: { capacity: 120, perMinute: 120 },
 	blobs: { capacity: 600, perMinute: 600 },
+	/** GitHub scans: each one can fetch hundreds of files upstream. */
+	import: { capacity: 10, perMinute: 10 },
+	/** Unauthenticated routes (share links, request cancel), per IP. */
+	public: { capacity: 120, perMinute: 120 },
 };
 
 /** Takes one token; returns the seconds to wait when the bucket is empty, else 0. */
