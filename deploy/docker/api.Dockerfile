@@ -23,14 +23,12 @@ FROM node:24-alpine AS runtime
 ARG SKILLPOUCH_VERSION=dev
 ENV NODE_ENV=production \
 	SKILLPOUCH_VERSION=$SKILLPOUCH_VERSION \
-	SKILLPOUCH_MIGRATIONS_DIR=/app/migrations \
 	PORT=8080 \
 	METRICS_PORT=9464
 WORKDIR /app
 RUN apk add --no-cache tini && addgroup -S skillpouch && adduser -S -G skillpouch skillpouch
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /repo/apps/api/dist ./dist
-COPY --from=build /repo/packages/db/migrations ./migrations
 COPY --from=build /out/package.json ./package.json
 USER skillpouch
 EXPOSE 8080 9464

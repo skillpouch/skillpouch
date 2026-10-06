@@ -82,8 +82,8 @@ jobs:
           --health-interval 2s
           --health-retries 30
     env:
+      # No SKILLPOUCH_MIGRATIONS_DIR: the bundle must find dist/migrations itself.
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/skillpouch
-      SKILLPOUCH_MIGRATIONS_DIR: ${{ github.workspace }}/packages/db/migrations
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -106,6 +106,15 @@ jobs:
           curl -fs -o /dev/null localhost:18080/docs
           curl -fs localhost:18080/docs/json | grep -q '"/v1/pouches/{pouchId}/operations"'
           curl -fs localhost:19464/metrics | grep -q skillpouch_http_request_duration_seconds
+          kill -TERM $PID
+          wait $PID
+      - name: Worker boots, schedules jobs, shuts down gracefully
+        working-directory: apps/api
+        run: |
+          API_ROLE=worker NODE_ENV=test METRICS_PORT=19465 node dist/main.mjs > worker.log 2>&1 &
+          PID=$!
+          for i in $(seq 1 30); do grep -q '"worker started"' worker.log && break; sleep 1; done
+          grep -q '"worker started"' worker.log
           kill -TERM $PID
           wait $PID
 

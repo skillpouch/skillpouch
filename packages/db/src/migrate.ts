@@ -13,15 +13,24 @@
  * - Every file must declare `-- phase: expand` or `-- phase: contract`.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
-/** Bundled builds (the API image) set `SKILLPOUCH_MIGRATIONS_DIR`; source runs resolve it next to this file. */
-export const MIGRATIONS_DIR =
-	process.env.SKILLPOUCH_MIGRATIONS_DIR ??
-	join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+/**
+ * Where the SQL files live: `SKILLPOUCH_MIGRATIONS_DIR` wins; a bundle finds
+ * `dist/migrations` next to itself; source runs use `packages/db/migrations`.
+ */
+export const MIGRATIONS_DIR = resolveMigrationsDir();
+
+function resolveMigrationsDir(): string {
+	const fromEnv = process.env.SKILLPOUCH_MIGRATIONS_DIR;
+	if (fromEnv) return fromEnv;
+	const here = dirname(fileURLToPath(import.meta.url));
+	const bundled = join(here, 'migrations');
+	return existsSync(bundled) ? bundled : join(here, '..', 'migrations');
+}
 
 const ADVISORY_LOCK_KEY = 0x5b1e_9001;
 const LOCK_TIMEOUT_SQLSTATE = '55P03';
