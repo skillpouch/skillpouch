@@ -81,6 +81,8 @@ export function PublicSharePage() {
 		setError(null);
 		try {
 			setBundle(await claimOneTimeShare(shareId, key));
+			// The link is used up now; go straight to choosing a pouch.
+			setImporting(true);
 		} catch (caught) {
 			setError(caught);
 		} finally {
