@@ -20,6 +20,7 @@
 		"dev:api": "pnpm --filter @skillpouch/api dev",
 		"db:migrate": "pnpm --filter @skillpouch/db migrate",
 		"contracts:generate": "pnpm --filter @skillpouch/contracts generate",
+		"openapi": "pnpm --filter @skillpouch/api openapi",
 		"engram": "engram update . --no-description --no-label"
 	},
 	"devDependencies": {

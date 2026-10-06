@@ -15,8 +15,11 @@ export interface NormalizedSubscription {
 	status: string;
 	interval: 'month' | 'year' | null;
 	amountCents: number;
+	/** When access ends: the period end, or the moment a revoked subscription ended. */
 	currentPeriodEnd: Date | null;
 	cancelAtPeriodEnd: boolean;
+	/** Provider-side modification time; orders out-of-order webhook deliveries. */
+	providerUpdatedAt: Date | null;
 }
 
 export interface BillingEvent {

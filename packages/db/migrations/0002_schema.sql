@@ -522,6 +522,8 @@ CREATE TABLE subscriptions (
 	amount_cents              integer NOT NULL DEFAULT 0,
 	current_period_end        timestamptz,
 	cancel_at_period_end      boolean NOT NULL DEFAULT false,
+	-- Provider's own modification time: older webhook deliveries never overwrite newer state.
+	provider_updated_at       timestamptz,
 	updated_at                timestamptz NOT NULL DEFAULT now()
 );
 

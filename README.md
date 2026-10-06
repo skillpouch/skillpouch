@@ -34,6 +34,8 @@ pnpm dev:api                                  # http://localhost:8080
 
 Swagger UI is served at **http://localhost:8080/docs** (OpenAPI JSON at
 `/docs/json`) whenever `NODE_ENV` is not `production` (or `SWAGGER=true`).
+The same spec is committed at `packages/contracts/generated/openapi.json` for
+client generation; run `pnpm openapi` after changing a route (CI checks it).
 OAuth sign-in needs `GITHUB_CLIENT_ID/SECRET` and/or `GOOGLE_CLIENT_ID/SECRET`;
 every variable is documented in `apps/api/src/config/env.ts`.
 

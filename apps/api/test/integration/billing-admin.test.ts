@@ -171,11 +171,44 @@ describe('billing and admin', () => {
 			]);
 		});
 
-		it('falls back to Free when the subscription ends, without deleting anything', async () => {
+		it('keeps Supporter until the period ends after a cancel-at-period-end', async () => {
+			await webhook(
+				subscriptionEvent('subscription.canceled', {
+					cancel_at_period_end: true,
+					modified_at: new Date(Date.now() - 60_000).toISOString(),
+				}),
+			);
+			expect((await entitlements(alice.browser)).plan_slug).toBe('supporter');
+			const billing = await alice.browser.get('/v1/billing');
+			expect(billing.body.data.subscriptions[0].cancel_at_period_end).toBe(true);
+		});
+
+		it('ignores a webhook delivered out of order', async () => {
+			await webhook(
+				subscriptionEvent('subscription.updated', {
+					status: 'past_due',
+					modified_at: new Date(Date.now() - 30_000).toISOString(),
+				}),
+			);
+			await webhook(
+				subscriptionEvent('subscription.updated', {
+					status: 'active',
+					modified_at: new Date(Date.now() - 45_000).toISOString(),
+				}),
+			);
+			const { rows } = await h.owner.query(
+				`SELECT status FROM subscriptions WHERE external_subscription_id = 'sub_1'`,
+			);
+			expect(rows[0].status).toBe('past_due');
+		});
+
+		it('falls back to Free when the subscription is revoked, without deleting anything', async () => {
+			// Polar's revoke: status `canceled`, `ended_at` now, period end still in the future.
 			await webhook(
 				subscriptionEvent('subscription.revoked', {
-					status: 'revoked',
-					current_period_end: new Date(Date.now() - 1000).toISOString(),
+					status: 'canceled',
+					ended_at: new Date(Date.now() - 1000).toISOString(),
+					modified_at: new Date(Date.now() - 1000).toISOString(),
 				}),
 			);
 			expect((await entitlements(alice.browser)).plan_slug).toBe('free');
@@ -195,6 +228,8 @@ describe('billing and admin', () => {
 				`SELECT status FROM subscriptions WHERE external_subscription_id = 'sub_1'`,
 			);
 			expect(rows[0].status).toBe('canceled');
+			// Finished canceled subscriptions are not polled again.
+			expect(await reconcileSubscriptions(h.deps)).toBe(0);
 		});
 	});
 

@@ -35,6 +35,8 @@ jobs:
         run: |
           pnpm contracts:generate
           git diff --exit-code -- packages/contracts/generated docs/errors.md
+      - name: OpenAPI spec is up to date
+        run: pnpm openapi --check
 
   test:
     name: tests (unit · integration · e2e)
@@ -101,7 +103,7 @@ jobs:
         run: |
           NODE_ENV=test PORT=18080 METRICS_PORT=19464 SWAGGER=true node dist/main.mjs &
           PID=$!
-          for i in $(seq 1 30); do curl -fs localhost:18080/readyz && break; sleep 1; done
+          for _ in $(seq 1 30); do curl -fs localhost:18080/readyz && break; sleep 1; done
           curl -fs localhost:18080/healthz
           curl -fs -o /dev/null localhost:18080/docs
           curl -fs localhost:18080/docs/json | grep -q '"/v1/pouches/{pouchId}/operations"'
@@ -113,7 +115,7 @@ jobs:
         run: |
           API_ROLE=worker NODE_ENV=test METRICS_PORT=19465 node dist/main.mjs > worker.log 2>&1 &
           PID=$!
-          for i in $(seq 1 30); do grep -q '"worker started"' worker.log && break; sleep 1; done
+          for _ in $(seq 1 30); do grep -q '"worker started"' worker.log && break; sleep 1; done
           grep -q '"worker started"' worker.log
           kill -TERM $PID
           wait $PID

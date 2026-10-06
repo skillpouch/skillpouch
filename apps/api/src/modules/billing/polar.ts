@@ -79,7 +79,14 @@ export function verifyStandardWebhook(
 	}
 }
 
-/** Maps a Polar subscription object to our shape. */
+const dateOrNull = (value: unknown): Date | null => (value ? new Date(String(value)) : null);
+
+/**
+ * Maps a Polar subscription object to our shape. Polar statuses: `active`,
+ * `trialing`, `past_due`, `canceled`, `unpaid`, `incomplete(_expired)`. A
+ * cancel-at-period-end subscription stays `active` until the period ends; a
+ * revoked one is `canceled` with `ended_at` set, which then ends access.
+ */
 export function normalizePolarSubscription(data: Record<string, unknown>): NormalizedSubscription {
 	const customer = (data.customer ?? {}) as Record<string, unknown>;
 	const metadata = (data.metadata ?? {}) as Record<string, unknown>;
@@ -94,10 +101,9 @@ export function normalizePolarSubscription(data: Record<string, unknown>): Norma
 		status: String(data.status ?? 'unknown'),
 		interval: interval === 'month' || interval === 'year' ? interval : null,
 		amountCents: Number(data.amount ?? 0),
-		currentPeriodEnd: data.current_period_end
-			? new Date(String(data.current_period_end))
-			: null,
+		currentPeriodEnd: dateOrNull(data.ended_at) ?? dateOrNull(data.current_period_end),
 		cancelAtPeriodEnd: Boolean(data.cancel_at_period_end),
+		providerUpdatedAt: dateOrNull(data.modified_at) ?? dateOrNull(data.created_at),
 	};
 }
 

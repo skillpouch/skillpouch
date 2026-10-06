@@ -7,7 +7,7 @@
  * is ever deleted on downgrade (extra pouches become read-only).
  */
 import { billingEvents, plans, subscriptions } from '@skillpouch/db';
-import { and, asc, eq, isNull, notInArray } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull, notInArray, or, sql } from 'drizzle-orm';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
 import { appendAudit } from '../../security/audit';
@@ -17,7 +17,8 @@ import { normalizePolarSubscription } from './polar';
 import type { BillingEvent, BillingProvider, NormalizedSubscription } from './provider';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const TERMINAL = ['canceled_final', 'revoked', 'expired', 'incomplete_expired'];
+/** Statuses Polar never leaves; reconcile stops polling them. */
+const TERMINAL = ['unpaid', 'incomplete_expired'];
 
 export function requireBilling(deps: Deps): BillingProvider {
 	if (!deps.billing) throw new AppError('billing_unavailable');
@@ -46,7 +47,11 @@ export async function recordBillingEvent(
 	return inserted.length === 1;
 }
 
-/** Upserts one subscription for its account and recomputes entitlements. */
+/**
+ * Upserts one subscription for its account and recomputes entitlements.
+ * Webhooks can arrive out of order: a delivery whose provider modification
+ * time is older than the stored one leaves the row unchanged.
+ */
 export async function applySubscription(
 	deps: Deps,
 	provider: string,
@@ -78,12 +83,27 @@ export async function applySubscription(
 			amountCents: sub.amountCents,
 			currentPeriodEnd: sub.currentPeriodEnd,
 			cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+			providerUpdatedAt: sub.providerUpdatedAt,
 			updatedAt: deps.now(),
 		};
-		await tx
+		const written = await tx
 			.insert(subscriptions)
 			.values(values)
-			.onConflictDoUpdate({ target: subscriptions.externalSubscriptionId, set: values });
+			.onConflictDoUpdate({
+				target: subscriptions.externalSubscriptionId,
+				set: values,
+				setWhere: sql`${subscriptions.providerUpdatedAt} IS NULL
+					OR excluded.provider_updated_at IS NULL
+					OR excluded.provider_updated_at >= ${subscriptions.providerUpdatedAt}`,
+			})
+			.returning({ id: subscriptions.id });
+		if (written.length === 0) {
+			deps.log.info(
+				{ subscription: sub.externalSubscriptionId },
+				'billing: ignored an out-of-order subscription update',
+			);
+			return;
+		}
 		await refreshEntitlementsInTx(tx, storageAccountId, deps.now());
 		await appendAudit(tx, {
 			storageAccountId,
@@ -134,6 +154,11 @@ export async function reconcileSubscriptions(deps: Deps): Promise<number> {
 			and(
 				eq(subscriptions.provider, provider.name),
 				notInArray(subscriptions.status, TERMINAL),
+				// A canceled subscription is final once its access period is over.
+				or(
+					sql`${subscriptions.status} <> 'canceled'`,
+					gt(subscriptions.currentPeriodEnd, deps.now()),
+				),
 			),
 		);
 	let fixed = 0;

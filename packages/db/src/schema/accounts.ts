@@ -102,6 +102,7 @@ export const subscriptions = pgTable('subscriptions', {
 	amountCents: integer('amount_cents').notNull().default(0),
 	currentPeriodEnd: tstz('current_period_end'),
 	cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+	providerUpdatedAt: tstz('provider_updated_at'),
 	updatedAt: tstz('updated_at').notNull().defaultNow(),
 });
 

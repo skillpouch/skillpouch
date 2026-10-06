@@ -42,6 +42,27 @@ still missing it refuses to start and prints each missing secret with the
 exact path it looked for. Development and test never read this folder; they
 use built-in dev values.
 
+## Billing (Polar)
+
+Billing is optional: without `polar_access_token` + `polar_webhook_secret`
+every billing route answers `billing_unavailable` and everyone stays on Free.
+
+1. In Polar (start with `POLAR_SERVER=sandbox`), create an organization access
+   token and save it as `secrets/polar_access_token`.
+2. Add a webhook endpoint `https://skillpouch.net/v1/billing/webhooks/polar`,
+   format **Raw**, events `subscription.created`, `subscription.updated`,
+   `subscription.active`, `subscription.canceled`, `subscription.uncanceled`,
+   `subscription.revoked`. Save its secret as `secrets/polar_webhook_secret`.
+3. In the admin dashboard, edit the Supporter plan and save it once: the API
+   creates the Polar product and stores its id (`plans.polar_product_id`).
+
+Flow: `POST /v1/billing/checkout` returns a hosted Polar checkout URL tied to
+the account (`external_customer_id`). Polar then calls the webhook; the API
+verifies the signature, stores the event once (duplicates are ignored, older
+updates never overwrite newer ones) and recomputes the plan limits. A daily
+`billing.reconcile` job re-reads open subscriptions in case a webhook was
+missed. Downgrades never delete data: extra pouches become read-only.
+
 ## Zero-downtime deploys
 
 `scripts/deploy.sh <image>`: pull → **automatic expand-only migration**

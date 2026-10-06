@@ -9,6 +9,7 @@
 		"dev": "tsx watch src/main.ts",
 		"start": "node --enable-source-maps dist/main.mjs",
 		"build": "tsdown",
+		"openapi": "tsx scripts/openapi.ts",
 		"typecheck": "tsc -p tsconfig.json",
 		"test": "vitest run",
 		"test:unit": "vitest run --project unit"
