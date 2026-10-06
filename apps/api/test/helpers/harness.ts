@@ -15,6 +15,7 @@ import { loadEnv, type Env } from '../../src/config/env';
 import { closeDeps, createDeps, type Deps } from '../../src/deps';
 import { buildServer } from '../../src/server';
 import type { ZodApp } from '../../src/http/zod-app';
+import type { HealthState } from '../../src/modules/health/health.routes';
 
 export const API_URL = 'http://localhost:8080';
 export const WEB_ORIGIN = 'http://localhost:5173';
@@ -27,12 +28,17 @@ export interface Harness {
 	/** Superuser connection for assertions and fixtures (bypasses RLS). */
 	owner: pg.Pool;
 	blobRoot: string;
+	/** Set when the server listens on a real socket (e2e). */
+	baseUrl: string | null;
+	health: HealthState;
 	close(): Promise<void>;
 }
 
 export interface HarnessOptions {
 	/** Adjust the dependency container before the server is built (fakes, clocks). */
 	configure?: (deps: Deps) => void;
+	/** e2e: listen on a real socket; clients then use HTTP instead of `inject`. */
+	listen?: boolean;
 }
 
 export async function createHarness(
@@ -56,8 +62,15 @@ export async function createHarness(
 	const deps = await createDeps(env, log, 'test');
 	await deps.hub.start();
 	options.configure?.(deps);
-	const { app } = await buildServer(deps);
+	const { app, health } = await buildServer(deps);
 	await app.ready();
+	let baseUrl: string | null = null;
+	if (options.listen) {
+		await app.listen({ host: '127.0.0.1', port: 0 });
+		const address = app.server.address();
+		baseUrl =
+			typeof address === 'object' && address ? `http://127.0.0.1:${address.port}` : null;
+	}
 	const owner = new pg.Pool({ connectionString: database.url, max: 2 });
 	return {
 		app,
@@ -66,6 +79,8 @@ export async function createHarness(
 		database,
 		owner,
 		blobRoot,
+		baseUrl,
+		health,
 		close: async () => {
 			await app.close();
 			await closeDeps(deps);

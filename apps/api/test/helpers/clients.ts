@@ -35,6 +35,37 @@ function parse(response: LightMyRequestResponse): ApiResponse {
 	return { status: response.statusCode, headers: response.headers, body, raw: response };
 }
 
+/** e2e transport: a real HTTP request to the listening server. */
+async function overSocket(
+	baseUrl: string,
+	method: string,
+	path: string,
+	headers: Record<string, string>,
+	payload: string | Buffer | undefined,
+): Promise<ApiResponse> {
+	const response = await fetch(`${baseUrl}${path}`, {
+		method,
+		headers,
+		...(payload === undefined
+			? {}
+			: { body: typeof payload === 'string' ? payload : new Uint8Array(payload) }),
+	});
+	const bytes = Buffer.from(await response.arrayBuffer());
+	const type = response.headers.get('content-type') ?? '';
+	const body = type.includes('application/json') ? JSON.parse(bytes.toString('utf8')) : bytes;
+	const responseHeaders = Object.fromEntries(response.headers.entries());
+	return {
+		status: response.status,
+		headers: responseHeaders,
+		body,
+		raw: {
+			rawPayload: bytes,
+			statusCode: response.status,
+			headers: responseHeaders,
+		} as unknown as LightMyRequestResponse,
+	};
+}
+
 export abstract class BaseClient {
 	constructor(
 		readonly harness: Harness,
@@ -70,15 +101,18 @@ export abstract class BaseClient {
 				payload = JSON.stringify(options.body);
 				headers['content-type'] = 'application/json';
 			}
-			const response = await this.harness.app.inject({
-				method: method as 'GET',
-				url: path,
-				headers,
-				...(payload === undefined ? {} : { payload }),
-			});
-			const nonce = response.headers['dpop-nonce'];
+			const parsed = this.harness.baseUrl
+				? await overSocket(this.harness.baseUrl, method, path, headers, payload)
+				: parse(
+						await this.harness.app.inject({
+							method: method as 'GET',
+							url: path,
+							headers,
+							...(payload === undefined ? {} : { payload }),
+						}),
+					);
+			const nonce = parsed.headers['dpop-nonce'];
 			if (typeof nonce === 'string') nonces.set(this.harness, nonce);
-			const parsed = parse(response);
 			if (
 				parsed.body?.error?.code === 'dpop_nonce_required' &&
 				attempt === 0 &&
@@ -88,6 +122,19 @@ export abstract class BaseClient {
 			return parsed as ApiResponse<T>;
 		}
 		throw new Error('unreachable');
+	}
+
+	/** Headers for a request made outside `request()` (e.g. an SSE stream in e2e tests). */
+	async signedHeaders(method: string, path: string): Promise<Record<string, string>> {
+		const nonce = (await this.get('/v1/dpop/nonce')).body.data.nonce as string;
+		const accessToken = this.accessToken();
+		return {
+			...this.authHeaders({}),
+			dpop: await this.key.dpop(method, `${API_URL}${path.split('?')[0]}`, {
+				nonce,
+				...(accessToken ? { accessToken } : {}),
+			}),
+		};
 	}
 
 	get = <T = any>(path: string, options?: RequestOptions) =>
