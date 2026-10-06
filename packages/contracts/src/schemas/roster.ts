@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { z } from 'zod';
 import { Limits } from '../limits';
-import { B64Url, Hash32, KeyStorage, P256PublicJwk, Timestamp, Uuid, b64urlMax } from './common';
+import {
+	B64Url,
+	Hash32,
+	KeyStorage,
+	P256PublicJwk,
+	Timestamp,
+	Uuid,
+	b64urlBytes,
+	b64urlMax,
+} from './common';
 
 /**
  * Account roster (15 §7). Statements are signed canonical JSON. The API stores
@@ -9,7 +18,11 @@ import { B64Url, Hash32, KeyStorage, P256PublicJwk, Timestamp, Uuid, b64urlMax }
  * signer is an active member, effects on membership/pouch tables. Clients are
  * the ones that decide trust.
  */
-export const MemberKind = z.enum(['device', 'browser', 'recovery']);
+export const MemberKind = z.enum(['password', 'browser', 'device', 'recovery', 'passkey']);
+export type MemberKind = z.infer<typeof MemberKind>;
+
+/** Member kinds whose keys are derived from a secret (15 §4) and carry a `member_salt`. */
+export const SECRET_MEMBER_KINDS: readonly MemberKind[] = ['password', 'recovery', 'passkey'];
 
 export const RosterMember = z.object({
 	id: Uuid,
@@ -18,6 +31,8 @@ export const RosterMember = z.object({
 	enc_pub: P256PublicJwk,
 	label_enc: b64urlMax(1024).optional(),
 	key_storage: KeyStorage.optional(),
+	/** HKDF salt of secret-derived members (16 random bytes). */
+	member_salt: b64urlBytes(16).optional(),
 });
 export type RosterMember = z.infer<typeof RosterMember>;
 
@@ -94,7 +109,7 @@ export const RosterResponse = z.object({
 });
 
 export const GenesisRequest = z.strictObject({
-	/** #0 `genesis` (browser + recovery members) and #1 `create_pouch`. */
+	/** #0 `genesis` (browser + password + recovery members) and #1 `create_pouch`. */
 	statements: z.array(RosterStatementInput).length(2),
 	key_envelopes: z.array(KeyEnvelopeInput).min(1).max(16),
 });
@@ -106,29 +121,10 @@ export const Member = z.object({
 	sign_pub: P256PublicJwk,
 	enc_pub: P256PublicJwk,
 	label_enc: B64Url.nullable(),
+	member_salt: B64Url.nullable(),
 	added_seq: z.number().int(),
 	removed_seq: z.number().int().nullable(),
 	revoked_at: Timestamp.nullable(),
 	last_seen_at: Timestamp.nullable(),
-});
-
-export const JoinRequestCreate = z.strictObject({
-	/** base64url canonical JSON `{member: RosterMember, created_at}` of the new browser. */
-	request: b64urlMax(8 * 1024),
-});
-
-export const JoinRequest = z.object({
-	id: Uuid,
-	request: B64Url,
-	request_hash: Hash32,
-	state: z.enum(['open', 'approved', 'denied', 'expired']),
-	welcome: B64Url.nullable(),
-	expires_at: Timestamp,
-	created_at: Timestamp,
-});
-
-export const JoinRequestApprove = z.strictObject({
-	welcome: b64urlMax(Limits.welcomeMaxBytes),
-	statements: z.array(RosterStatementInput).min(1).max(4),
-	key_envelopes: z.array(KeyEnvelopeInput).max(2000).default([]),
+	trust_expired_at: Timestamp.nullable(),
 });

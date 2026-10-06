@@ -41,8 +41,19 @@ export const Limits = {
 	bindingPayloadMaxBytes: 16 * KiB,
 	/** "Authorize CLI" request lifetime in seconds (08 §6.2). */
 	cliAuthTtlSeconds: 600,
-	/** Browser join request lifetime in seconds (03 §5.12a). */
-	joinRequestTtlSeconds: 900,
+	/** Unlock pepper releases per account (15 §4.1). */
+	pepperReleasesPerHour: 10,
+	pepperReleasesPerDay: 30,
+	/** How long a proven unlock secret lets this session fetch that member's envelopes. */
+	unlockGrantSeconds: 600,
+	/** WebAuthn challenge lifetime. */
+	webauthnChallengeSeconds: 300,
+	/** Consecutive wrong master passwords that notify other devices (15 §8.6). */
+	unlockFailedStreakAlert: 5,
+	/** Trusted-browser window (15 §8.2): default and allowed range in days. */
+	browserTrustDaysDefault: 30,
+	browserTrustDaysMin: 7,
+	browserTrustDaysMax: 90,
 	/** Access token lifetime in seconds (08 §3.2). */
 	accessTokenTtlSeconds: 300,
 	/** Accepted DPoP `iat` skew in seconds. */

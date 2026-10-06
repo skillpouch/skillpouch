@@ -5,7 +5,8 @@
  */
 import { createHash, randomBytes } from 'node:crypto';
 import { uuidv7 } from '../../src/lib/ids';
-import { BrowserClient, CliClient, signIn } from './clients';
+import type { BrowserClient } from './clients';
+import { CliClient, signIn } from './clients';
 import {
 	envelopesFor,
 	memberJson,
@@ -22,6 +23,7 @@ export interface Account {
 	accountId: string;
 	pouchId: string;
 	browserMember: MemberHandle;
+	passwordMember: MemberHandle;
 	recoveryMember: MemberHandle;
 	/** Every active member that must receive key envelopes. */
 	members: MemberHandle[];
@@ -39,13 +41,21 @@ export async function accountIdOf(harness: Harness, userId: string): Promise<str
 export async function setupAccount(harness: Harness, email: string): Promise<Account> {
 	const browser = await signIn(harness, email);
 	const accountId = await accountIdOf(harness, browser.userId);
+	const prepared = await browser.post('/v1/account/unlock/prepare');
+	if (prepared.status !== 200)
+		throw new Error(`prepare failed: ${JSON.stringify(prepared.body)}`);
 	const browserMember = await newMember('browser', browser.key);
+	const passwordMember = await newMember('password');
 	const recoveryMember = await newMember('recovery');
 	const pouchId = uuidv7();
 	const head = { seq: -1, hash: null };
 	const genesis = await statement(browserMember, accountId, head, {
 		action: 'genesis',
-		members: [memberJson(browserMember), memberJson(recoveryMember)],
+		members: [
+			memberJson(browserMember),
+			memberJson(passwordMember),
+			memberJson(recoveryMember),
+		],
 	});
 	const createPouch = await statement(browserMember, accountId, head, {
 		action: 'create_pouch',
@@ -53,7 +63,12 @@ export async function setupAccount(harness: Harness, email: string): Promise<Acc
 	});
 	const response = await browser.post('/v1/account/roster/genesis', {
 		statements: [genesis, createPouch],
-		key_envelopes: envelopesFor(pouchId, [browserMember, recoveryMember], 1, browserMember.id),
+		key_envelopes: envelopesFor(
+			pouchId,
+			[browserMember, passwordMember, recoveryMember],
+			1,
+			browserMember.id,
+		),
 	});
 	if (response.status !== 200)
 		throw new Error(`genesis failed: ${JSON.stringify(response.body)}`);
@@ -63,8 +78,9 @@ export async function setupAccount(harness: Harness, email: string): Promise<Acc
 		accountId,
 		pouchId,
 		browserMember,
+		passwordMember,
 		recoveryMember,
-		members: [browserMember, recoveryMember],
+		members: [browserMember, passwordMember, recoveryMember],
 	};
 }
 

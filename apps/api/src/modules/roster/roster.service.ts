@@ -8,6 +8,7 @@
  */
 import {
 	Limits,
+	SECRET_MEMBER_KINDS,
 	fromBase64Url,
 	toBase64Url,
 	type KeyEnvelopeInput,
@@ -37,6 +38,10 @@ export interface AppendContext {
 	storageAccountId: string;
 	/** When set, every statement must be signed by this member (the caller). */
 	requiredSigner?: string | null;
+	/** Finer-grained signer rule (browser enrollment: unlocking member, then the new browser). */
+	isSignerAllowed?: (signerMemberId: string, index: number) => boolean;
+	/** `add` of a passkey member is only allowed together with its WebAuthn registration. */
+	allowPasskeyAdd?: boolean;
 	/** Device row to attach to a `device` member added by this append (CLI authorize). */
 	deviceIdForNewMember?: string;
 	/** Which actions this call may contain. */
@@ -81,6 +86,14 @@ async function insertMember(
 	seq: number,
 	deviceId: string | null,
 ): Promise<void> {
+	const secretDerived = SECRET_MEMBER_KINDS.includes(member.kind);
+	if (secretDerived !== (member.member_salt !== undefined)) {
+		throw new AppError('roster_invalid', {
+			reason: secretDerived
+				? `${member.kind} members need a member_salt`
+				: `${member.kind} members carry no member_salt`,
+		});
+	}
 	await tx.insert(accountMembers).values({
 		id: member.id,
 		storageAccountId,
@@ -90,6 +103,7 @@ async function insertMember(
 		signPub: { ...member.sign_pub },
 		encPub: { ...member.enc_pub },
 		labelEnc: member.label_enc ? Buffer.from(fromBase64Url(member.label_enc)) : null,
+		memberSalt: member.member_salt ? Buffer.from(fromBase64Url(member.member_salt)) : null,
 		keyStorage: member.key_storage ?? null,
 		addedSeq: seq,
 	});
@@ -117,7 +131,7 @@ export async function appendStatements(
 		removedMemberIds: [],
 	};
 
-	for (const input of inputs) {
+	for (const [index, input] of inputs.entries()) {
 		const parsed = parseRosterStatement(input.statement);
 		const body = parsed.body;
 		if (parsed.bytes.length > Limits.rosterStatementMaxBytes)
@@ -136,6 +150,11 @@ export async function appendStatements(
 		if (ctx.requiredSigner !== undefined && body.signer_member_id !== ctx.requiredSigner) {
 			throw new AppError('member_inactive', {
 				reason: 'statement must be signed by the caller',
+			});
+		}
+		if (ctx.isSignerAllowed && !ctx.isSignerAllowed(body.signer_member_id, index)) {
+			throw new AppError('member_inactive', {
+				reason: 'signer not allowed for this statement',
 			});
 		}
 
@@ -178,6 +197,7 @@ export async function appendStatements(
 		for (const row of await tx.select().from(accountMembers)) members.set(row.id, row);
 	}
 
+	assertMembershipInvariants(members);
 	await tx
 		.update(storageAccounts)
 		.set({ rosterSeq: seq, rosterHeadHash: headHash, updatedAt: new Date() })
@@ -197,15 +217,10 @@ async function applyEffect(
 	switch (body.action) {
 		case 'genesis': {
 			const list = body.members ?? [];
-			const browsers = list.filter((member) => member.kind === 'browser');
-			const recovery = list.filter((member) => member.kind === 'recovery');
-			if (
-				browsers.length < 1 ||
-				recovery.length !== 1 ||
-				browsers.length + recovery.length !== list.length
-			) {
+			const kinds = list.map((member) => member.kind).sort();
+			if (kinds.join(',') !== 'browser,password,recovery') {
 				throw new AppError('roster_invalid', {
-					reason: 'genesis needs ≥1 browser and exactly 1 recovery member',
+					reason: 'genesis lists exactly one browser, one password and one recovery member',
 				});
 			}
 			for (const member of list) {
@@ -223,12 +238,9 @@ async function applyEffect(
 					reason: 'devices join only through CLI authorize',
 				});
 			}
-			if (
-				member.kind === 'recovery' &&
-				[...members.values()].some((m) => m.kind === 'recovery' && isActiveMember(m))
-			) {
+			if (member.kind === 'passkey' && !ctx.allowPasskeyAdd) {
 				throw new AppError('roster_invalid', {
-					reason: 'remove the old recovery member first',
+					reason: 'passkeys join only with their WebAuthn registration',
 				});
 			}
 			await insertMember(
@@ -245,14 +257,6 @@ async function applyEffect(
 			const target = body.member_id ? members.get(body.member_id) : undefined;
 			if (!target || target.removedSeq !== null)
 				throw new AppError('roster_invalid', { reason: 'member_id' });
-			const remainingHumans = [...members.values()].filter(
-				(m) => m.id !== target.id && m.kind !== 'recovery' && m.removedSeq === null,
-			);
-			if (target.kind !== 'recovery' && remainingHumans.length === 0) {
-				throw new AppError('roster_invalid', {
-					reason: 'cannot remove the last non-recovery member',
-				});
-			}
 			await tx
 				.update(accountMembers)
 				.set({ removedSeq: body.seq, revokedAt: target.revokedAt ?? new Date() })
@@ -317,6 +321,25 @@ async function applyEffect(
 				});
 			}
 			return pouch.id;
+		}
+	}
+}
+
+/**
+ * After every append the account has exactly one active `password` and one
+ * active `recovery` member: they can be replaced (add new + remove old in one
+ * batch) but never just dropped (15 §7.1 rule 3).
+ */
+function assertMembershipInvariants(members: Map<string, MemberRow>): void {
+	for (const kind of ['password', 'recovery'] as const) {
+		const active = [...members.values()].filter(
+			(member) => member.kind === kind && member.removedSeq === null,
+		);
+		if (active.length !== 1) {
+			throw new AppError('roster_invalid', {
+				reason: `the account must keep exactly one ${kind} member (replace, never remove)`,
+				count: active.length,
+			});
 		}
 	}
 }
@@ -429,9 +452,24 @@ export function memberView(row: MemberRow) {
 		sign_pub: row.signPub as { kty: 'EC'; crv: 'P-256'; x: string; y: string },
 		enc_pub: row.encPub as { kty: 'EC'; crv: 'P-256'; x: string; y: string },
 		label_enc: row.labelEnc ? toBase64Url(row.labelEnc) : null,
+		member_salt: row.memberSalt ? toBase64Url(row.memberSalt) : null,
 		added_seq: row.addedSeq,
 		removed_seq: row.removedSeq,
 		revoked_at: row.revokedAt?.toISOString() ?? null,
 		last_seen_at: row.lastSeenAt?.toISOString() ?? null,
+		trust_expired_at: row.trustExpiredAt?.toISOString() ?? null,
+	};
+}
+
+export function keyEnvelopeView(row: typeof keyEnvelopes.$inferSelect) {
+	return {
+		pouch_id: row.pouchId,
+		member_id: row.memberId,
+		key_gen: row.keyGen,
+		hpke_enc: toBase64Url(row.hpkeEnc),
+		ciphertext: toBase64Url(row.ciphertext),
+		created_by_member: row.createdByMember,
+		signature: toBase64Url(row.signature),
+		created_at: row.createdAt.toISOString(),
 	};
 }

@@ -19,17 +19,27 @@ export const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString('base64url
 
 export interface MemberHandle {
 	id: string;
-	kind: 'browser' | 'device' | 'recovery';
+	kind: 'password' | 'browser' | 'device' | 'recovery' | 'passkey';
 	key: TestKey;
 	enc: TestKey;
+	/** HKDF salt of secret-derived members (password, recovery, passkey). */
+	salt?: string;
 }
 
+const SECRET_KINDS = new Set(['password', 'recovery', 'passkey']);
+
+/**
+ * A member with fresh keys. Real clients *derive* password/recovery/passkey
+ * keys from the secret; the API cannot tell the difference, so tests simply
+ * generate them.
+ */
 export async function newMember(kind: MemberHandle['kind'], key?: TestKey): Promise<MemberHandle> {
 	return {
 		id: uuidv7(),
 		kind,
 		key: key ?? (await TestKey.generate()),
 		enc: await TestKey.generate(),
+		...(SECRET_KINDS.has(kind) ? { salt: b64(randomBytes(16)) } : {}),
 	};
 }
 
@@ -40,6 +50,7 @@ export function memberJson(member: MemberHandle): Record<string, unknown> {
 		sign_pub: member.key.jwk,
 		enc_pub: member.enc.jwk,
 		...(member.kind === 'device' ? { key_storage: 'file' } : {}),
+		...(member.salt ? { member_salt: member.salt } : {}),
 	};
 }
 

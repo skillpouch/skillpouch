@@ -137,6 +137,7 @@ describe('authentication', () => {
 			const members = (await account.browser.get('/v1/account/members')).body.data.members;
 			expect(members.map((m: { kind: string }) => m.kind).sort()).toEqual([
 				'browser',
+				'password',
 				'recovery',
 			]);
 			const roster = (await account.browser.get('/v1/account/roster')).body.data;

@@ -12,6 +12,8 @@ const bool = z
 	.transform((value) => value === 'true' || value === '1');
 
 const DEV_SECRET = 'dev-only-secret-change-me-dev-only-secret-change-me';
+/** 32 zero-ish bytes; only ever used outside production. */
+const DEV_PEPPER_KEY = 'ZGV2LW9ubHktcGVwcGVyLWtleS1jaGFuZ2UtbWUtISE';
 
 const EnvSchema = z
 	.object({
@@ -50,6 +52,16 @@ const EnvSchema = z
 		JWT_SIGNING_KEY: z.string().optional(),
 		DPOP_NONCE_SECRET: z.string().min(32),
 		IP_HASH_SECRET: z.string().min(32),
+		/**
+		 * Seals each account's unlock pepper (15 §4.1). 32 bytes, base64url.
+		 * Lives only in the secrets directory — never in the DB or its backups.
+		 */
+		PEPPER_KEY: z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'must be 32 bytes base64url'),
+		/** Version label stored next to every sealed pepper (key rotation). */
+		PEPPER_KEY_ID: z.string().min(1).max(32).default('k1'),
+		/** WebAuthn relying party (passkey unlock); defaults to the web origin's host. */
+		WEBAUTHN_RP_ID: z.string().optional(),
+		WEBAUTHN_RP_NAME: z.string().default('SkillPouch'),
 
 		BLOB_DRIVER: z.enum(['fs']).default('fs'),
 		BLOB_FS_ROOT: z.string().default('./data/blobs'),
@@ -70,6 +82,7 @@ const EnvSchema = z
 		...env,
 		DB_SET_ROLE: env.DB_SET_ROLE ?? env.NODE_ENV !== 'production',
 		SWAGGER: env.SWAGGER ?? env.NODE_ENV !== 'production',
+		WEBAUTHN_RP_ID: env.WEBAUTHN_RP_ID ?? new URL(env.WEB_ORIGIN).hostname,
 		adminEmails: env.ADMIN_EMAILS.split(',')
 			.map((email) => email.trim().toLowerCase())
 			.filter(Boolean),
@@ -88,6 +101,7 @@ const SECRET_KEYS = [
 	'JWT_SIGNING_KEY',
 	'DPOP_NONCE_SECRET',
 	'IP_HASH_SECRET',
+	'PEPPER_KEY',
 	'POLAR_ACCESS_TOKEN',
 	'POLAR_WEBHOOK_SECRET',
 ] as const;
@@ -103,6 +117,7 @@ function resolveRaw(source: NodeJS.ProcessEnv): Record<string, string | undefine
 		for (const key of ['BETTER_AUTH_SECRET', 'DPOP_NONCE_SECRET', 'IP_HASH_SECRET'] as const) {
 			raw[key] ??= DEV_SECRET;
 		}
+		raw.PEPPER_KEY ??= DEV_PEPPER_KEY;
 	}
 	return raw;
 }

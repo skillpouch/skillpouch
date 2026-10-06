@@ -19,6 +19,11 @@ export default tseslint.config(
 		},
 	},
 	{
+		// Tests read loosely typed JSON response bodies.
+		files: ['**/test/**/*.ts'],
+		rules: { '@typescript-eslint/no-explicit-any': 'off' },
+	},
+	{
 		// 13 §2 + 17 §3: errors are raised only through AppError with a registry code.
 		files: ['apps/api/src/modules/**/*.ts', 'apps/api/src/security/**/*.ts'],
 		ignores: ['**/*.test.ts'],

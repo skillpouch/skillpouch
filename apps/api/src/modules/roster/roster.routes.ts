@@ -22,12 +22,14 @@ import { jwkThumbprint } from '../../security/dpop';
 import { parseRosterStatement } from '../../security/e2ee-structure';
 import { principalLabel } from '../../security/principal';
 import { withTenantTx } from '../../security/tenant-tx';
+import { commitPendingUnlock } from '../unlock/unlock.service';
 import { assertPouchAllowance } from '../pouches/pouches.service';
 import {
 	appendStatements,
 	assertEnvelopeCoverage,
 	insertKeyEnvelopes,
 	loadMembers,
+	keyEnvelopeView,
 	memberView,
 	readRoster,
 	rosterStatementView,
@@ -85,6 +87,8 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 					.where(eq(storageAccounts.id, principal.storageAccountId))
 					.for('update');
 				if (account?.genesisHash) throw new AppError('roster_exists');
+				// The master-password parameters the browser derived its password member from.
+				await commitPendingUnlock(tx, principal.storageAccountId, deps.now());
 
 				const result = await appendStatements(tx, request.body.statements, {
 					storageAccountId: principal.storageAccountId,
@@ -219,16 +223,7 @@ export async function rosterRoutes(app: ZodApp, deps: Deps) {
 					.where(eq(keyEnvelopes.memberId, memberId))
 					.orderBy(asc(keyEnvelopes.pouchId), asc(keyEnvelopes.keyGen));
 				return {
-					key_envelopes: rows.map((row) => ({
-						pouch_id: row.pouchId,
-						member_id: row.memberId,
-						key_gen: row.keyGen,
-						hpke_enc: toBase64Url(row.hpkeEnc),
-						ciphertext: toBase64Url(row.ciphertext),
-						created_by_member: row.createdByMember,
-						signature: toBase64Url(row.signature),
-						created_at: row.createdAt.toISOString(),
-					})),
+					key_envelopes: rows.map(keyEnvelopeView),
 				};
 			});
 		},

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Storage-account lifecycle: one per user, created on first sign-in (03 §1). */
+import { AppError } from '../../http/app-error';
 import { storageAccounts, type Database } from '@skillpouch/db';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from '../../lib/ids';
@@ -27,6 +28,7 @@ export async function ensureStorageAccount(db: Database, userId: string): Promis
 		.select({ id: storageAccounts.id })
 		.from(storageAccounts)
 		.where(eq(storageAccounts.ownerUserId, userId));
-	if (!created) throw new Error('storage account creation failed');
+	if (!created)
+		throw new AppError('internal_error', { reason: 'storage account creation failed' });
 	return created.id;
 }

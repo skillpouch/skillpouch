@@ -25,6 +25,9 @@ export function deviceOf(request: FastifyRequest): DevicePrincipal {
 
 /** The caller's roster member id — required for anything that signs E2EE data. */
 export function memberOf(principal: Principal): string {
+	if (principal.kind === 'session' && principal.trustExpiredMemberId) {
+		throw new AppError('browser_trust_expired');
+	}
 	if (!principal.memberId)
 		throw new AppError('member_inactive', { reason: 'this client is not enrolled' });
 	return principal.memberId;

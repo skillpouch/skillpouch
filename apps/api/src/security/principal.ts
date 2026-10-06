@@ -26,6 +26,8 @@ export interface SessionPrincipal {
 	jkt: string | null;
 	/** The browser's roster member, if this browser is enrolled. */
 	memberId: string | null;
+	/** Set when this browser's member exists but its trust window lapsed (15 §8.2). */
+	trustExpiredMemberId: string | null;
 	stepUpAt: Date | null;
 }
 

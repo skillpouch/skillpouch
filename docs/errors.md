@@ -33,7 +33,11 @@ Every API error uses the envelope from plan 17 §2. Clients branch on `code`;
 | `roster_invalid` | 422 | no | Roster statement is malformed. |
 | `member_inactive` | 403 | no | The signing member is not an active member. |
 | `key_gen_invalid` | 422 | no | Invalid key generation. |
-| `join_request_closed` | 409 | no | This join request is no longer open. |
+| `unlock_not_ready` | 409 | no | Master-password unlock is not set up for this account yet. |
+| `unlock_rate_limited` | 429 | yes | Too many unlock attempts. Try again later or use your Recovery Key. |
+| `unlock_grant_required` | 403 | no | Prove the unlock secret first (master password or passkey). |
+| `browser_trust_expired` | 403 | no | This browser was not used for too long. Unlock it again. |
+| `webauthn_invalid` | 400 | no | The passkey response could not be verified. |
 | `not_found` | 404 | no | Not found. |
 | `pouch_limit_reached` | 403 | no | Pouch limit reached for your plan. |
 | `pouch_read_only` | 409 | no | This pouch is read-only. |

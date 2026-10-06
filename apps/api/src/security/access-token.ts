@@ -102,7 +102,7 @@ export class AccessTokens {
 				typeof payload.ver !== 'number' ||
 				typeof cnf?.jkt !== 'string'
 			) {
-				throw new Error('missing claims');
+				throw new AppError('token_invalid', { reason: 'missing claims' });
 			}
 			return {
 				sub: payload.sub,

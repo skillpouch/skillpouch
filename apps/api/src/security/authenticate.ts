@@ -14,7 +14,7 @@
  *  admin   — session with role = admin.
  */
 import { Limits } from '@skillpouch/contracts';
-import { accountMembers, dpopReplay } from '@skillpouch/db';
+import { accountMembers, dpopReplay, storageAccounts } from '@skillpouch/db';
 import { fromNodeHeaders } from 'better-auth/node';
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -58,6 +58,13 @@ export function verifyRequestDpop(
 			return rows.length === 1;
 		},
 	});
+}
+
+/** The account's trusted-browser window in days (15 §8.2), clamped to 7–90. */
+export function browserTrustDays(settings: Record<string, unknown> | null | undefined): number {
+	const value = Number(settings?.browser_trust_days ?? Limits.browserTrustDaysDefault);
+	if (!Number.isInteger(value)) return Limits.browserTrustDaysDefault;
+	return Math.min(Limits.browserTrustDaysMax, Math.max(Limits.browserTrustDaysMin, value));
 }
 
 export function clientIpHash(deps: Deps, request: FastifyRequest): Buffer {
@@ -127,6 +134,8 @@ async function authenticateSession(
 	const storageAccountId = await ensureStorageAccount(deps.db.app, user.id);
 	const jkt = session.jkt ?? null;
 	let memberId: string | null = null;
+	let trustExpired = false;
+	let expiredMemberId: string | null = null;
 	if (jkt) {
 		const proof = await verifyRequestDpop(deps, request);
 		if (proof.jkt !== jkt)
@@ -137,14 +146,38 @@ async function authenticateSession(
 					id: accountMembers.id,
 					revokedAt: accountMembers.revokedAt,
 					removedSeq: accountMembers.removedSeq,
+					lastSeenAt: accountMembers.lastSeenAt,
+					trustExpiredAt: accountMembers.trustExpiredAt,
+					settings: storageAccounts.securitySettings,
 				})
 				.from(accountMembers)
+				.innerJoin(storageAccounts, eq(storageAccounts.id, accountMembers.storageAccountId))
 				.where(eq(accountMembers.sessionJkt, jkt));
+			if (!row || row.revokedAt || row.removedSeq !== null) return row;
+			const now = deps.now();
+			const trustMs = browserTrustDays(row.settings) * 86_400_000;
+			const lastUsed = row.lastSeenAt ?? now;
+			if (!row.trustExpiredAt && now.getTime() - lastUsed.getTime() > trustMs) {
+				// Unused longer than the trust window: unlock again (15 §8.2).
+				await tx
+					.update(accountMembers)
+					.set({ trustExpiredAt: now })
+					.where(eq(accountMembers.id, row.id));
+				return { ...row, trustExpiredAt: now };
+			}
+			if (!row.trustExpiredAt && now.getTime() - lastUsed.getTime() > 60_000) {
+				await tx
+					.update(accountMembers)
+					.set({ lastSeenAt: now })
+					.where(eq(accountMembers.id, row.id));
+			}
 			return row;
 		});
 		if (member && (member.revokedAt || member.removedSeq !== null))
 			throw new AppError('device_revoked');
-		memberId = member?.id ?? null;
+		trustExpired = member?.trustExpiredAt != null;
+		expiredMemberId = trustExpired ? member!.id : null;
+		memberId = member && !trustExpired ? member.id : null;
 	} else if (!allowUnbound) {
 		throw new AppError('session_unbound');
 	}
@@ -158,6 +191,7 @@ async function authenticateSession(
 		sessionId: session.id,
 		jkt,
 		memberId,
+		trustExpiredMemberId: trustExpired ? expiredMemberId : null,
 		stepUpAt: session.stepUpAt ? new Date(session.stepUpAt) : null,
 	};
 }
@@ -188,6 +222,7 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 	app.addHook('onRoute', (route) => {
 		if (EXEMPT_PREFIXES.some((prefix) => route.url.startsWith(prefix))) return;
 		if (!route.config?.auth) {
+			// eslint-disable-next-line no-restricted-syntax -- boot-time wiring bug, not a request error
 			throw new Error(`Route ${String(route.method)} ${route.url} is missing config.auth`);
 		}
 	});

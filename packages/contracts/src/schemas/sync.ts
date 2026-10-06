@@ -174,7 +174,8 @@ export const EventsResponse = z.object({
 /** Account-level events pushed on the SSE stream (04 §4.2). */
 export const AccountEventType = z.enum([
 	'roster.changed',
-	'join_request.opened',
+	'browser.trusted',
+	'unlock.failed_streak',
 	'pouch.state_changed',
 	'device.revoked',
 	'entitlements.changed',

@@ -87,10 +87,30 @@ export const ErrorCodes = {
 		message: 'The signing member is not an active member.',
 	},
 	key_gen_invalid: { status: 422, retryable: false, message: 'Invalid key generation.' },
-	join_request_closed: {
+	unlock_not_ready: {
 		status: 409,
 		retryable: false,
-		message: 'This join request is no longer open.',
+		message: 'Master-password unlock is not set up for this account yet.',
+	},
+	unlock_rate_limited: {
+		status: 429,
+		retryable: true,
+		message: 'Too many unlock attempts. Try again later or use your Recovery Key.',
+	},
+	unlock_grant_required: {
+		status: 403,
+		retryable: false,
+		message: 'Prove the unlock secret first (master password or passkey).',
+	},
+	browser_trust_expired: {
+		status: 403,
+		retryable: false,
+		message: 'This browser was not used for too long. Unlock it again.',
+	},
+	webauthn_invalid: {
+		status: 400,
+		retryable: false,
+		message: 'The passkey response could not be verified.',
 	},
 
 	// --- pouches & sync (04, 16) -----------------------------------------------

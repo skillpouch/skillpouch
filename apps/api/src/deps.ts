@@ -15,6 +15,7 @@ import { createAuth, type Auth } from './modules/auth/better-auth';
 import { AccessTokens } from './security/access-token';
 import { DeviceStatusCache } from './security/device-status';
 import { NonceService } from './security/nonce';
+import { PepperBox } from './security/pepper';
 
 export interface Deps {
 	env: Env;
@@ -23,6 +24,8 @@ export interface Deps {
 	auth: Auth;
 	tokens: AccessTokens;
 	nonces: NonceService;
+	/** Seals/opens per-account unlock peppers with the off-DB PEPPER_KEY (15 §4.1). */
+	pepper: PepperBox;
 	blobs: BlobStore;
 	hub: ListenHub;
 	deviceStatus: DeviceStatusCache;
@@ -41,6 +44,7 @@ export async function createDeps(env: Env, log: pino.Logger, role: string): Prom
 		auth: createAuth({ env, db: db.app }),
 		tokens: await AccessTokens.create(env.JWT_SIGNING_KEY, now),
 		nonces: new NonceService(env.DPOP_NONCE_SECRET, now),
+		pepper: new PepperBox(env.PEPPER_KEY, env.PEPPER_KEY_ID),
 		blobs: new FsBlobStore(env.BLOB_FS_ROOT),
 		hub,
 		deviceStatus: new DeviceStatusCache(db.app),

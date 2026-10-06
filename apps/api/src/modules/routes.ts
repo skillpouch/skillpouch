@@ -15,6 +15,7 @@ import { pouchesRoutes } from './pouches/pouches.routes';
 import { rosterRoutes } from './roster/roster.routes';
 import { sessionRoutes } from './session/session.routes';
 import { snapshotsRoutes } from './snapshots/snapshots.routes';
+import { unlockRoutes } from './unlock/unlock.routes';
 
 export async function registerModules(app: ZodApp, deps: Deps, health: HealthState): Promise<void> {
 	await healthRoutes(app, deps, health);
@@ -23,6 +24,7 @@ export async function registerModules(app: ZodApp, deps: Deps, health: HealthSta
 	await cliAuthRoutes(app, deps);
 	await devicesRoutes(app, deps);
 	await rosterRoutes(app, deps);
+	await unlockRoutes(app, deps);
 	await pouchesRoutes(app, deps);
 	await blobsRoutes(app, deps);
 	await operationsRoutes(app, deps);

@@ -5,6 +5,7 @@
  * limit become read-only (newest first) and come back when the limit allows.
  * Nothing is ever deleted.
  */
+import { AppError } from '../../http/app-error';
 import {
 	entitlementOverrides,
 	planGrants,
@@ -32,7 +33,7 @@ const toLimits = (plan: PlanRow): PlanLimits => ({
 /** Effective entitlements of the default plan, for new accounts. */
 export async function defaultEntitlements(db: Pick<Database, 'select'>): Promise<EntitlementsJson> {
 	const [plan] = await db.select().from(plans).where(eq(plans.isDefault, true));
-	if (!plan) throw new Error('No default plan seeded');
+	if (!plan) throw new AppError('internal_error', { reason: 'no default plan seeded' });
 	return {
 		plan_slug: plan.slug,
 		plan_name: plan.name,
@@ -51,7 +52,7 @@ export async function refreshEntitlementsInTx(
 	const allPlans = await tx.select().from(plans);
 	const byId = new Map(allPlans.map((plan) => [plan.id, plan]));
 	const defaultPlan = allPlans.find((plan) => plan.isDefault);
-	if (!defaultPlan) throw new Error('No default plan seeded');
+	if (!defaultPlan) throw new AppError('internal_error', { reason: 'no default plan seeded' });
 
 	const subs = await tx
 		.select()

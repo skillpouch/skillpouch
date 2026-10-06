@@ -194,7 +194,8 @@ CREATE INDEX cli_auth_requests_ip_idx ON cli_auth_requests (ip_hash) WHERE state
 CREATE TABLE account_members (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
-	kind                text NOT NULL CHECK (kind IN ('device', 'browser', 'recovery')),
+	kind                text NOT NULL CHECK (kind IN ('password', 'browser', 'device', 'recovery', 'passkey')),
+	member_salt         bytea,           -- secret-derived kinds: HKDF salt (15 §4)
 	device_id           uuid,
 	session_jkt         text,
 	sign_pub            jsonb NOT NULL,
@@ -205,6 +206,7 @@ CREATE TABLE account_members (
 	removed_seq         bigint,
 	revoked_at          timestamptz,     -- server-side revoke (rotation may still be pending)
 	last_seen_at        timestamptz,
+	trust_expired_at    timestamptz,     -- browser unused longer than the trust window (15 §8.2)
 	created_at          timestamptz NOT NULL DEFAULT now(),
 	UNIQUE (storage_account_id, id),
 	FOREIGN KEY (storage_account_id, device_id) REFERENCES devices (storage_account_id, id)
@@ -242,20 +244,66 @@ CREATE TABLE key_envelopes (
 );
 CREATE INDEX key_envelopes_member_idx ON key_envelopes (storage_account_id, member_id);
 
-CREATE TABLE join_requests (
+-- Master-password unlock parameters (15 §4.1, §8.6). The pepper is sealed with
+-- PEPPER_KEY, an off-database secret: a DB/backup thief cannot start guessing.
+-- `pending_*` holds freshly prepared parameters until genesis / a password change commits them.
+CREATE TABLE account_unlock (
+	storage_account_id         uuid PRIMARY KEY REFERENCES storage_accounts (id),
+	kdf_salt                   bytea,
+	kdf_params                 jsonb,
+	pepper_ciphertext          bytea,
+	pepper_key_id              text,
+	pending_kdf_salt           bytea,
+	pending_kdf_params         jsonb,
+	pending_pepper_ciphertext  bytea,
+	pending_pepper_key_id      text,
+	pending_created_at         timestamptz,
+	failed_streak              integer NOT NULL DEFAULT 0,
+	updated_at                 timestamptz NOT NULL DEFAULT now()
+);
+
+-- WebAuthn credentials used ONLY for PRF unlock, never for sign-in (15 §8.5).
+CREATE TABLE passkey_unlockers (
 	id                  uuid PRIMARY KEY,
 	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
-	request             bytea NOT NULL,
-	request_hash        bytea NOT NULL,
-	requester_jkt       text NOT NULL,
-	state               text NOT NULL DEFAULT 'open' CHECK (state IN ('open', 'approved', 'denied', 'expired')),
-	welcome             bytea,
-	approved_by_member  uuid,
+	member_id           uuid NOT NULL,
+	credential_id       bytea NOT NULL,
+	public_key          bytea NOT NULL,
+	sign_count          bigint NOT NULL DEFAULT 0,
+	transports          text[],
+	label               text,
+	created_at          timestamptz NOT NULL DEFAULT now(),
+	last_used_at        timestamptz,
+	UNIQUE (storage_account_id, id),
+	UNIQUE (storage_account_id, credential_id),
+	FOREIGN KEY (storage_account_id, member_id) REFERENCES account_members (storage_account_id, id)
+);
+
+-- Short-lived WebAuthn challenges (registration / PRF assertion), bound to one web session.
+CREATE TABLE webauthn_challenges (
+	id                  uuid PRIMARY KEY,
+	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
+	session_id          text NOT NULL,
+	purpose             text NOT NULL CHECK (purpose IN ('register', 'unlock')),
+	challenge           text NOT NULL,
+	expires_at          timestamptz NOT NULL,
+	created_at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX webauthn_challenges_expiry_idx ON webauthn_challenges (expires_at);
+
+-- "This web session proved it holds the secret of member X" (pepper released /
+-- passkey asserted); required before the envelopes of secret-derived members
+-- are released to a not-yet-enrolled browser (15 §8.1).
+CREATE TABLE unlock_grants (
+	storage_account_id  uuid NOT NULL REFERENCES storage_accounts (id),
+	session_id          text NOT NULL,
+	member_id           uuid NOT NULL,
 	expires_at          timestamptz NOT NULL,
 	created_at          timestamptz NOT NULL DEFAULT now(),
-	UNIQUE (storage_account_id, id)
+	PRIMARY KEY (session_id, member_id),
+	FOREIGN KEY (storage_account_id, member_id) REFERENCES account_members (storage_account_id, id)
 );
-CREATE INDEX join_requests_open_idx ON join_requests (storage_account_id) WHERE state = 'open';
+CREATE INDEX unlock_grants_expiry_idx ON unlock_grants (expires_at);
 
 -- ---------------------------------------------------------------- sync (03 §5.5–5.12)
 CREATE TABLE device_cursors (
