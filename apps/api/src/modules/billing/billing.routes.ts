@@ -102,7 +102,7 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 				storageAccountId: principal.storageAccountId,
 				email: principal.email,
 				productId: plan.polarProductId,
-				successUrl: `${deps.env.WEB_ORIGIN}/app/billing?ok=1`,
+				successUrl: `${deps.env.WEB_ORIGIN}/app/account/billing?ok=1`,
 			});
 		},
 	);
