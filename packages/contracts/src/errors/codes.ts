@@ -201,6 +201,11 @@ export const ErrorCodes = {
 	validation_failed: { status: 400, retryable: false, message: 'Invalid request.' },
 	payload_too_large: { status: 413, retryable: false, message: 'Request body too large.' },
 	rate_limited: { status: 429, retryable: true, message: 'Too many requests.' },
+	server_busy: {
+		status: 503,
+		retryable: true,
+		message: 'The server is busy. Retrying shortly.',
+	},
 	maintenance_write_pause: {
 		status: 503,
 		retryable: true,

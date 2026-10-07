@@ -3,6 +3,7 @@
  * `buildServer(deps)` assembles the HTTP API. Used by `main.ts` and
  * by every test, so tests exercise exactly the production wiring.
  */
+import { registerLoadShedding } from './http/load-shed';
 import { randomBytes } from 'node:crypto';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -91,6 +92,7 @@ export async function buildServer(deps: Deps, options: BuildOptions = {}): Promi
 		],
 	});
 	await app.register(envelopePlugin);
+	registerLoadShedding(app, deps.env.LOAD_SHED_LAG_MS);
 	await registerSwagger(app, deps.env);
 	await registerAuthentication(app, deps);
 

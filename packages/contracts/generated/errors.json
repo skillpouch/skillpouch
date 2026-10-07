@@ -335,6 +335,12 @@
 		"message": "Too many requests.",
 		"docs_url": "https://docs.skillpouch.net/errors/rate_limited"
 	},
+	"server_busy": {
+		"status": 503,
+		"retryable": true,
+		"message": "The server is busy. Retrying shortly.",
+		"docs_url": "https://docs.skillpouch.net/errors/server_busy"
+	},
 	"maintenance_write_pause": {
 		"status": 503,
 		"retryable": true,

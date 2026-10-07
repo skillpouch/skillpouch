@@ -63,5 +63,6 @@ Every API error uses the standard response envelope. Clients branch on `code`;
 | `validation_failed` | 400 | no | Invalid request. |
 | `payload_too_large` | 413 | no | Request body too large. |
 | `rate_limited` | 429 | yes | Too many requests. |
+| `server_busy` | 503 | yes | The server is busy. Retrying shortly. |
 | `maintenance_write_pause` | 503 | yes | Brief maintenance, retrying. |
 | `internal_error` | 500 | yes | Something went wrong. |

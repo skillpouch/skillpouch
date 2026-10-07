@@ -98,6 +98,12 @@ const EnvSchema = z
 		 */
 		DEV_LOGIN: bool.default(false),
 		RATE_LIMIT_ENABLED: bool.default(true),
+		/**
+		 * Shed load (503 `server_busy` + Retry-After) while the event loop lags
+		 * more than this many ms; 0 turns it off. Better a quick retry than
+		 * every request timing out together.
+		 */
+		LOAD_SHED_LAG_MS: z.coerce.number().int().min(0).default(500),
 		MAINTENANCE_WRITE_PAUSE: bool.default(false),
 
 		POLAR_ACCESS_TOKEN: z.string().optional(),
