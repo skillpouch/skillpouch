@@ -24,11 +24,19 @@ Requirements: Node 24, pnpm 10, Docker.
 
 ```sh
 pnpm install
-pnpm dev:db                                   # Postgres on localhost:5432
-export DATABASE_URL=postgres://postgres:postgres@localhost:5432/skillpouch
-pnpm db:migrate
-pnpm dev:api                                  # http://localhost:8080
+cp apps/api/.env.example apps/api/.env      # dev settings (DEV_LOGIN, URLs, database)
+pnpm dev:db                                  # Postgres in Docker on localhost:5432
+pnpm db:migrate                              # create / update the schema
+pnpm dev                                     # API :8080 + web :5173, both hot-reloading
 ```
+
+Open **http://localhost:5173**. The sign-in page has a _Development sign-in_
+form: type any email (no OAuth app needed), then set a master password. Data
+persists in the `skillpouch-dev` Docker volume; `docker compose -f
+deploy/compose.dev.yaml down -v` wipes it.
+
+- Switch plans while testing: in the browser console, `await __skillpouchDev.setPlan('supporter')` (or `'free'`).
+- Run one side only: `pnpm dev:api` or `pnpm dev:web`.
 
 Swagger UI is served at **http://localhost:8080/docs** (OpenAPI JSON at
 `/docs/json`) whenever `NODE_ENV` is not `production` (or `SWAGGER=true`).

@@ -6,7 +6,8 @@ coverage/
 .env
 .env.*
 !.env.example
-/data/
+!.env.example
+data/
 # engram: only the portable graph + report are committed (docs/maintainers/engram.md)
 .engram/*
 !.engram/graph.json

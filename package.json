@@ -18,10 +18,12 @@
 		"test:unit": "turbo run test:unit",
 		"dev:db": "docker compose -f deploy/compose.dev.yaml up -d postgres",
 		"dev:api": "pnpm --filter @skillpouch/api dev",
-		"db:migrate": "pnpm --filter @skillpouch/db migrate",
+		"db:migrate": "pnpm --filter @skillpouch/db exec tsx --env-file-if-exists=\"$INIT_CWD/apps/api/.env\" src/migrate-cli.ts",
 		"contracts:generate": "pnpm --filter @skillpouch/contracts generate",
 		"openapi": "pnpm --filter @skillpouch/api openapi",
-		"engram": "engram update . --no-description --no-label"
+		"engram": "engram update . --no-description --no-label",
+		"dev": "pnpm --parallel --filter @skillpouch/api --filter @skillpouch/web dev",
+		"dev:web": "pnpm --filter @skillpouch/web dev"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.5",

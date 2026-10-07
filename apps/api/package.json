@@ -6,7 +6,7 @@
 	"license": "AGPL-3.0-only",
 	"type": "module",
 	"scripts": {
-		"dev": "tsx watch src/main.ts",
+		"dev": "tsx watch --env-file-if-exists=.env src/main.ts",
 		"start": "node --enable-source-maps dist/main.mjs",
 		"build": "tsdown",
 		"openapi": "tsx scripts/openapi.ts",
