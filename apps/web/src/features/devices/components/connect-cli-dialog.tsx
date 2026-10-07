@@ -148,8 +148,13 @@ export function ConnectCliDialog({
 					<div className="flex flex-col gap-4">
 						<div className="flex items-center gap-2 rounded-lg border border-border bg-black p-3 font-mono text-[13px]">
 							<span className="text-meta select-none">$</span>
-							<code className="flex-1 break-all" data-testid="connect-command">
-								{phase.token.command}
+							<code
+								className="min-w-0 flex-1 truncate"
+								data-testid="connect-command"
+								data-command={phase.token.command}
+								title={phase.token.command}
+							>
+								{shortenCommand(phase.token.command)}
 							</code>
 							<CopyButton value={phase.token.command} variant="ghost" />
 						</div>
@@ -197,4 +202,12 @@ export function ConnectCliDialog({
 			</DialogContent>
 		</Dialog>
 	);
+}
+
+/**
+ * Shows the one-time token as `sp_lt_BPBF…VhZw` so the command fits on one
+ * line. Copy still copies the whole command.
+ */
+export function shortenCommand(command: string): string {
+	return command.replace(/(sp_lt_[A-Za-z0-9_-]{4})[A-Za-z0-9_-]+([A-Za-z0-9_-]{4})$/, '$1…$2');
 }

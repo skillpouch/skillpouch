@@ -13,7 +13,9 @@ async function openConnectDialog(page: Page): Promise<string> {
 	await page.getByRole('button', { name: 'Connect CLI' }).first().click();
 	const command = page.getByTestId('connect-command');
 	await expect(command).toContainText('npx skillpouch login sp_lt_');
-	const token = (await command.textContent())!.match(/sp_lt_[A-Za-z0-9_-]{32}/)?.[0];
+	const token = (await command.getAttribute('data-command'))!.match(
+		/sp_lt_[A-Za-z0-9_-]{32}/,
+	)?.[0];
 	expect(token).toBeTruthy();
 	return token!;
 }
