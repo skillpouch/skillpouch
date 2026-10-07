@@ -156,16 +156,6 @@
 	}
 }
 
-@keyframes beam {
-	0%,
-	100% {
-		transform: translateY(-35%) rotate(-18deg);
-	}
-	50% {
-		transform: translateY(35%) rotate(-18deg);
-	}
-}
-
 /* Supporter: gradient border, gradient text, shimmer on hover (from the design). */
 @layer components {
 	.supporter-badge {

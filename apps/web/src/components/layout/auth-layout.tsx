@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 
 export interface AuthLayoutProps {
 	children: ReactNode;
-	/** Decorative background (sign-in beams). */
+	/** Decorative background (sign-in light rays). */
 	background?: ReactNode;
 	width?: 'sm' | 'md';
 	/** Top-right slot (step counter). */

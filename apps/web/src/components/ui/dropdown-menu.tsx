@@ -36,7 +36,7 @@ export function DropdownMenuItem({
 	return (
 		<Primitive.Item
 			className={cn(
-				'flex min-h-8 cursor-default select-none items-center gap-2 rounded-md px-2 text-[13px] outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-hover max-sm:min-h-11 [&_svg]:size-4 [&_svg]:text-muted',
+				'flex min-h-8 cursor-pointer select-none data-[disabled]:cursor-not-allowed items-center gap-2 rounded-md px-2 text-[13px] outline-none data-[disabled]:opacity-50 data-[highlighted]:bg-hover max-sm:min-h-11 [&_svg]:size-4 [&_svg]:text-muted',
 				tone === 'danger' ? 'text-danger [&_svg]:text-danger' : 'text-fg',
 				className,
 			)}

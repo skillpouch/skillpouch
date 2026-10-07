@@ -6,7 +6,7 @@
  */
 import { useSearch } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
-import { Beams } from '@/components/brand/beams';
+import { SignInBackground } from '@/components/brand/sign-in-background';
 import { AuthLayout } from '@/components/layout/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,7 @@ export function SignInPage() {
 	};
 
 	return (
-		<AuthLayout background={<Beams />}>
+		<AuthLayout background={<SignInBackground />}>
 			<div className="flex flex-col gap-6">
 				<div className="flex flex-col gap-2 text-center">
 					<h1 className="text-2xl font-semibold tracking-tight">Sign in to SkillPouch</h1>
