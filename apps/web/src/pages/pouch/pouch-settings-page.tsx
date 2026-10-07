@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** `/app/p/:pouchId/settings` — rename, describe or delete the pouch. */
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useEffect, useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
@@ -35,7 +36,7 @@ export function PouchSettingsPage() {
 		}
 	}, [savedName, savedDescription]);
 
-	if (!pouch) return null;
+	if (!pouch) return <PageSkeleton variant="form" />;
 	const nameError = submitted ? validatePouchName(value.name) : null;
 	const unchanged =
 		value.name.trim() === pouch.name && value.description.trim() === pouch.description;

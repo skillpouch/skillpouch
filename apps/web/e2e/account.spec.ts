@@ -69,6 +69,53 @@ test.describe('security', () => {
 	});
 });
 
+test.describe('layout and controls', () => {
+	test('moving between account pages keeps the sidebar and top bar on screen', async ({
+		page,
+	}) => {
+		await createAccount(page);
+		await page.goto('/app/account');
+		const sidebar = page.getByRole('navigation', { name: 'Main' });
+		await expect(sidebar).toBeVisible();
+		for (const [link, heading] of [
+			['Devices', 'Devices'],
+			['Security', 'Security'],
+			['Billing', 'Billing'],
+			['Profile', 'Profile'],
+		] as const) {
+			await sidebar.getByRole('link', { name: link }).click();
+			await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+			await expect(sidebar).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible();
+		}
+	});
+
+	test('buttons show a pointer cursor', async ({ page }) => {
+		await createAccount(page);
+		await page.goto('/app/account/security');
+		const cursor = await page
+			.getByRole('button', { name: 'Change', exact: true })
+			.evaluate((element) => getComputedStyle(element).cursor);
+		expect(cursor).toBe('pointer');
+	});
+
+	test('the trust window changes at once and stays changed', async ({ page }) => {
+		await createAccount(page);
+		await page.goto('/app/account/security');
+		const group = page.getByRole('radiogroup', { name: 'Trust window' });
+		const sixty = group.getByRole('radio', { name: '60d' });
+		await sixty.click();
+		await expect(sixty).toHaveAttribute('aria-checked', 'true', { timeout: 200 });
+		await expect(page.getByText('Saved')).toBeVisible();
+		await page.reload();
+		await expect(
+			page
+				.getByRole('radiogroup', { name: 'Trust window' })
+				.getByRole('radio', { name: '60d' }),
+		).toHaveAttribute('aria-checked', 'true');
+	});
+});
+
 test.describe('account', () => {
 	test('deleting the account can be cancelled within the undo window', async ({ page }) => {
 		await createAccount(page);

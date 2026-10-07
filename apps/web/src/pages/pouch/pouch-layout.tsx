@@ -12,7 +12,7 @@ import { Banner } from '@/components/layout/banner';
 import { Sidebar, SidebarButton, SidebarLink } from '@/components/layout/sidebar';
 import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
-import { LoadingBlock } from '@/components/ui/spinner';
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { AccountBanners } from '@/features/account/account-banners';
 import { ConnectCliDialog } from '@/features/devices/components/connect-cli-dialog';
 import { countByKind, usePouchContents } from '@/features/ingredients/ingredients';
@@ -32,8 +32,9 @@ export function PouchLayout() {
 	const [connecting, setConnecting] = useState(false);
 	const [searching, setSearching] = useState(false);
 
-	if (pouch.isPending) return <LoadingBlock />;
-	if (!pouch.data) return <NotFoundPage />;
+	// While the pouch list loads, the frame is already drawn and the page shows a skeleton.
+	if (!pouch.isPending && !pouch.data) return <NotFoundPage />;
+	const state = pouch.data?.state;
 
 	const counts = countByKind(contents.data?.ingredients ?? []);
 	const params = { pouchId };
@@ -65,7 +66,7 @@ export function PouchLayout() {
 			banners={
 				<>
 					<AccountBanners />
-					{pouch.data.state === 'locked' ? (
+					{state === 'locked' ? (
 						<Banner
 							tone="locked"
 							action={
@@ -78,7 +79,7 @@ export function PouchLayout() {
 							to your computers. You can still delete items to free up space.
 						</Banner>
 					) : null}
-					{pouch.data.state === 'deleted' ? (
+					{state === 'deleted' && pouch.data ? (
 						<Banner
 							tone="warn"
 							action={
@@ -151,7 +152,7 @@ export function PouchLayout() {
 				/>
 			)}
 		>
-			<Outlet />
+			{pouch.data ? <Outlet /> : <PageSkeleton variant="overview" />}
 			<ConnectCliDialog open={connecting} onOpenChange={setConnecting} />
 			<CommandPalette pouchId={pouchId} open={searching} onOpenChange={setSearching} />
 		</AppShell>

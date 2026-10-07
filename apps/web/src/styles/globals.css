@@ -104,6 +104,26 @@
 	::selection {
 		background: var(--color-accent-tint);
 	}
+	/* Tailwind v4 dropped the pointer cursor on buttons; every clickable control gets it back. */
+	button:not(:disabled),
+	[role='button']:not([aria-disabled='true']),
+	[role='menuitem']:not([data-disabled]),
+	[role='option']:not([aria-disabled='true']),
+	[role='tab'],
+	[role='switch']:not(:disabled),
+	[role='checkbox']:not(:disabled),
+	[role='radio']:not(:disabled),
+	summary,
+	select:not(:disabled),
+	label:has(input:not(:disabled)),
+	input[type='checkbox']:not(:disabled),
+	input[type='radio']:not(:disabled) {
+		cursor: pointer;
+	}
+	:disabled,
+	[aria-disabled='true'] {
+		cursor: not-allowed;
+	}
 	:focus-visible {
 		outline: 2px solid var(--color-accent);
 		outline-offset: 2px;

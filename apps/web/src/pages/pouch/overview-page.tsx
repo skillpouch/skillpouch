@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** `/app/p/:pouchId` — a short summary of the pouch and the account. */
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { Link, useParams } from '@tanstack/react-router';
 import { TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -22,7 +23,7 @@ export function OverviewPage() {
 	const contents = usePouchContents(pouchId);
 	const conflicts = useOpenConflicts(pouchId);
 	const devices = useDevices();
-	if (!pouch) return null;
+	if (!pouch) return <PageSkeleton variant="overview" />;
 
 	const ingredients = (contents.data?.ingredients ?? []).filter((item) => !item.deleted);
 	const counts = countByKind(ingredients);

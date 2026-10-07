@@ -34,7 +34,7 @@ import { formatRelative } from '@/lib/format';
 
 const TRUST_OPTIONS = [7, 14, 30, 60, 90].map((days) => ({
 	value: String(days),
-	label: `${days} days`,
+	label: `${days}d`,
 }));
 
 const EVENT_LABELS: Record<string, string> = {
@@ -57,13 +57,30 @@ export function SecurityPage() {
 		queryFn: async () =>
 			(await api.get<{ events: SecurityEventRecord[] }>('/v1/security/events')).events,
 	});
+	// Optimistic: the choice shows at once; a failed save puts the old value back.
 	const updateTrust = useMutation({
 		mutationFn: (days: number) =>
 			api.patch('/v1/account/security-settings', { browser_trust_days: days }),
-		onSuccess: () => {
-			toast.success('Saved');
-			return client.invalidateQueries({ queryKey: queryKeys.securitySettings });
+		onMutate: async (days) => {
+			await client.cancelQueries({ queryKey: queryKeys.securitySettings });
+			const previous = client.getQueryData<SecuritySettingsRecord>(
+				queryKeys.securitySettings,
+			);
+			if (previous) {
+				client.setQueryData(queryKeys.securitySettings, {
+					...previous,
+					browser_trust_days: days,
+				});
+			}
+			return { previous };
 		},
+		onError: (_error, _days, context) => {
+			if (context?.previous) {
+				client.setQueryData(queryKeys.securitySettings, context.previous);
+			}
+		},
+		onSuccess: () => toast.success('Saved'),
+		onSettled: () => client.invalidateQueries({ queryKey: queryKeys.securitySettings }),
 	});
 	const acknowledge = useMutation({
 		mutationFn: (id: string) => api.post(`/v1/security/events/${id}/ack`),
@@ -169,7 +186,7 @@ function Row({
 }) {
 	return (
 		<div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-			<div>
+			<div className="min-w-0">
 				<p className="text-[13px] font-medium">{title}</p>
 				<p className="mt-0.5 text-[13px] text-muted">{description}</p>
 			</div>

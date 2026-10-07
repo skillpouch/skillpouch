@@ -7,7 +7,7 @@
 import { Navigate, useLocation } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
+import { AuthSkeleton, ShellSkeleton } from '@/components/ui/page-skeleton';
 import { bootstrapSession } from './bootstrap';
 import { useSession, type SessionState } from './session-store';
 
@@ -42,12 +42,10 @@ function destination(state: SessionState, redirect: string): Target | null {
 	}
 }
 
+/** While the session is resolved or a redirect runs: the frame of where the user is going. */
 export function FullPageSpinner() {
-	return (
-		<div className="flex min-h-dvh items-center justify-center text-muted">
-			<Spinner className="size-5" label="Loading SkillPouch" />
-		</div>
-	);
+	const { pathname } = useLocation();
+	return pathname.startsWith('/app') ? <ShellSkeleton /> : <AuthSkeleton />;
 }
 
 export function SessionGate({

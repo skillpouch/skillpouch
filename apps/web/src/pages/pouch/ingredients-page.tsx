@@ -4,6 +4,7 @@
  * lives in the URL (`?item=<id>&mode=edit`, `?new=1`), so it survives reloads
  * and search results can link straight to an item.
  */
+import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -75,7 +76,7 @@ export function IngredientsPage() {
 	);
 
 	if (!kind) return <NotFoundPage />;
-	if (!pouch) return null;
+	if (!pouch) return <PageSkeleton variant="list" />;
 	const readOnly = pouch.state !== 'active';
 	const selected = search.item ? (all.find((item) => item.id === search.item) ?? null) : null;
 	const mode: SheetMode | null = search.new

@@ -2,12 +2,13 @@
 import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { router } from './app/router';
+import { preloadPages, router } from './app/router';
 import { bootstrapSession } from './features/session/bootstrap';
 import './styles/globals.css';
 
 if (import.meta.env.DEV) void import('./lib/dev-tools').then((tools) => tools.installDevTools());
 void bootstrapSession();
+preloadPages();
 
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>

@@ -14,7 +14,7 @@
  *   /s/:shareId              public share link
  *
  * `/` belongs to the future landing page; for now it forwards to `/app`.
- * Pages are code-split; the shell, session gate and crypto load up front.
+ * Pages are code-split; layouts, the session gate and crypto load up front.
  */
 import {
 	createRootRoute,
@@ -23,51 +23,90 @@ import {
 	Navigate,
 	Outlet,
 } from '@tanstack/react-router';
-import { lazy, type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { SessionGate, type GateRequirement } from '@/features/session/session-gate';
 import { NotFoundPage } from '@/pages/not-found-page';
 import type { IngredientsSearch } from '@/pages/pouch/ingredients-page';
+import { AuthSkeleton, PageSkeleton } from '@/components/ui/page-skeleton';
+import { AccountLayout } from '@/pages/account/account-layout';
+import { PouchLayout } from '@/pages/pouch/pouch-layout';
+import { PouchesPage } from '@/pages/pouches/pouches-page';
 import { RootLayout, UnlockedRoot } from './root';
 
-// Every page is its own chunk, loaded on first visit. React's own `lazy`
-// (the router wraps each route in Suspense) keeps rendering free of
-// conditional `use()` calls.
+// Layouts are part of the main bundle, so the sidebar and top bar never
+// disappear. Each page is its own chunk; while it loads, a skeleton shaped
+// like that page fills the content area inside the layout. All chunks are
+// fetched in the background shortly after start, so later visits are instant.
+const pageLoaders: (() => Promise<unknown>)[] = [];
+
 function lazyPage<K extends string>(
 	load: () => Promise<Record<K, () => ReactNode>>,
 	name: K,
+	fallback: ReactNode,
 ): () => ReactNode {
+	pageLoaders.push(load);
 	const Page = lazy(async () => ({ default: (await load())[name] as () => ReactNode }));
-	return () => <Page />;
+	return () => (
+		<Suspense fallback={fallback}>
+			<Page />
+		</Suspense>
+	);
 }
 
-const AccountLayout = lazyPage(() => import('@/pages/account/account-layout'), 'AccountLayout');
-const BillingPage = lazyPage(() => import('@/pages/account/billing-page'), 'BillingPage');
-const DevicesPage = lazyPage(() => import('@/pages/account/devices-page'), 'DevicesPage');
-const ProfilePage = lazyPage(() => import('@/pages/account/profile-page'), 'ProfilePage');
-const SecurityPage = lazyPage(() => import('@/pages/account/security-page'), 'SecurityPage');
+const list = <PageSkeleton variant="list" />;
+const settings = <PageSkeleton variant="settings" />;
+const auth = <AuthSkeleton />;
+
+const BillingPage = lazyPage(() => import('@/pages/account/billing-page'), 'BillingPage', settings);
+const DevicesPage = lazyPage(() => import('@/pages/account/devices-page'), 'DevicesPage', list);
+const ProfilePage = lazyPage(() => import('@/pages/account/profile-page'), 'ProfilePage', settings);
+const SecurityPage = lazyPage(
+	() => import('@/pages/account/security-page'),
+	'SecurityPage',
+	settings,
+);
 const CliAuthorizePage = lazyPage(
 	() => import('@/pages/cli-authorize/cli-authorize-page'),
 	'CliAuthorizePage',
+	auth,
 );
-const IngredientsPage = lazyPage(() => import('@/pages/pouch/ingredients-page'), 'IngredientsPage');
-const OverviewPage = lazyPage(() => import('@/pages/pouch/overview-page'), 'OverviewPage');
-const PouchLayout = lazyPage(() => import('@/pages/pouch/pouch-layout'), 'PouchLayout');
+const IngredientsPage = lazyPage(
+	() => import('@/pages/pouch/ingredients-page'),
+	'IngredientsPage',
+	list,
+);
+const OverviewPage = lazyPage(
+	() => import('@/pages/pouch/overview-page'),
+	'OverviewPage',
+	<PageSkeleton variant="overview" />,
+);
 const PouchSettingsPage = lazyPage(
 	() => import('@/pages/pouch/pouch-settings-page'),
 	'PouchSettingsPage',
+	<PageSkeleton variant="form" />,
 );
 const SharedLinksPage = lazyPage(
 	() => import('@/pages/pouch/shared-links-page'),
 	'SharedLinksPage',
+	list,
 );
-const PouchesPage = lazyPage(() => import('@/pages/pouches/pouches-page'), 'PouchesPage');
 const PublicSharePage = lazyPage(
 	() => import('@/pages/share/public-share-page'),
 	'PublicSharePage',
+	auth,
 );
-const SignInPage = lazyPage(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage');
-const SetupPage = lazyPage(() => import('@/pages/setup/setup-page'), 'SetupPage');
-const UnlockPage = lazyPage(() => import('@/pages/unlock/unlock-page'), 'UnlockPage');
+const SignInPage = lazyPage(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage', auth);
+const SetupPage = lazyPage(() => import('@/pages/setup/setup-page'), 'SetupPage', auth);
+const UnlockPage = lazyPage(() => import('@/pages/unlock/unlock-page'), 'UnlockPage', auth);
+
+/** Fetches every page chunk once the browser is idle. */
+export function preloadPages(): void {
+	const run = () => {
+		for (const load of pageLoaders) void load().catch(() => undefined);
+	};
+	if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 3000 });
+	else setTimeout(run, 1500);
+}
 
 const gated = (require: GateRequirement, page: () => ReactNode) => () => (
 	<SessionGate require={require}>{page()}</SessionGate>

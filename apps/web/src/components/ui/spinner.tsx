@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { Skeleton } from './skeleton';
 
 export function Spinner({
 	className,
@@ -18,11 +19,17 @@ export function Spinner({
 	);
 }
 
-/** Centered spinner for a whole region (route loading, first fetch). */
+/**
+ * Placeholder for a region whose content is loading (first fetch, decrypting,
+ * editor code): skeleton lines rather than a spinner, so nothing jumps.
+ */
 export function LoadingBlock({ label }: { label?: string | undefined }) {
 	return (
-		<div className="flex min-h-40 items-center justify-center text-muted">
-			<Spinner label={label} className="size-5" />
+		<div role="status" className="flex min-h-40 flex-col gap-3 p-4">
+			<span className="sr-only">{label ?? 'Loading'}</span>
+			{['w-2/3', 'w-full', 'w-5/6', 'w-1/2', 'w-3/4'].map((width) => (
+				<Skeleton key={width} className={cn('h-4', width)} />
+			))}
 		</div>
 	);
 }
