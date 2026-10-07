@@ -22,6 +22,14 @@ import { withTenantTx } from '../../security/tenant-tx';
 import { eventView, readEvents } from './events.repo';
 
 const HEARTBEAT_MS = 15_000;
+/**
+ * A stream lives about as long as an access token (4–5 min, jittered so
+ * clients don't reconnect in waves), then asks the client to reconnect. That
+ * re-runs authentication, so a signed-out session or a suspended user can't
+ * keep an old stream open.
+ */
+const MAX_LIFETIME_MS = 240_000;
+const LIFETIME_JITTER_MS = 60_000;
 const UUID = /^[0-9a-f-]{36}$/;
 
 /** Live streams of this instance, so graceful shutdown can tell them to reconnect. */
@@ -127,6 +135,7 @@ export async function openEventStream(deps: Deps, request: FastifyRequest, reply
 		if (closed) return;
 		closed = true;
 		clearInterval(heartbeat);
+		clearTimeout(expiry);
 		unsubscribe();
 		unsubscribeRevoked();
 		openStreams.delete(handle);
@@ -162,6 +171,7 @@ export async function openEventStream(deps: Deps, request: FastifyRequest, reply
 		},
 	};
 	openStreams.add(handle);
+	const expiry = setTimeout(handle.drain, MAX_LIFETIME_MS + Math.random() * LIFETIME_JITTER_MS);
 	request.raw.once('close', close);
 
 	raw.write(`retry: 3000\n\n`);

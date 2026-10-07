@@ -27,6 +27,7 @@ export const devices = pgTable('devices', {
 	refreshHash: bytea('refresh_hash').notNull(),
 	refreshFamilyId: uuid('refresh_family_id').notNull(),
 	prevRefreshHash: bytea('prev_refresh_hash'),
+	refreshRotatedAt: tstz('refresh_rotated_at'),
 	registeredIpHash: bytea('registered_ip_hash'),
 	lastSeenAt: tstz('last_seen_at'),
 	lastIpHash: bytea('last_ip_hash'),

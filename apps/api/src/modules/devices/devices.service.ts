@@ -4,7 +4,7 @@
  * refresh secrets with reuse detection, and revocation.
  */
 import { randomUUID } from 'node:crypto';
-import type { RosterAppendRequest } from '@skillpouch/contracts';
+import { Limits, type RosterAppendRequest } from '@skillpouch/contracts';
 import {
 	accountMembers,
 	deviceCursors,
@@ -77,6 +77,7 @@ export async function issueDeviceTokens(
 			refreshHash: sha256(secret),
 			prevRefreshHash: options.newFamily ? null : device.refreshHash,
 			refreshFamilyId: options.newFamily ? randomUUID() : device.refreshFamilyId,
+			refreshRotatedAt: deps.now(),
 			lastSeenAt: deps.now(),
 		})
 		.where(eq(devices.id, device.id));
@@ -124,6 +125,18 @@ export async function refreshDeviceTokens(deps: Deps, refreshToken: string, jkt:
 
 		const presented = sha256(parsed.secret);
 		if (presented.equals(device.refreshHash)) {
+			return { tokens: await issueDeviceTokens(deps, tx, device, jkt, { newFamily: false }) };
+		}
+		// The client never got the last response (timeout, dropped connection) and
+		// retried with the token it still has. The refresh is DPoP-bound, so the
+		// key was checked above: this is the device itself, not a thief.
+		if (
+			device.prevRefreshHash &&
+			presented.equals(device.prevRefreshHash) &&
+			device.refreshRotatedAt &&
+			deps.now().getTime() - device.refreshRotatedAt.getTime() <
+				Limits.refreshRetryGraceSeconds * 1000
+		) {
 			return { tokens: await issueDeviceTokens(deps, tx, device, jkt, { newFamily: false }) };
 		}
 		if (device.prevRefreshHash && presented.equals(device.prevRefreshHash)) {

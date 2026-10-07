@@ -19,7 +19,8 @@ export async function eventsRoutes(app: ZodApp, deps: Deps) {
 	app.get(
 		'/v1/pouches/:pouchId/events',
 		{
-			config: { auth: 'any' },
+			// The locked check happens in the read below (it loads the pouch anyway).
+			config: { auth: 'any', lockedPouchOk: true },
 			schema: {
 				tags: ['sync'],
 				summary: 'Events after a cursor; `wait` (≤ 25 s) long-polls when there are none',
@@ -40,6 +41,9 @@ export async function eventsRoutes(app: ZodApp, deps: Deps) {
 					const pouch = await findPouch(tx, request.params.pouchId, {
 						includeDeleted: true,
 					});
+					if (principal.kind === 'device' && pouch.state === 'locked') {
+						throw new AppError('pouch_locked');
+					}
 					if (pouch.epoch !== epoch)
 						throw new AppError('epoch_mismatch', { epoch: pouch.epoch });
 					if (after < pouch.eventsPurgedThrough) {
@@ -51,9 +55,19 @@ export async function eventsRoutes(app: ZodApp, deps: Deps) {
 					return { rows, pouch };
 				});
 
-			let { rows, pouch } = await read();
-			if (rows.length === 0 && wait > 0 && !controller.signal.aborted) {
-				await deps.hub.waitForPouch(pouch.id, wait * 1000, controller.signal);
+			// Subscribe before reading: a commit that lands after the read's snapshot
+			// always wakes us, so a wait that times out needs no second read.
+			const waiting =
+				wait > 0
+					? deps.hub.waitForPouch(request.params.pouchId, wait * 1000, controller.signal)
+					: null;
+			let { rows, pouch } = await read().catch((error: unknown) => {
+				controller.abort();
+				throw error;
+			});
+			if (rows.length > 0 || !waiting) {
+				controller.abort();
+			} else if ((await waiting) === 'notified') {
 				({ rows, pouch } = await read());
 			}
 			return {

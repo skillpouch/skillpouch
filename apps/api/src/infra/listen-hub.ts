@@ -89,6 +89,7 @@ export class ListenHub {
 			this.emitter.emit(`account:${String(data.sa)}`, { kind: 'pouch', ...data });
 		} else if (channel === 'account_events') {
 			this.emitter.emit(`account:${String(data.sa)}`, { kind: 'account', ...data });
+			this.emitter.emit('account_event', data);
 		} else if (channel === 'device_revoked') {
 			this.emitter.emit('device_revoked', data);
 		}
@@ -138,6 +139,12 @@ export class ListenHub {
 	onDeviceRevoked(listener: (event: DeviceRevokedNotification) => void): () => void {
 		this.emitter.on('device_revoked', listener);
 		return () => this.emitter.off('device_revoked', listener);
+	}
+
+	/** Every account event of every account (`{ sa, type, data }`), on this instance. */
+	onAccountEvent(listener: (event: Record<string, unknown>) => void): () => void {
+		this.emitter.on('account_event', listener);
+		return () => this.emitter.off('account_event', listener);
 	}
 
 	/** Used by graceful shutdown: wake all long-polls so clients reconnect elsewhere. */

@@ -1,0 +1,113 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Load-test sandbox: the production image, production settings and the same
+# database roles as deploy/compose.yaml, on an isolated network with CPU and
+# memory limits that mirror one small VPS. Nothing here touches real data.
+#
+#   tools/load/run.sh up        # build secrets, start, migrate
+#   tools/load/run.sh down      # remove everything (volumes included)
+name: skillpouch-load
+
+x-api: &api
+  image: ${API_IMAGE:-skillpouch/api:load}
+  environment: &api-env
+    NODE_ENV: production
+    LOG_LEVEL: warn
+    API_PUBLIC_URL: http://localhost:18090
+    WEB_ORIGIN: http://localhost:18090
+    DATABASE_URL: postgres://skillpouch:loadtest@postgres:5432/skillpouch
+    DB_SET_ROLE: 'true'
+    DB_POOL_MAX: ${DB_POOL_MAX:-40}
+    TRUST_PROXY: 'true'
+    RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+    BLOB_FS_ROOT: /data/blobs
+    METRICS_PORT: '9464'
+    UV_THREADPOOL_SIZE: ${UV_THREADPOOL_SIZE:-4}
+  volumes:
+    - ./.secrets:/run/secrets:ro
+    - blobs:/data/blobs
+  ulimits:
+    nofile: { soft: 262144, hard: 262144 }
+  depends_on:
+    postgres: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: loadtest
+      SKILLPOUCH_DB_PASSWORD: loadtest
+    command:
+      - postgres
+      - -c
+      - max_connections=400
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - work_mem=8MB
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+    shm_size: 1g
+    ports: ['127.0.0.1:55433:5432']
+    volumes:
+      - pg:/var/lib/postgresql/data
+      - ../../deploy/postgres/init:/docker-entrypoint-initdb.d:ro
+    cpus: ${PG_CPUS:-4}
+    mem_limit: 4g
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      retries: 30
+
+  migrate:
+    <<: *api
+    profiles: [tools]
+    environment:
+      <<: *api-env
+      API_ROLE: migrate
+
+  api:
+    <<: *api
+    environment:
+      <<: *api-env
+      API_ROLE: api
+    ports: ['127.0.0.1:18090:8080', '127.0.0.1:19464:9464']
+    cpus: ${API_CPUS:-2}
+    mem_limit: 2g
+
+  # Extra API replicas (`--scale api-replica=N`): the same image, no host ports.
+  api-replica:
+    <<: *api
+    profiles: [scale]
+    environment:
+      <<: *api-env
+      API_ROLE: api
+    networks:
+      default:
+        aliases: [api]
+    cpus: ${API_CPUS:-2}
+    mem_limit: 2g
+
+  # The load driver, inside the sandbox network: no docker port proxy in the
+  # path and the full ephemeral port range for its sockets.
+  driver:
+    image: node:24-alpine
+    profiles: [tools]
+    working_dir: ${REPO_DIR:?set by run.sh}/tools/load
+    volumes:
+      - ${REPO_DIR}:${REPO_DIR}
+    environment:
+      LOAD_ORIGIN: http://localhost:18090
+      LOAD_TARGETS: http://api:8080
+      SEED_DATABASE_URL: postgres://postgres:loadtest@postgres:5432/skillpouch
+    sysctls:
+      net.ipv4.ip_local_port_range: 1024 65535
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    entrypoint: ['node', '--max-old-space-size=6144', 'driver.mjs']
+
+volumes:
+  pg: {}
+  blobs: {}

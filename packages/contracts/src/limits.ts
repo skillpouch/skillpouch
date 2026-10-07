@@ -24,8 +24,12 @@ export const Limits = {
 	blobBatchMaxParts: 256,
 	/** Body size of a batch upload request. */
 	blobBatchMaxBytes: 8 * MiB,
-	/** Longest long-poll wait in seconds. */
-	longPollMaxWaitSeconds: 25,
+	/**
+	 * Longest long-poll wait in seconds. Idle daemons cost one request per
+	 * wait, so this sets the steady-state load; it stays under the common
+	 * 60 s idle timeout of proxies and NATs.
+	 */
+	longPollMaxWaitSeconds: 55,
 	/** Largest page size for paginated lists. */
 	pageMax: 200,
 	/** Artifacts per snapshot page. */
@@ -64,8 +68,15 @@ export const Limits = {
 	browserTrustDaysDefault: 30,
 	browserTrustDaysMin: 7,
 	browserTrustDaysMax: 90,
-	/** Access token lifetime in seconds. */
-	accessTokenTtlSeconds: 300,
+	/**
+	 * Access token lifetime in seconds. Revocation does not wait for expiry:
+	 * every request re-checks the device and its token version, so the
+	 * lifetime only sets how often devices refresh (100 000 devices at 15 min
+	 * ≈ 110 refreshes/s).
+	 */
+	accessTokenTtlSeconds: 900,
+	/** A refresh retried with the previous token within this window is a retry, not reuse. */
+	refreshRetryGraceSeconds: 60,
 	/** Accepted DPoP `iat` skew in seconds. */
 	dpopIatWindowSeconds: 60,
 	/** DPoP nonce bucket length in seconds. */

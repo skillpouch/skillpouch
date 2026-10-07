@@ -39,7 +39,9 @@ if (env.API_ROLE === 'worker') {
 	await deps.hub.start();
 	const metrics = new Metrics('api');
 	const { app, health } = await buildServer(deps, { metrics });
-	await app.listen({ host: env.HOST, port: env.PORT });
+	// A deep accept queue: after a deploy thousands of daemons reconnect at once,
+	// and Node's default (511) turns that into connection resets.
+	await app.listen({ host: env.HOST, port: env.PORT, backlog: 4096 });
 	const metricsServer =
 		env.METRICS_PORT > 0 ? await metrics.listen('0.0.0.0', env.METRICS_PORT) : null;
 	if (env.SWAGGER) log.info(`Swagger UI: ${env.API_PUBLIC_URL.replace(/\/+$/, '')}/docs`);

@@ -4,8 +4,8 @@
  * instance caches a device's state for at most one second; `device_revoked`
  * notifications from the listen hub drop the entry immediately.
  */
-import { accountMembers, deviceKeys, devices, users, type Database } from '@skillpouch/db';
-import { and, eq, isNull } from 'drizzle-orm';
+import type { Database } from '@skillpouch/db';
+import { sql } from 'drizzle-orm';
 import { withTenantTx } from './tenant-tx';
 
 export interface DeviceStatus {
@@ -18,6 +18,8 @@ export interface DeviceStatus {
 }
 
 const TTL_MS = 1000;
+/** Expired entries are swept once the map holds this many (it would grow with every device otherwise). */
+const PRUNE_AT = 10_000;
 
 export class DeviceStatusCache {
 	private readonly entries = new Map<string, { status: DeviceStatus | null; expires: number }>();
@@ -28,8 +30,16 @@ export class DeviceStatusCache {
 		const cached = this.entries.get(deviceId);
 		if (cached && cached.expires > Date.now()) return cached.status;
 		const status = await this.load(storageAccountId, deviceId);
+		if (this.entries.size >= PRUNE_AT) this.prune();
 		this.entries.set(deviceId, { status, expires: Date.now() + TTL_MS });
 		return status;
+	}
+
+	private prune(): void {
+		const now = Date.now();
+		for (const [deviceId, entry] of this.entries) {
+			if (entry.expires <= now) this.entries.delete(deviceId);
+		}
 	}
 
 	invalidate(deviceId: string): void {
@@ -41,34 +51,36 @@ export class DeviceStatusCache {
 		this.entries.clear();
 	}
 
+	/** One round trip: the device, its user, its roster member and its active keys. */
 	private load(storageAccountId: string, deviceId: string): Promise<DeviceStatus | null> {
 		return withTenantTx(this.db, storageAccountId, async (tx) => {
-			const [device] = await tx
-				.select({
-					state: devices.state,
-					tokenVersion: devices.tokenVersion,
-					userId: devices.userId,
-					suspendedAt: users.suspendedAt,
-				})
-				.from(devices)
-				.innerJoin(users, eq(users.id, devices.userId))
-				.where(eq(devices.id, deviceId));
+			const result = await tx.execute<{
+				state: DeviceStatus['state'];
+				token_version: number;
+				user_id: string;
+				suspended: boolean;
+				member_id: string | null;
+				keys: { jkt: string; jwk: Record<string, string> }[];
+			}>(sql`
+				SELECT d.state, d.token_version, d.user_id, u.suspended_at IS NOT NULL AS suspended,
+					(SELECT m.id FROM account_members m WHERE m.device_id = d.id) AS member_id,
+					COALESCE((
+						SELECT json_agg(json_build_object('jkt', k.jkt, 'jwk', k.public_jwk))
+						FROM device_keys k
+						WHERE k.storage_account_id = d.storage_account_id
+							AND k.device_id = d.id AND k.retired_at IS NULL
+					), '[]'::json) AS keys
+				FROM devices d JOIN users u ON u.id = d.user_id
+				WHERE d.id = ${deviceId}`);
+			const [device] = result.rows;
 			if (!device) return null;
-			const keys = await tx
-				.select({ jkt: deviceKeys.jkt, jwk: deviceKeys.publicJwk })
-				.from(deviceKeys)
-				.where(and(eq(deviceKeys.deviceId, deviceId), isNull(deviceKeys.retiredAt)));
-			const [member] = await tx
-				.select({ id: accountMembers.id })
-				.from(accountMembers)
-				.where(eq(accountMembers.deviceId, deviceId));
 			return {
 				state: device.state,
-				tokenVersion: device.tokenVersion,
-				userId: device.userId,
-				userSuspended: device.suspendedAt !== null,
-				memberId: member?.id ?? null,
-				keys: new Map(keys.map((key) => [key.jkt, key.jwk])),
+				tokenVersion: device.token_version,
+				userId: device.user_id,
+				userSuspended: device.suspended,
+				memberId: device.member_id,
+				keys: new Map(device.keys.map((key) => [key.jkt, key.jwk])),
 			};
 		});
 	}

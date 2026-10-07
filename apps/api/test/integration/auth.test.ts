@@ -336,6 +336,11 @@ describe('authentication', () => {
 			expect(refreshed.status).toBe(200);
 			expect(refreshed.body.data.refresh_token).not.toBe(first);
 
+			// Long after the rotation, the old token is no retry: it was copied.
+			await h.owner.query(
+				"UPDATE devices SET refresh_rotated_at = now() - interval '2 minutes' WHERE id = $1",
+				[cli.deviceId],
+			);
 			const reused = await cli
 				.anonymous()
 				.post('/v1/devices/token', { refresh_token: first });
@@ -345,6 +350,22 @@ describe('authentication', () => {
 			expect(afterReuse.body.error.code).toBe('device_revoked');
 			const events = (await account.browser.get('/v1/security/events')).body;
 			expect(JSON.stringify(events)).toContain('refresh_reuse');
+		});
+
+		it('a retry with the previous token right after a lost response is not reuse', async () => {
+			const cli = await authorizeCli(h, account, 'flaky-network');
+			const first = cli.refreshToken;
+			const lost = await cli.anonymous().post('/v1/devices/token', { refresh_token: first });
+			expect(lost.status).toBe(200);
+			// The response never arrived; the CLI retries with what it has.
+			const retry = await cli.anonymous().post('/v1/devices/token', { refresh_token: first });
+			expect(retry.status).toBe(200);
+			expect(retry.body.data.refresh_token).not.toBe(lost.body.data.refresh_token);
+			// The token from the lost response is the previous one now: still a retry.
+			const stale = await cli
+				.anonymous()
+				.post('/v1/devices/token', { refresh_token: lost.body.data.refresh_token });
+			expect(stale.status).toBe(200);
 		});
 
 		it('requires the device key', async () => {

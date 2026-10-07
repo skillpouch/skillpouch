@@ -1,0 +1,16 @@
+{
+	"name": "@skillpouch/load",
+	"version": "0.0.0",
+	"private": true,
+	"license": "AGPL-3.0-only",
+	"type": "module",
+	"scripts": {
+		"seed": "node seed.mjs",
+		"run": "node driver.mjs"
+	},
+	"dependencies": {
+		"@noble/hashes": "^2.4.0",
+		"pg": "^8.23.1",
+		"undici": "^7.16.0"
+	}
+}

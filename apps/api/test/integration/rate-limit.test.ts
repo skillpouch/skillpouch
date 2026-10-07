@@ -19,7 +19,8 @@ describe('rate limits', () => {
 	it('public share links answer 429 once the per-IP bucket is empty', async () => {
 		const url = '/v1/public/shares/0192f0c4-1111-7000-8000-000000000001';
 		let limited = 0;
-		for (let index = 0; index < BUCKETS.public.capacity + 5; index++) {
+		// Extra requests beyond capacity: the bucket refills while the loop runs.
+		for (let index = 0; index < BUCKETS.public.capacity + 40; index++) {
 			const response = await get(url);
 			if (response.statusCode === 429) {
 				limited += 1;

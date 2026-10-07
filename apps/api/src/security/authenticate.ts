@@ -13,6 +13,7 @@
  *  any     — device if an `Authorization: DPoP` header is present, else session.
  *  admin   — session with role = admin.
  */
+import { TtlCache } from '../lib/ttl-cache';
 import { Limits } from '@skillpouch/contracts';
 import { accountMembers, dpopReplay, pouches, storageAccounts } from '@skillpouch/db';
 import { fromNodeHeaders } from 'better-auth/node';
@@ -302,15 +303,29 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 	});
 
 	// After validation: params/body are parsed, so the pouch id is trustworthy here.
+	// Writes re-check the pouch state inside their own transaction; this gate keeps
+	// devices off locked pouches for reads too. States are cached for 3 s and
+	// dropped as soon as any pouch changes state (the notification reaches
+	// every instance).
+	const pouchStates = new TtlCache<string | null>(3000, 20_000);
+	const stopWatching = deps.hub.onAccountEvent((event) => {
+		if (event.type === 'pouch.state_changed' || event.type === 'entitlements.changed') {
+			pouchStates.clear();
+		}
+	});
+	app.addHook('onClose', async () => stopWatching());
 	app.addHook('preHandler', async (request) => {
 		const principal = request.principal;
 		if (principal?.kind !== 'device' || request.routeOptions.config?.lockedPouchOk) return;
 		const pouchId = pouchIdOf(request);
 		if (!pouchId) return;
-		const [row] = await withTenantTx(deps.db.app, principal.storageAccountId, (tx) =>
-			tx.select({ state: pouches.state }).from(pouches).where(eq(pouches.id, pouchId)),
-		);
-		if (row?.state === 'locked') throw new AppError('pouch_locked');
+		const state = await pouchStates.get(pouchId, async () => {
+			const [row] = await withTenantTx(deps.db.app, principal.storageAccountId, (tx) =>
+				tx.select({ state: pouches.state }).from(pouches).where(eq(pouches.id, pouchId)),
+			);
+			return row?.state ?? null;
+		});
+		if (state === 'locked') throw new AppError('pouch_locked');
 	});
 }
 

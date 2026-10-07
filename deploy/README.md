@@ -14,7 +14,8 @@ worker (API_ROLE=worker, pg-boss) · postgres 16 · blobs on /srv/skillpouch/blo
    `sudo scripts/init-secrets.sh`. It fills `deploy/secrets/` (see
    [Secrets](#secrets)) and never overwrites an existing file. **Copy
    `pepper_key` and `jwt_signing_key` somewhere offline — they are not in
-   backups.**
+   backups.** Then give the API user (uid 10001) the blob directory:
+   `sudo install -d -o 10001 -g 10001 -m 700 /srv/skillpouch/blobs`.
 2. `cp env/stack.env.example env/stack.env`, `cp env/api.env.example env/api.env`, fill them.
 3. `docker compose --env-file env/stack.env up -d postgres caddy`
 4. `scripts/deploy.sh ghcr.io/skillpouch/api:<version>` — migrates, starts the

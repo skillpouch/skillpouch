@@ -6,3 +6,4 @@ packages/db/migrations/
 LICENSE
 docs/errors.md
 packages/contracts/generated/
+tools/load/results/

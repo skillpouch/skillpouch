@@ -7,12 +7,12 @@
  * `iat` within ±60 s, `ath` binds the access token (when one is presented), the
  * server nonce, and finally that `jti` was never seen before (replay cache).
  */
+import { importP256 } from './key-cache';
 import { createHash } from 'node:crypto';
 import { Limits } from '@skillpouch/contracts';
 import {
 	calculateJwkThumbprint,
 	decodeProtectedHeader,
-	importJWK,
 	jwtVerify,
 	type JWK,
 	type JWTPayload,
@@ -68,7 +68,7 @@ export async function verifyDpopProof(
 
 	let payload: JWTPayload;
 	try {
-		const key = await importJWK(jwk, 'ES256');
+		const key = await importP256(jwk);
 		({ payload } = await jwtVerify(proof, key, { typ: 'dpop+jwt', algorithms: ['ES256'] }));
 	} catch {
 		throw invalid('signature');

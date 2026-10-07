@@ -5,8 +5,9 @@
  * (ES256) whose payload is base64url(BLAKE3(canonical request body)). Stored
  * in the operation receipt as non-repudiable proof of which device called.
  */
+import { importP256 } from './key-cache';
 import { toBase64Url } from '@skillpouch/contracts';
-import { compactVerify, importJWK } from 'jose';
+import { compactVerify } from 'jose';
 import { AppError } from '../http/app-error';
 
 export async function verifyDetachedSignature(
@@ -20,7 +21,7 @@ export async function verifyDetachedSignature(
 	if (parts.length !== 3 || parts[1] !== '')
 		throw new AppError('signature_invalid', { reason: 'malformed' });
 	try {
-		const key = await importJWK({ ...publicJwk, kty: 'EC', crv: 'P-256' }, 'ES256');
+		const key = await importP256(publicJwk);
 		await compactVerify(`${parts[0]}.${toBase64Url(digest)}.${parts[2]}`, key, {
 			algorithms: ['ES256'],
 		});

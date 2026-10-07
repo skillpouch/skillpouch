@@ -27,6 +27,8 @@ ENV NODE_ENV=production \
 	METRICS_PORT=9464
 WORKDIR /app
 RUN apk add --no-cache tini && addgroup -S -g 10001 skillpouch && adduser -S -u 10001 -G skillpouch skillpouch
+# Blob root owned by the runtime user, so a fresh named volume mounted here is writable.
+RUN mkdir -p /data/blobs && chown skillpouch:skillpouch /data/blobs
 COPY --from=build /out/node_modules ./node_modules
 COPY --from=build /repo/apps/api/dist ./dist
 COPY --from=build /out/package.json ./package.json
