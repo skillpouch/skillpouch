@@ -57,9 +57,21 @@ const list = <PageSkeleton variant="list" />;
 const settings = <PageSkeleton variant="settings" />;
 const auth = <AuthSkeleton />;
 
-const BillingPage = lazyPage(() => import('@/pages/account/billing-page'), 'BillingPage', settings);
-const DevicesPage = lazyPage(() => import('@/pages/account/devices-page'), 'DevicesPage', list);
-const ProfilePage = lazyPage(() => import('@/pages/account/profile-page'), 'ProfilePage', settings);
+const BillingPage = lazyPage(
+	() => import('@/pages/account/billing-page'),
+	'BillingPage',
+	<PageSkeleton variant="billing" />,
+);
+const DevicesPage = lazyPage(
+	() => import('@/pages/account/devices-page'),
+	'DevicesPage',
+	<PageSkeleton variant="devices" />,
+);
+const ProfilePage = lazyPage(
+	() => import('@/pages/account/profile-page'),
+	'ProfilePage',
+	<PageSkeleton variant="profile" />,
+);
 const SecurityPage = lazyPage(
 	() => import('@/pages/account/security-page'),
 	'SecurityPage',

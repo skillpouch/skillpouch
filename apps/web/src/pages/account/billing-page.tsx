@@ -3,7 +3,8 @@
  * `/app/account/billing` — Free or Supporter. Supporter only adds room
  * (pouches, storage); every feature is free for everyone.
  */
-import { Check, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { Sparkle } from '@/components/brand/sparkle';
 import { useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -61,12 +62,10 @@ export function BillingPage() {
 				description="SkillPouch is free for everyone. Supporter adds room and keeps it running."
 			/>
 			{!isFree ? (
-				<section className="mb-8">
+				<section className="supporter-shimmer mb-8">
 					<p className="flex items-center gap-2 text-lg font-medium">
-						<Sparkles className="size-4 text-accent-text" aria-hidden />
-						<span className="bg-gradient-to-r from-[#a774f2] via-[#f0a6d8] to-white bg-clip-text text-transparent">
-							You’re a {current.plan_name}
-						</span>
+						<Sparkle className="size-4" />
+						<span className="supporter-text">You’re a {current.plan_name}</span>
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
 						Thank you. Your support keeps SkillPouch running.
@@ -111,8 +110,8 @@ export function BillingPage() {
 			<section className="grid gap-4 sm:grid-cols-2" aria-label="Plans">
 				{plans.isPending ? (
 					<>
-						<Skeleton className="h-56" />
-						<Skeleton className="h-56" />
+						<Skeleton className="h-56 rounded-lg" />
+						<Skeleton className="h-56 rounded-lg" />
 					</>
 				) : (
 					(plans.data ?? []).map((plan) => (
@@ -286,16 +285,14 @@ function PlanTile({
 		<article
 			className={cn(
 				'flex flex-col gap-4 rounded-lg border p-5',
-				paid
-					? 'border-accent/40 bg-[radial-gradient(ellipse_at_top,rgba(132,66,217,0.12),transparent_70%)]'
-					: 'border-border',
+				paid ? 'supporter-card supporter-shimmer' : 'border-border',
 			)}
 			aria-label={plan.name}
 		>
 			<div className="flex items-start justify-between">
 				<p className="flex items-center gap-1.5 text-sm font-medium">
-					{paid ? <Sparkles className="size-4 text-accent-text" aria-hidden /> : null}
-					{plan.name}
+					{paid ? <Sparkle className="size-4" /> : null}
+					{paid ? <span className="supporter-text">{plan.name}</span> : plan.name}
 				</p>
 				{current ? <Badge>Current plan</Badge> : null}
 			</div>

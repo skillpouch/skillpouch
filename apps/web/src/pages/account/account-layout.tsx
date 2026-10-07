@@ -22,7 +22,6 @@ const SECTIONS = [
 export function AccountLayout() {
 	return (
 		<AppShell
-			width="narrow"
 			topBar={{ leading: <span className="text-[13px] font-medium">Account</span> }}
 			banners={<AccountBanners />}
 			sidebar={({ collapsed, onNavigate, headerAside }) => (

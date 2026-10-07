@@ -72,7 +72,7 @@ export function DevicesPage() {
 			<section aria-label="Computers" className="mb-8">
 				<h2 className="mb-3 text-sm font-medium">Computers</h2>
 				{devices.isPending ? (
-					<Skeleton className="h-20" />
+					<Skeleton className="h-20 rounded-lg" />
 				) : activeComputers.length === 0 ? (
 					<EmptyState
 						icon={TerminalSquare}
@@ -97,7 +97,7 @@ export function DevicesPage() {
 			<section aria-label="Browsers" className="mb-8">
 				<h2 className="mb-3 text-sm font-medium">Browsers</h2>
 				{devices.isPending ? (
-					<Skeleton className="h-16" />
+					<Skeleton className="h-16 rounded-lg" />
 				) : (
 					<ul className="divide-y divide-border-soft rounded-lg border border-border">
 						{activeBrowsers.map((browser) => (

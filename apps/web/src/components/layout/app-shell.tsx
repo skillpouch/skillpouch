@@ -25,8 +25,6 @@ export interface AppShellProps {
 	topBar?: Omit<TopBarProps, 'onOpenMenu'>;
 	banners?: ReactNode;
 	children: ReactNode;
-	/** Content max width. */
-	width?: 'default' | 'narrow' | 'wide';
 }
 
 const COLLAPSE_KEY = 'skillpouch.sidebar.collapsed';
@@ -51,9 +49,10 @@ function useCollapsed(): [boolean, () => void] {
 	return [collapsed, toggle];
 }
 
-const widths = { default: 'max-w-[1200px]', narrow: 'max-w-[880px]', wide: 'max-w-none' } as const;
+/** Every page shares one content width, so nothing shifts when you navigate. */
+const CONTENT_WIDTH = 'max-w-[1200px]';
 
-export function AppShell({ sidebar, topBar, banners, children, width = 'default' }: AppShellProps) {
+export function AppShell({ sidebar, topBar, banners, children }: AppShellProps) {
 	const [collapsed, toggleCollapsed] = useCollapsed();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	return (
@@ -93,7 +92,7 @@ export function AppShell({ sidebar, topBar, banners, children, width = 'default'
 				/>
 				{banners}
 				<main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
-					<div className={cn('mx-auto w-full', widths[width])}>{children}</div>
+					<div className={cn('mx-auto w-full', CONTENT_WIDTH)}>{children}</div>
 				</main>
 			</div>
 		</div>

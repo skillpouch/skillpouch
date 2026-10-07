@@ -3,8 +3,9 @@
  * The plan summary: usage bars, and either the Supporter pitch (Free) or a
  * thank-you with "Manage" (Supporter).
  */
+import { cn } from '@/lib/cn';
 import { Link } from '@tanstack/react-router';
-import { Sparkles } from 'lucide-react';
+import { Sparkle } from '@/components/brand/sparkle';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formatBytes } from '@/lib/format';
@@ -18,14 +19,22 @@ export function PlanCard() {
 	const active = (pouches.data ?? []).filter((pouch) => pouch.state === 'active').length;
 	const isFree = entitlements.plan_slug === 'free';
 	return (
-		<section className="rounded-lg border border-border bg-surface p-5" aria-label="Plan">
+		<section
+			className={cn(
+				'rounded-lg border bg-surface p-5',
+				isFree ? 'border-border' : 'supporter-card supporter-shimmer',
+			)}
+			aria-label="Plan"
+		>
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div>
 					<p className="flex items-center gap-1.5 text-sm font-medium">
-						{isFree ? null : (
-							<Sparkles className="size-4 text-accent-text" aria-hidden />
+						{isFree ? null : <Sparkle className="size-4" />}
+						{isFree ? (
+							entitlements.plan_name
+						) : (
+							<span className="supporter-text">{entitlements.plan_name}</span>
 						)}
-						{entitlements.plan_name}
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
 						{isFree

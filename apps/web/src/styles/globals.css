@@ -165,3 +165,88 @@
 		transform: translateY(35%) rotate(-18deg);
 	}
 }
+
+/* Supporter: gradient border, gradient text, shimmer on hover (from the design). */
+@layer components {
+	.supporter-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		height: 24px;
+		padding: 0 10px 0 8px;
+		border: 1px solid transparent;
+		border-radius: 9999px;
+		background:
+			linear-gradient(var(--color-bg), var(--color-bg)) padding-box,
+			linear-gradient(
+					120deg,
+					oklch(0.62 0.2 300 / 0.75),
+					oklch(0.78 0.13 350 / 0.6),
+					oklch(0.95 0.02 320 / 0.45)
+				)
+				border-box;
+		font: 500 12px/1 var(--font-sans);
+	}
+	.supporter-badge .supporter-sparkle {
+		width: 12px;
+		height: 12px;
+	}
+	.supporter-text {
+		background: linear-gradient(
+			100deg,
+			oklch(0.78 0.14 300),
+			oklch(0.86 0.1 350),
+			oklch(0.97 0.01 320),
+			oklch(0.86 0.1 350),
+			oklch(0.78 0.14 300)
+		);
+		background-size: 220% 100%;
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.supporter-sparkle {
+		color: oklch(0.82 0.12 325);
+	}
+	.supporter-card {
+		border-color: transparent;
+		background:
+			linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+			linear-gradient(
+					135deg,
+					oklch(0.62 0.2 300 / 0.6),
+					oklch(0.78 0.13 350 / 0.4),
+					oklch(0.95 0.02 320 / 0.22)
+				)
+				border-box;
+		box-shadow: 0 0 48px -16px oklch(0.62 0.2 300 / 0.4);
+	}
+	.supporter-shimmer:hover .supporter-text {
+		animation: supporter-shimmer 2.4s linear infinite;
+	}
+	@media (max-width: 639px) {
+		.supporter-badge.supporter-badge-compact {
+			justify-content: center;
+			width: 32px;
+			height: 32px;
+			padding: 0;
+		}
+		.supporter-badge.supporter-badge-compact .supporter-text {
+			display: none;
+		}
+		.supporter-badge.supporter-badge-compact .supporter-sparkle {
+			width: 14px;
+			height: 14px;
+		}
+	}
+}
+@keyframes supporter-shimmer {
+	to {
+		background-position: -220% 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.supporter-shimmer:hover .supporter-text {
+		animation: none;
+	}
+}

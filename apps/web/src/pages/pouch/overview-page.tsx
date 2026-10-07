@@ -40,7 +40,7 @@ export function OverviewPage() {
 	const openConflicts = conflicts.data ?? [];
 
 	return (
-		<div className="mx-auto flex max-w-[880px] flex-col gap-6">
+		<div className="flex flex-col gap-6">
 			<PageHeader
 				title={pouch.name}
 				description={pouch.description || 'Overview'}

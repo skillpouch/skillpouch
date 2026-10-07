@@ -50,11 +50,11 @@ export function PouchSettingsPage() {
 	};
 
 	return (
-		<div className="max-w-xl">
+		<div>
 			<PageHeader title="Pouch settings" />
 			<form
 				onSubmit={(event) => void save(event).catch(() => undefined)}
-				className="flex flex-col gap-4"
+				className="flex max-w-xl flex-col gap-4"
 				noValidate
 			>
 				<PouchMetaFields value={value} onChange={setValue} nameError={nameError} />
@@ -75,7 +75,7 @@ export function PouchSettingsPage() {
 				</p>
 			</form>
 			<section
-				className="mt-10 rounded-lg border border-danger/30 p-5"
+				className="mt-10 max-w-xl rounded-lg border border-danger/30 p-5"
 				aria-label="Danger zone"
 			>
 				<h2 className="text-sm font-medium">Delete pouch</h2>

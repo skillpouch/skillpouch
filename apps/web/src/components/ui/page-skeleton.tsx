@@ -7,7 +7,8 @@
 import { cn } from '@/lib/cn';
 import { Skeleton } from './skeleton';
 
-export type PageSkeletonVariant = 'list' | 'cards' | 'settings' | 'overview' | 'form';
+export type PageSkeletonVariant =
+	'list' | 'cards' | 'settings' | 'overview' | 'form' | 'billing' | 'devices' | 'profile';
 
 function HeaderSkeleton({ actions = false }: { actions?: boolean }) {
 	return (
@@ -35,7 +36,9 @@ export function ListSkeleton({ rows = 6, className }: { rows?: number; className
 export function PageSkeleton({ variant = 'list' }: { variant?: PageSkeletonVariant }) {
 	return (
 		<div role="status" aria-label="Loading" className="animate-fade-in">
-			<HeaderSkeleton actions={variant === 'list' || variant === 'cards'} />
+			<HeaderSkeleton
+				actions={variant === 'list' || variant === 'cards' || variant === 'devices'}
+			/>
 			{variant === 'list' ? (
 				<>
 					<Skeleton className="mb-4 h-8 w-64 max-w-full" />
@@ -72,6 +75,42 @@ export function PageSkeleton({ variant = 'list' }: { variant?: PageSkeletonVaria
 						</div>
 					))}
 				</div>
+			) : null}
+			{variant === 'billing' ? (
+				<>
+					<div className="mb-8 grid gap-6 sm:grid-cols-2">
+						{Array.from({ length: 2 }, (_, index) => (
+							<div key={index} className="flex flex-col gap-2">
+								<Skeleton className="h-4 w-32" />
+								<Skeleton className="h-1.5" />
+							</div>
+						))}
+					</div>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<Skeleton className="h-56 rounded-lg" />
+						<Skeleton className="h-56 rounded-lg" />
+					</div>
+				</>
+			) : null}
+			{variant === 'devices' ? (
+				<>
+					<Skeleton className="mb-3 h-4 w-24" />
+					<Skeleton className="mb-8 h-20 rounded-lg" />
+					<Skeleton className="mb-3 h-4 w-20" />
+					<Skeleton className="h-16 rounded-lg" />
+				</>
+			) : null}
+			{variant === 'profile' ? (
+				<>
+					<div className="flex items-center gap-4 rounded-lg border border-border p-5">
+						<Skeleton className="size-12 rounded-full" />
+						<div className="flex flex-col gap-2">
+							<Skeleton className="h-4 w-32" />
+							<Skeleton className="h-4 w-48" />
+						</div>
+					</div>
+					<Skeleton className="mt-10 h-32 rounded-lg" />
+				</>
 			) : null}
 			{variant === 'form' ? (
 				<div className="flex max-w-xl flex-col gap-4">
