@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT AND Commons-Clause
 // Aurora from React Bits (https://reactbits.dev, David Haz), fetched unmodified.
+/* eslint-disable prefer-const, react-hooks/exhaustive-deps -- vendored React Bits source, kept as published */
 import { useEffect, useRef } from 'react';
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
 
