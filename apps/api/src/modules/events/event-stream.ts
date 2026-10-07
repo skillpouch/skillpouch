@@ -23,13 +23,14 @@ import { eventView, readEvents } from './events.repo';
 
 const HEARTBEAT_MS = 15_000;
 /**
- * A stream lives about as long as an access token (4–5 min, jittered so
- * clients don't reconnect in waves), then asks the client to reconnect. That
- * re-runs authentication, so a signed-out session or a suspended user can't
- * keep an old stream open.
+ * A stream lives 10–15 min (jittered so clients don't reconnect in waves),
+ * then asks the client to reconnect. That re-runs authentication, so a
+ * signed-out session or a suspended user can't keep an old stream open, while
+ * 100 000 open streams cost ~140 reconnects/s instead of ~400 at 4–5 min.
+ * Revoked devices are cut off at once regardless (device_revoked notify).
  */
-const MAX_LIFETIME_MS = 240_000;
-const LIFETIME_JITTER_MS = 60_000;
+const MAX_LIFETIME_MS = 600_000;
+const LIFETIME_JITTER_MS = 300_000;
 const UUID = /^[0-9a-f-]{36}$/;
 
 /** Live streams of this instance, so graceful shutdown can tell them to reconnect. */

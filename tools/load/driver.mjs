@@ -306,13 +306,17 @@ async function main() {
 async function runWorker() {
 	const { scenario, transport, accounts, duration, ramp, rate, startAt } = workerData;
 	const stats = new Stats();
-	const agent = new Agent({
-		connections: Math.ceil(accounts.length / TARGETS.length) + 64,
+	// Two pools without a connection cap. A held SSE stream occupies its socket
+	// for minutes; sharing a capped pool with it made commits queue inside the
+	// driver until their DPoP proofs aged past the server's 60 s window.
+	const agentOptions = {
 		keepAliveTimeout: 60_000,
 		connect: { timeout: 30_000 },
 		headersTimeout: 60_000,
 		bodyTimeout: 60_000,
-	});
+	};
+	const agent = new Agent(agentOptions);
+	const streamAgent = new Agent(agentOptions);
 	let nonce = null;
 	const endAt = startAt + ramp * 1000 + duration * 1000;
 	const state = { loggedIn: 0, polling: 0 };
@@ -459,7 +463,7 @@ async function runWorker() {
 							device.token,
 						),
 					},
-					dispatcher: agent,
+					dispatcher: streamAgent,
 					signal: controller.signal,
 					bodyTimeout: 0,
 				});
@@ -619,7 +623,7 @@ async function runWorker() {
 	clearInterval(reporter);
 	parentPort.postMessage({ type: 'stats', routes: stats.drain() });
 	parentPort.postMessage({ type: 'done', state });
-	await agent.close();
+	await Promise.all([agent.close(), streamAgent.close()]);
 }
 
 function sleep(ms) {
