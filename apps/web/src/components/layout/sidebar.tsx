@@ -45,9 +45,13 @@ export function Sidebar({
 	headerAside,
 }: SidebarProps) {
 	return (
-		<nav aria-label="Main" className="flex h-full flex-col gap-4 px-3 py-4">
+		<nav aria-label="Main" className="flex h-full flex-col gap-4 px-3 pb-4">
+			{/* Same height and inset as the top bar (h-14, 24 px), so the logo never shifts between pages. */}
 			<div
-				className={cn('flex h-8 items-center justify-between', collapsed ? 'px-1' : 'px-2')}
+				className={cn(
+					'flex h-14 shrink-0 items-center border-b border-transparent',
+					collapsed ? 'justify-center' : 'justify-between px-3',
+				)}
 			>
 				<Link to="/app" onClick={onNavigate} aria-label="All pouches">
 					<Logo withWordmark={!collapsed} />
