@@ -52,7 +52,7 @@ for (const { query, calls } of rows) {
 				query: query.replace(/\s+/g, ' ').slice(0, 400),
 				out,
 			});
-	} catch (e) {
+	} catch {
 		failed++;
 	} finally {
 		await perf.query('ROLLBACK');
