@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CodeEditor } from '@/features/ingredients/components/code-editor';
 import { FileTree, MobileFilePicker } from '@/features/ingredients/components/file-tree';
 import { createDraft } from '@/features/ingredients/draft';
+import type { Ingredient } from '@/features/ingredients/ingredients';
 import { kindDefinition } from '@/features/ingredients/kinds';
 import {
 	base64Bytes,
@@ -17,6 +18,7 @@ import {
 	type MarketplaceItem,
 	type MarketplaceItemContent,
 } from '../marketplaces';
+import { InstalledMark } from './item-grid';
 
 const compact = new Intl.NumberFormat('en', { notation: 'compact' });
 
@@ -24,17 +26,22 @@ export function ItemPreview({
 	marketplace,
 	item,
 	canAdd,
+	installed,
 	busy,
 	disabled,
 	onAdd,
+	onRemove,
 	onBack,
 }: {
 	marketplace: Marketplace;
 	item: MarketplaceItem;
 	canAdd: boolean;
+	/** The pouch already has this item. */
+	installed: Ingredient | undefined;
 	busy: boolean;
 	disabled: boolean;
 	onAdd: (content: MarketplaceItemContent) => void;
+	onRemove: (ingredient: Ingredient) => void;
 	onBack: () => void;
 }) {
 	const content = useQuery({
@@ -87,7 +94,18 @@ export function ItemPreview({
 							</a>
 						</Button>
 					) : null}
-					{canAdd ? (
+					{installed ? <InstalledMark className="px-1" /> : null}
+					{canAdd && installed ? (
+						<Button
+							variant="outline"
+							loading={busy}
+							disabled={disabled}
+							onClick={() => onRemove(installed)}
+						>
+							Remove
+						</Button>
+					) : null}
+					{canAdd && !installed ? (
 						<Button
 							variant="primary"
 							disabled={!content.data || disabled}

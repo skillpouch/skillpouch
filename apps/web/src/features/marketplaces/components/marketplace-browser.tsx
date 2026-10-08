@@ -6,7 +6,8 @@
  *  - `compact`: a marketplace dropdown above the results ("Add …" dialogs,
  *    filtered to one kind).
  *
- * Items that run commands (MCP servers) always open the preview first.
+ * Items that run commands (MCP servers) always open the preview first. Items
+ * the pouch already has show as installed, with Remove instead of Add.
  */
 import { Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -17,7 +18,8 @@ import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { Skeleton } from '@/components/ui/skeleton';
 import { kindDefinition, type KindDefinition } from '@/features/ingredients/kinds';
-import { useInvalidateContents } from '@/features/ingredients/mutations';
+import type { Ingredient } from '@/features/ingredients/ingredients';
+import { useDeleteIngredient, useInvalidateContents } from '@/features/ingredients/mutations';
 import type { PouchView } from '@/features/pouches/pouches';
 import { describeError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
@@ -27,6 +29,7 @@ import {
 	hasLeaderboard,
 	offering,
 	searchesRemotely,
+	useInstalled,
 	useMarketplaceItems,
 	useMarketplaces,
 	type ItemSort,
@@ -83,7 +86,8 @@ export function MarketplaceBrowser({
 	const [query, setQuery] = useState('');
 	const [sort, setSort] = useState<ItemSort>('popular');
 	const [preview, setPreview] = useState<MarketplaceItem | null>(null);
-	const adding = useAddItem(pouch, onAdded);
+	const installed = useInstalled(pouch.id);
+	const adding = useItemActions(pouch, onAdded);
 	const canAdd = pouch.state === 'active';
 
 	const select = (id: string) => {
@@ -118,9 +122,11 @@ export function MarketplaceBrowser({
 			marketplace={marketplace}
 			item={preview}
 			canAdd={canAdd}
+			installed={installed(preview)}
 			busy={adding.busyKey === preview.key}
 			disabled={adding.busyKey !== null}
 			onAdd={(content) => void adding.add(marketplace, preview.key, content)}
+			onRemove={(ingredient) => void adding.remove(preview.key, ingredient)}
 			onBack={() => setPreview(null)}
 		/>
 	) : (
@@ -137,8 +143,10 @@ export function MarketplaceBrowser({
 			actions={actions}
 			canAdd={canAdd}
 			busyKey={adding.busyKey}
+			installed={installed}
 			onOpen={setPreview}
 			onAdd={(item) => void adding.add(marketplace, item.key)}
+			onRemove={(item, ingredient) => void adding.remove(item.key, ingredient)}
 		/>
 	);
 
@@ -182,8 +190,10 @@ function Results({
 	actions,
 	canAdd,
 	busyKey,
+	installed,
 	onOpen,
 	onAdd,
+	onRemove,
 }: {
 	marketplace: Marketplace;
 	layout: 'page' | 'compact';
@@ -196,8 +206,10 @@ function Results({
 	actions: MarketplaceBrowserProps['actions'];
 	canAdd: boolean;
 	busyKey: string | null;
+	installed: (item: MarketplaceItem) => Ingredient | undefined;
 	onOpen: (item: MarketplaceItem) => void;
 	onAdd: (item: MarketplaceItem) => void;
+	onRemove: (item: MarketplaceItem, ingredient: Ingredient) => void;
 }) {
 	const debounced = useDebounced(query, searchesRemotely(marketplace) ? 400 : 150);
 	const items = useMarketplaceItems(marketplace, debounced, kind?.kind, sort);
@@ -253,8 +265,10 @@ function Results({
 				query={debounced}
 				canAdd={canAdd}
 				busyKey={busyKey}
+				installed={installed}
 				onOpen={onOpen}
 				onAdd={onAdd}
+				onRemove={onRemove}
 			/>
 		</>
 	);
@@ -312,9 +326,10 @@ function BodySkeleton() {
 	);
 }
 
-/** Adds one item; remembers which one is in flight. */
-function useAddItem(pouch: PouchView, onAdded: MarketplaceBrowserProps['onAdded']) {
+/** Adds or removes one item at a time; remembers which one is in flight. */
+function useItemActions(pouch: PouchView, onAdded: MarketplaceBrowserProps['onAdded']) {
 	const invalidate = useInvalidateContents(pouch.id);
+	const deletion = useDeleteIngredient(pouch);
 	const [busyKey, setBusyKey] = useState<string | null>(null);
 	const add = async (marketplace: Marketplace, key: string, content?: MarketplaceItemContent) => {
 		setBusyKey(key);
@@ -340,7 +355,18 @@ function useAddItem(pouch: PouchView, onAdded: MarketplaceBrowserProps['onAdded'
 			setBusyKey(null);
 		}
 	};
-	return { busyKey, add };
+	const remove = async (key: string, ingredient: Ingredient) => {
+		setBusyKey(key);
+		try {
+			await deletion.mutateAsync(ingredient);
+			toast.success(`Removed ${ingredient.name}`);
+		} catch (error) {
+			toast.error(describeError(error));
+		} finally {
+			setBusyKey(null);
+		}
+	};
+	return { busyKey, add, remove };
 }
 
 function useDebounced(value: string, delay: number): string {

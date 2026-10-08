@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { afterEach, describe, expect, it } from 'vitest';
+import type { Ingredient } from '../../ingredients/ingredients';
 import {
 	groupMarketplaces,
+	installedLookup,
 	itemFiles,
 	offering,
 	parseRepoInput,
@@ -62,6 +64,28 @@ describe('itemFiles', () => {
 			url: '',
 		});
 		expect(files.map((file) => file.path)).toEqual(['SKILL.md', 'scripts/x.py']);
+	});
+});
+
+describe('installedLookup', () => {
+	const ingredient = (kind: Ingredient['kind'], name: string, extra: Partial<Ingredient> = {}) =>
+		({ id: name, kind, name, scope: 'global', deleted: false, ...extra }) as Ingredient;
+	const installed = installedLookup([
+		ingredient('skill', 'pdf-tools'),
+		ingredient('skill', 'gone', { deleted: true }),
+		ingredient('mcp_server', 'blender'),
+		ingredient('instructions', 'instructions'),
+	]);
+
+	it('matches by kind and the name the item gets in a pouch, ignoring case', () => {
+		expect(installed({ kind: 'skill', name: 'PDF tools' })?.id).toBe('pdf-tools');
+		expect(installed({ kind: 'mcp_server', name: 'blender' })?.id).toBe('blender');
+		expect(installed({ kind: 'agent', name: 'pdf-tools' })).toBeUndefined();
+	});
+
+	it('ignores deleted items and kinds kept as one per pouch', () => {
+		expect(installed({ kind: 'skill', name: 'gone' })).toBeUndefined();
+		expect(installed({ kind: 'instructions', name: 'instructions' })).toBeUndefined();
 	});
 });
 

@@ -6,9 +6,11 @@
  * commits those files into a pouch like any other edit.
  */
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import { addToPouch, type DuplicateChoice } from '../ingredients/add-to-pouch';
+import { inScope, usePouchContents, type Ingredient } from '../ingredients/ingredients';
 import { kindDefinition, NAME_MAX, NAME_PATTERN, type IngredientKind } from '../ingredients/kinds';
 import type { DraftFile } from '../ingredients/write';
 import type { PouchView } from '../pouches/pouches';
@@ -292,6 +294,37 @@ export function safeItemName(name: string, fallback: string): string {
 	return NAME_PATTERN.test(cleaned) ? cleaned : fallback;
 }
 
+/** The name an item gets in a pouch. */
+export function pouchName(item: { kind: MarketplaceKind; name: string }): string {
+	return safeItemName(item.name, item.kind.replace('_', '-'));
+}
+
+/**
+ * Finds what the pouch already has from a marketplace, by kind and name, from
+ * the contents the pouch has already decrypted: no extra requests. Kinds kept
+ * as one file per pouch (instructions) are never "installed": adding appends.
+ */
+export function installedLookup(
+	ingredients: Ingredient[],
+): (item: { kind: MarketplaceKind; name: string }) => Ingredient | undefined {
+	const byKey = new Map(
+		inScope(ingredients).map((ingredient) => [
+			`${ingredient.kind}:${ingredient.name.toLowerCase()}`,
+			ingredient,
+		]),
+	);
+	return (item) =>
+		kindDefinition(item.kind)?.single
+			? undefined
+			: byKey.get(`${item.kind}:${pouchName(item).toLowerCase()}`);
+}
+
+export function useInstalled(pouchId: string) {
+	const contents = usePouchContents(pouchId);
+	const ingredients = contents.data?.ingredients;
+	return useMemo(() => installedLookup(ingredients ?? []), [ingredients]);
+}
+
 export async function addItemToPouch(input: {
 	pouch: PouchView;
 	item: MarketplaceItemContent;
@@ -300,7 +333,7 @@ export async function addItemToPouch(input: {
 	return addToPouch({
 		pouch: input.pouch,
 		kind: input.item.kind,
-		name: safeItemName(input.item.name, input.item.kind.replace('_', '-')),
+		name: pouchName(input.item),
 		files: itemFiles(input.item),
 		duplicate: input.duplicate,
 	});

@@ -3,12 +3,13 @@
  * A marketplace's items as cards. More load as you scroll; while a search
  * runs, card-shaped skeletons stand in for the results.
  */
-import { Download, SearchX } from 'lucide-react';
+import { Check, Download, SearchX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Ingredient } from '@/features/ingredients/ingredients';
 import { kindDefinition } from '@/features/ingredients/kinds';
 import { cn } from '@/lib/cn';
 import { useOnVisible } from '@/lib/use-on-visible';
@@ -30,8 +31,11 @@ export interface ItemGridProps {
 	query: string;
 	canAdd: boolean;
 	busyKey: string | null;
+	/** What the pouch already has of an item. */
+	installed: (item: MarketplaceItem) => Ingredient | undefined;
 	onOpen: (item: MarketplaceItem) => void;
 	onAdd: (item: MarketplaceItem) => void;
+	onRemove: (item: MarketplaceItem, ingredient: Ingredient) => void;
 }
 
 export function ItemGrid({
@@ -42,8 +46,10 @@ export function ItemGrid({
 	query,
 	canAdd,
 	busyKey,
+	installed,
 	onOpen,
 	onAdd,
+	onRemove,
 }: ItemGridProps) {
 	const results = items.data?.pages.flatMap((page) => page.items) ?? [];
 	const sentinel = useOnVisible<HTMLDivElement>(() => void items.fetchNextPage(), {
@@ -66,19 +72,24 @@ export function ItemGrid({
 	return (
 		<div className="@container flex flex-col gap-3">
 			<ul className={GRID} aria-label="Results">
-				{results.map((item, index) => (
-					<ItemCard
-						key={`${item.kind}:${item.key}`}
-						item={item}
-						rank={ranked ? index + 1 : null}
-						showKind={showKind}
-						canAdd={canAdd}
-						busy={busyKey === item.key}
-						disabled={busyKey !== null}
-						onOpen={() => onOpen(item)}
-						onAdd={() => onAdd(item)}
-					/>
-				))}
+				{results.map((item, index) => {
+					const ingredient = installed(item);
+					return (
+						<ItemCard
+							key={`${item.kind}:${item.key}`}
+							item={item}
+							rank={ranked ? index + 1 : null}
+							showKind={showKind}
+							canAdd={canAdd}
+							installed={ingredient !== undefined}
+							busy={busyKey === item.key}
+							disabled={busyKey !== null}
+							onOpen={() => onOpen(item)}
+							onAdd={() => onAdd(item)}
+							onRemove={() => ingredient && onRemove(item, ingredient)}
+						/>
+					);
+				})}
 			</ul>
 			{items.isFetchingNextPage ? <ItemGridSkeleton count={3} label="Loading more" /> : null}
 			{items.isFetchNextPageError ? (
@@ -102,19 +113,23 @@ function ItemCard({
 	rank,
 	showKind,
 	canAdd,
+	installed,
 	busy,
 	disabled,
 	onOpen,
 	onAdd,
+	onRemove,
 }: {
 	item: MarketplaceItem;
 	rank: number | null;
 	showKind: boolean;
 	canAdd: boolean;
+	installed: boolean;
 	busy: boolean;
 	disabled: boolean;
 	onOpen: () => void;
 	onAdd: () => void;
+	onRemove: () => void;
 }) {
 	const definition = kindDefinition(item.kind);
 	const Icon = definition?.icon;
@@ -162,7 +177,21 @@ function ItemCard({
 						<span className="sr-only">installs</span>
 					</span>
 				) : null}
-				{canAdd ? (
+				{installed ? <InstalledMark className="ml-auto" /> : null}
+				{canAdd && installed ? (
+					<Button
+						size="sm"
+						variant="ghost"
+						className="relative z-10 text-muted hover:text-danger"
+						aria-label={`Remove ${item.name}`}
+						loading={busy}
+						disabled={disabled}
+						onClick={onRemove}
+					>
+						Remove
+					</Button>
+				) : null}
+				{canAdd && !installed ? (
 					<Button
 						size="sm"
 						variant="outline"
@@ -177,6 +206,19 @@ function ItemCard({
 				) : null}
 			</div>
 		</li>
+	);
+}
+
+export function InstalledMark({ className }: { className?: string }) {
+	return (
+		<span
+			className={cn(
+				'flex items-center gap-1 text-xs font-medium text-success [&_svg]:size-3.5',
+				className,
+			)}
+		>
+			<Check aria-hidden /> Installed
+		</span>
 	);
 }
 
