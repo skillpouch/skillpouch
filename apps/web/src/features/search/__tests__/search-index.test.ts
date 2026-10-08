@@ -2,14 +2,11 @@
 import { describe, expect, it } from 'vitest';
 import type { DeviceList } from '@/features/devices/devices';
 import type { Ingredient } from '@/features/ingredients/ingredients';
-import type { Project } from '@/features/projects/projects';
 import type { Invoice } from '@/lib/api/types';
 import { searchEverything, type SearchSources } from '../search-index';
 
 const item = (id: string, kind: string, name: string, scope = 'global') =>
 	({ id, kind, name, scope, deleted: false }) as unknown as Ingredient;
-
-const project = { id: 'prj1', name: 'web-app', description: 'storefront' } as Project;
 
 const devices = {
 	devices: [
@@ -38,7 +35,6 @@ const sources: SearchSources = {
 			item('i2', 'mcp_server', 'postgres'),
 			item('i3', 'instructions', 'AGENTS.md', 'project:prj1'),
 		],
-		projects: [project],
 	},
 	pouches: [
 		{ id: 'p1', name: 'Work', description: '', state: 'active' },
@@ -53,12 +49,10 @@ const labels = (text: string, input = sources) =>
 	searchEverything(input, text).map((result) => result.label);
 
 describe('searchEverything', () => {
-	it('finds items, linking project items into their project', () => {
+	it('finds global items only', () => {
 		const [pdf] = searchEverything(sources, 'pdf');
 		expect(pdf).toMatchObject({ group: 'Items', href: '/app/p/p1/skills?item=i1' });
-		const [agents] = searchEverything(sources, 'agents.md');
-		expect(agents).toMatchObject({ hint: 'Instructions · web-app' });
-		expect(agents!.href).toBe('/app/p/p1/projects/prj1?kind=instructions&item=i3');
+		expect(labels('agents.md')).toEqual([]);
 	});
 
 	it('finds devices, browsers and invoices, but not revoked devices', () => {

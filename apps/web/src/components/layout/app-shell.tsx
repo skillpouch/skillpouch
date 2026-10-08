@@ -24,7 +24,7 @@ export interface SidebarRenderProps {
 export interface AppShellProps {
 	sidebar?: (props: SidebarRenderProps) => ReactNode;
 	topBar?: Omit<TopBarProps, 'onOpenMenu' | 'onSearch'>;
-	/** The open pouch, so search covers its items and projects too. */
+	/** The open pouch, so search covers its items too. */
 	pouchId?: string;
 	banners?: ReactNode;
 	children: ReactNode;

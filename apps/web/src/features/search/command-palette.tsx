@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * ⌘K on every signed-in page: pages, pouches, computers, browsers, invoices
- * and, inside a pouch, its items and projects. Search runs over decrypted
+ * and, inside a pouch, its items. Search runs over decrypted
  * names in memory — names never go to the server, not even as a query string.
  */
 import { useNavigate } from '@tanstack/react-router';
@@ -13,7 +13,6 @@ import { useBilling, useInvoices } from '../billing/billing';
 import { useDevices } from '../devices/devices';
 import { usePouchContents } from '../ingredients/ingredients';
 import { usePouches } from '../pouches/pouches';
-import { useProjects } from '../projects/projects';
 import { searchEverything, type SearchSources } from './search-index';
 
 export function CommandPalette({
@@ -21,7 +20,7 @@ export function CommandPalette({
 	open,
 	onOpenChange,
 }: {
-	/** The open pouch, whose items and projects are searched too. */
+	/** The open pouch, whose items are searched too. */
 	pouchId?: string | undefined;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -61,14 +60,12 @@ export function CommandPalette({
 
 function PouchPalette({ pouchId, onClose }: { pouchId: string; onClose: () => void }) {
 	const contents = usePouchContents(pouchId);
-	const projects = useProjects(pouchId);
 	const pouch = useMemo(
 		() => ({
 			id: pouchId,
 			ingredients: contents.data?.ingredients ?? [],
-			projects: projects.data ?? [],
 		}),
-		[pouchId, contents.data, projects.data],
+		[pouchId, contents.data],
 	);
 	return <Palette pouch={pouch} onClose={onClose} />;
 }
@@ -129,7 +126,7 @@ function Palette({ pouch, onClose }: { pouch?: SearchSources['pouch']; onClose: 
 					onKeyDown={onKeyDown}
 					placeholder={
 						pouch
-							? 'Search items, projects, pouches, devices, billing…'
+							? 'Search items, pouches, devices, billing…'
 							: 'Search pouches, devices, billing, settings…'
 					}
 					aria-label="Search"

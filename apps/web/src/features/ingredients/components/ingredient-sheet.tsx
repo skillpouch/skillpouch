@@ -31,13 +31,7 @@ import {
 	type DraftAction,
 } from '../draft';
 import { useIngredientFiles, type Ingredient } from '../ingredients';
-import {
-	NAME_MAX,
-	namePlaceholder,
-	validateName,
-	validatePath,
-	type KindDefinition,
-} from '../kinds';
+import { NAME_MAX, validateName, validatePath, type KindDefinition } from '../kinds';
 import { useCreateIngredient, useUpdateIngredient } from '../mutations';
 import { CodeEditor } from './code-editor';
 import { FileTree } from './file-tree';
@@ -47,8 +41,6 @@ export type SheetMode = 'show' | 'edit' | 'create';
 export interface IngredientSheetProps {
 	pouch: PouchView;
 	kind: KindDefinition;
-	/** Where new items go: `global` or `project:<id>`. */
-	scope: string;
 	ingredient: Ingredient | null;
 	mode: SheetMode | null;
 	readOnly: boolean;
@@ -136,7 +128,6 @@ export function IngredientSheet(props: IngredientSheetProps) {
 			if (mode === 'create') {
 				const created = await create.mutateAsync({
 					kind: kind.kind,
-					scope: props.scope,
 					name: draft.name,
 					files: result.files,
 				});
@@ -176,7 +167,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 							aria-label="Item name"
 							maxLength={NAME_MAX}
 							value={draft.name}
-							placeholder={namePlaceholder(kind, props.scope)}
+							placeholder={`${kind.singular.toLowerCase()}-name`}
 							onChange={(event) =>
 								mode === 'create'
 									? setDraft(

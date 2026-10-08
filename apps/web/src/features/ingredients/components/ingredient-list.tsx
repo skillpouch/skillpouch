@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * One ingredient type in one scope: filter, table, the item panel and the
+ * One ingredient type: filter, table, the item panel and the
  * share / delete dialogs. The open panel lives in the URL (`?item=<id>&mode=edit`,
  * `?new=1`), so the page passes the search and how to change it.
  */
@@ -22,7 +22,7 @@ import {
 	usePouchContents,
 	type Ingredient,
 } from '../ingredients';
-import { kindBlurb, type KindDefinition } from '../kinds';
+import type { KindDefinition } from '../kinds';
 import { useDeleteIngredient } from '../mutations';
 import { IngredientSheet, type SheetMode } from './ingredient-sheet';
 import { IngredientTable } from './ingredient-table';
@@ -33,19 +33,12 @@ export interface PanelSearch {
 	new?: boolean;
 }
 
-/** Live items of one kind in one scope. */
-export function useScopedIngredients(
-	pouchId: string,
-	kind: KindDefinition | undefined,
-	scope: string,
-) {
+/** Live items of one kind. */
+export function useKindIngredients(pouchId: string, kind: KindDefinition | undefined) {
 	const contents = usePouchContents(pouchId);
 	const items = useMemo(
-		() =>
-			inScope(contents.data?.ingredients ?? [], scope).filter(
-				(item) => item.kind === kind?.kind,
-			),
-		[contents.data, kind?.kind, scope],
+		() => inScope(contents.data?.ingredients ?? []).filter((item) => item.kind === kind?.kind),
+		[contents.data, kind?.kind],
 	);
 	return { contents, items };
 }
@@ -53,17 +46,15 @@ export function useScopedIngredients(
 export function IngredientList({
 	pouch,
 	kind,
-	scope,
 	search,
 	onPanel,
 }: {
 	pouch: PouchView;
 	kind: KindDefinition;
-	scope: string;
 	search: PanelSearch;
 	onPanel: (next: PanelSearch) => void;
 }) {
-	const { contents, items: all } = useScopedIngredients(pouch.id, kind, scope);
+	const { contents, items: all } = useKindIngredients(pouch.id, kind);
 	const conflicts = useOpenConflicts(pouch.id);
 	const descriptions = useDescriptions(pouch.id, all);
 	const [filter, setFilter] = useState('');
@@ -107,7 +98,7 @@ export function IngredientList({
 				<EmptyState
 					icon={kind.icon}
 					title={`No ${kind.label.toLowerCase()} yet`}
-					description={kindBlurb(kind, scope)}
+					description={kind.blurb}
 					action={
 						readOnly ? null : (
 							<Button onClick={() => onPanel({ new: true })}>
@@ -139,7 +130,6 @@ export function IngredientList({
 			<IngredientSheet
 				pouch={pouch}
 				kind={kind}
-				scope={scope}
 				ingredient={selected}
 				mode={mode}
 				readOnly={readOnly}

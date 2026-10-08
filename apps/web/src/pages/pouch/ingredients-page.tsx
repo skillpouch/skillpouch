@@ -11,12 +11,11 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import {
 	IngredientList,
-	useScopedIngredients,
+	useKindIngredients,
 	type PanelSearch,
 } from '@/features/ingredients/components/ingredient-list';
 import { kindBySlug } from '@/features/ingredients/kinds';
 import { usePouch } from '@/features/pouches/pouches';
-import { GLOBAL_SCOPE } from '@/features/projects/scope';
 import { plural } from '@/lib/format';
 import { NotFoundPage } from '../not-found-page';
 
@@ -31,7 +30,7 @@ export function IngredientsPage() {
 	const navigate = useNavigate();
 	const kind = kindBySlug(slug);
 	const pouch = usePouch(pouchId).data;
-	const { items } = useScopedIngredients(pouchId, kind, GLOBAL_SCOPE);
+	const { items } = useKindIngredients(pouchId, kind);
 
 	if (!kind) return <NotFoundPage />;
 	if (!pouch) return <PageSkeleton variant="list" />;
@@ -57,13 +56,7 @@ export function IngredientsPage() {
 					)
 				}
 			/>
-			<IngredientList
-				pouch={pouch}
-				kind={kind}
-				scope={GLOBAL_SCOPE}
-				search={search}
-				onPanel={setPanel}
-			/>
+			<IngredientList pouch={pouch} kind={kind} search={search} onPanel={setPanel} />
 		</>
 	);
 }

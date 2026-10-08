@@ -26,7 +26,6 @@ import {
 import { Limits } from '@skillpouch/contracts';
 import { api } from '@/lib/api/client';
 import type { OperationResultRecord, PouchRecord } from '@/lib/api/types';
-import type { ProjectKind } from '../projects/scope';
 import type { Ingredient } from './ingredients';
 import type { IngredientKind } from './kinds';
 
@@ -97,7 +96,7 @@ export interface CommitInput {
 	type: OperationType;
 	artifactId: string;
 	base: Pick<Ingredient, 'revisionId'> | null;
-	kind: IngredientKind | ProjectKind;
+	kind: IngredientKind;
 	scope?: string;
 	name: string;
 	/** New content; omitted for delete/restore, which keep the previous entries. */

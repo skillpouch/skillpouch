@@ -5,7 +5,7 @@
  * locked or deleted pouches.
  */
 import { Link, Outlet, useParams } from '@tanstack/react-router';
-import { FolderGit2, LayoutGrid, PanelLeft, Settings, Share2, TerminalSquare } from 'lucide-react';
+import { LayoutGrid, PanelLeft, Settings, Share2, TerminalSquare } from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Banner } from '@/components/layout/banner';
@@ -34,7 +34,6 @@ export function PouchLayout() {
 	const state = pouch.data?.state;
 
 	const counts = countByKind(contents.data?.ingredients ?? []);
-	const projectCount = contents.data?.projects.filter((record) => !record.deleted).length;
 	const params = { pouchId };
 	const sections = [
 		{
@@ -52,18 +51,6 @@ export function PouchLayout() {
 				icon: kind.icon,
 				...(contents.data ? { count: counts[kind.kind] } : {}),
 			})),
-		},
-		{
-			id: 'projects',
-			items: [
-				{
-					to: '/app/p/$pouchId/projects',
-					params,
-					label: 'Projects',
-					icon: FolderGit2,
-					...(projectCount !== undefined ? { count: projectCount } : {}),
-				},
-			],
 		},
 	];
 

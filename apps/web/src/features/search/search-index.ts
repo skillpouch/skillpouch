@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * What ⌘K can find: pages, pouches, devices, browsers, invoices and — inside
- * a pouch — its items and projects. Everything is matched in memory; the
+ * a pouch — its items. Everything is matched in memory; the
  * query never leaves the browser.
  */
 import {
 	CreditCard,
 	FileText,
-	FolderGit2,
 	Globe,
 	LayoutGrid,
 	Laptop,
@@ -20,16 +19,13 @@ import {
 	type LucideIcon,
 } from 'lucide-react';
 import type { DeviceList } from '@/features/devices/devices';
-import type { Ingredient } from '@/features/ingredients/ingredients';
+import { inScope, type Ingredient } from '@/features/ingredients/ingredients';
 import { KINDS, kindDefinition } from '@/features/ingredients/kinds';
-import type { Project } from '@/features/projects/projects';
-import { projectIdOf } from '@/features/projects/scope';
 import type { Invoice } from '@/lib/api/types';
 import { formatDate, formatMoney, formatRelative } from '@/lib/format';
 import { browserLabel } from '@/lib/platform';
 
-export type SearchGroup =
-	'Items' | 'Projects' | 'Pouches' | 'Pages' | 'Computers' | 'Browsers' | 'Invoices';
+export type SearchGroup = 'Items' | 'Pouches' | 'Pages' | 'Computers' | 'Browsers' | 'Invoices';
 
 export interface SearchResult {
 	id: string;
@@ -44,7 +40,7 @@ export interface SearchResult {
 }
 
 export interface SearchSources {
-	pouch?: { id: string; ingredients: Ingredient[]; projects: Project[] };
+	pouch?: { id: string; ingredients: Ingredient[] };
 	pouches: { id: string; name: string; description: string; state: string }[];
 	devices: DeviceList | undefined;
 	invoices: Invoice[] | undefined;
@@ -52,7 +48,6 @@ export interface SearchSources {
 
 const GROUP_ORDER: SearchGroup[] = [
 	'Items',
-	'Projects',
 	'Pouches',
 	'Pages',
 	'Computers',
@@ -132,14 +127,6 @@ function pouchPages(pouchId: string): SearchResult[] {
 			href: `${base}/${kind.slug}`,
 		})),
 		{
-			id: 'page-projects',
-			group: 'Pages',
-			label: 'Projects',
-			hint: 'This pouch',
-			icon: FolderGit2,
-			href: `${base}/projects`,
-		},
-		{
 			id: 'page-shared',
 			group: 'Pages',
 			label: 'Shared links',
@@ -165,35 +152,18 @@ function query(params: Record<string, string>): string {
 
 function pouchResults(pouch: NonNullable<SearchSources['pouch']>): SearchResult[] {
 	const base = `/app/p/${pouch.id}`;
-	const items = pouch.ingredients
-		.filter((item) => !item.deleted)
-		.map<SearchResult>((item) => {
-			const kind = kindDefinition(item.kind)!;
-			const projectId = projectIdOf(item.scope);
-			const project = pouch.projects.find((candidate) => candidate.id === projectId);
-			return {
-				id: `item-${item.id}`,
-				group: 'Items',
-				label: item.name,
-				hint: projectId
-					? `${kind.singular} · ${project?.name ?? 'project'}`
-					: kind.singular,
-				icon: kind.icon,
-				href: projectId
-					? `${base}/projects/${projectId}${query({ kind: kind.slug, item: item.id })}`
-					: `${base}/${kind.slug}${query({ item: item.id })}`,
-			};
-		});
-	const projects = pouch.projects.map<SearchResult>((project) => ({
-		id: `project-${project.id}`,
-		group: 'Projects',
-		label: project.name,
-		hint: 'Project',
-		icon: FolderGit2,
-		href: `${base}/projects/${project.id}`,
-		keywords: project.description,
-	}));
-	return [...items, ...projects, ...pouchPages(pouch.id)];
+	const items = inScope(pouch.ingredients).map<SearchResult>((item) => {
+		const kind = kindDefinition(item.kind)!;
+		return {
+			id: `item-${item.id}`,
+			group: 'Items',
+			label: item.name,
+			hint: kind.singular,
+			icon: kind.icon,
+			href: `${base}/${kind.slug}${query({ item: item.id })}`,
+		};
+	});
+	return [...items, ...pouchPages(pouch.id)];
 }
 
 function accountResults(sources: SearchSources): SearchResult[] {
