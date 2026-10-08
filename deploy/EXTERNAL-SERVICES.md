@@ -24,8 +24,8 @@ Apply changes with `deploy/tunnel/update.sh --force` (or the plain
 | Settings → Webhooks → Add endpoint    | URL `https://skillpouch.net/v1/billing/webhooks/polar` · format **Raw** · events `subscription.created`, `.updated`, `.active`, `.canceled`, `.uncanceled`, `.revoked` | `secrets/polar_webhook_secret` |
 | —                                     | `POLAR_SERVER=sandbox` while testing, `production` for real payments (sandbox and production have separate tokens and webhooks)                                        | `api.env`                      |
 
-After the first start, open the admin dashboard and save the Supporter plan
-once: that creates the Polar product.
+Products, their metadata and how they're linked to plans:
+[POLAR-PRODUCTS.md](POLAR-PRODUCTS.md).
 
 Local development uses the same webhook path on your tunnel URL
 (`<tunnel>/v1/billing/webhooks/polar`, see `apps/api/.env.example`).
