@@ -21,14 +21,28 @@ case-sensitive.
 Limits in the database win once a plan exists, so editing metadata later
 doesn't silently change what paying users get.
 
+## What syncs from Polar
+
+SkillPouch reads the tagged products when the API starts, every hour, and
+when a checkout finds no product for its plan. For each one it:
+
+- links the product to the plan with the same slug;
+- copies the **name**, **description**, price and interval. The site always
+  shows the name from Polar: rename a product there and the plan, the
+  billing page and the badge follow within the hour (restart the API to
+  apply it now);
+- creates the plan when the slug is new, with the `pouch_limit` and
+  `storage_bytes` metadata (both required for a new plan).
+
+Editing a plan in the admin dashboard pushes the name and price to Polar, so
+the two stay the same either way.
+
 ## Products
 
-| Product   | Price         | `plan`      | `pouch_limit` | `storage_bytes` |
-| --------- | ------------- | ----------- | ------------- | --------------- |
-| Supporter | $5.00 / month | `supporter` | `3`           | `1073741824`    |
-
-Keep the Polar price equal to `price_cents` in the plan: checkout charges
-Polar's price, the site shows the database price.
+| Product    | Price         | `plan`           | `pouch_limit` | `storage_bytes` |
+| ---------- | ------------- | ---------------- | ------------- | --------------- |
+| Supporter  | $5.00 / month | `supporter`      | `3`           | `1073741824`    |
+| Supporter+ | your price    | `supporter-plus` | your limit    | your limit      |
 
 The Free plan (`free`) has no Polar product.
 
@@ -37,21 +51,6 @@ The Free plan (`free`) has no Polar product.
 1. Create the product in Polar (sandbox first) with a recurring price.
 2. Add the metadata above with a new slug.
 3. Add the same product, with the same metadata, in production when it's ready.
-
-## Linking today
-
-Automatic linking by the `plan` key isn't built yet. Until it is, copy the
-product's ID from Polar and set it on the plan by hand, once per environment:
-
-```sh
-# local dev
-docker exec skillpouch-dev-postgres-1 psql -U postgres -d skillpouch -c \
-  "update plans set polar_product_id = '<product id>' where slug = 'supporter'"
-
-# server (from deploy/)
-docker compose -f compose.yaml -f tunnel/compose.tunnel.yaml --env-file env/stack.env \
-  exec postgres psql -U postgres -d skillpouch -c \
-  "update plans set polar_product_id = '<product id>' where slug = 'supporter'"
-```
-
-Without a product ID, "Become a supporter" answers `404 not_found`.
+4. For a look of its own, add a style in
+   `apps/web/src/features/billing/plan-styles.ts` and `styles/globals.css`.
+   Without one, it uses the Supporter look.

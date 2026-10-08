@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** The four-point sparkle that marks Supporter everywhere (badge, billing, plan cards). */
+/** The four-point sparkle that marks paid plans everywhere (badge, billing, plan cards). */
 import { cn } from '@/lib/cn';
 
-export function Sparkle({ className }: { className?: string }) {
+export function Sparkle({ className }: { className?: string | undefined }) {
 	return (
 		<svg
 			viewBox="0 0 16 16"
-			className={cn('supporter-sparkle size-3.5 shrink-0', className)}
+			className={cn('plan-sparkle size-3.5 shrink-0', className)}
 			fill="none"
 			stroke="currentColor"
 			strokeWidth={1.4}

@@ -7,6 +7,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PolarProvider, signStandardWebhook } from '../../src/modules/billing/polar';
+import { syncPlansFromProvider } from '../../src/modules/billing/plan-sync';
 import { signIn, type BrowserClient } from '../helpers/clients';
 import { authorizeCli, setupAccount, type Account } from '../helpers/flows';
 import { createHarness, type Harness } from '../helpers/harness';
@@ -49,6 +50,28 @@ describe('billing and admin', () => {
 		},
 	];
 	const foreignOrder = { ...orders[0]!, id: 'ord_other', customer_id: 'cus_other' };
+	let remoteProducts: Record<string, unknown>[] = [];
+	const polarProduct = (
+		id: string,
+		name: string,
+		metadata: Record<string, unknown>,
+		priceCents = 500,
+	) => ({
+		id,
+		name,
+		description: `${name} description`,
+		is_archived: false,
+		recurring_interval: 'month',
+		metadata,
+		prices: [
+			{
+				amount_type: 'fixed',
+				price_amount: priceCents,
+				price_currency: 'usd',
+				is_archived: false,
+			},
+		],
+	});
 
 	const fakePolar: typeof fetch = async (input, init) => {
 		const url = String(input);
@@ -78,6 +101,8 @@ describe('billing and admin', () => {
 				? json({ url: `https://polar.test/invoices/${found.id}.pdf` })
 				: json(found);
 		}
+		if (url.includes('/v1/products/?'))
+			return json({ items: remoteProducts, pagination: { max_page: 1 } });
 		if (url.includes('/v1/products')) return json({ id: 'prod_new' });
 		return new Response('not found', { status: 404 });
 	};
@@ -497,6 +522,73 @@ describe('billing and admin', () => {
 					'admin.plan_created',
 				]),
 			);
+		});
+	});
+
+	describe('plan sync', () => {
+		it('takes plan names from the provider and creates tagged plans', async () => {
+			const before = await h.owner.query(
+				`SELECT entitlements FROM storage_accounts WHERE id = $1`,
+				[alice.accountId],
+			);
+			const plan = await h.owner.query(
+				`SELECT name, description FROM plans WHERE slug = 'supporter'`,
+			);
+			await h.owner.query(
+				`UPDATE storage_accounts SET entitlements = jsonb_set(entitlements, '{plan_slug}', '"supporter"') WHERE id = $1`,
+				[alice.accountId],
+			);
+			remoteProducts = [
+				polarProduct(PRODUCT, 'Supporter Gold', { plan: 'supporter' }),
+				polarProduct(
+					'prod_team',
+					'Team',
+					{ plan: 'team', pouch_limit: 10, storage_bytes: '5368709120' },
+					1000,
+				),
+				polarProduct('prod_untagged', 'Sticker pack', {}),
+			];
+			try {
+				const result = await syncPlansFromProvider(h.deps);
+				expect(result).toMatchObject({
+					created: ['team'],
+					updated: ['supporter'],
+				});
+
+				const plans = (await alice.browser.get('/v1/plans')).body.data.plans as {
+					slug: string;
+					name: string;
+					price_cents: number;
+					pouch_limit: number;
+				}[];
+				expect(plans.find((plan) => plan.slug === 'supporter')?.name).toBe(
+					'Supporter Gold',
+				);
+				expect(plans.find((plan) => plan.slug === 'team')).toMatchObject({
+					name: 'Team',
+					price_cents: 1000,
+					pouch_limit: 10,
+				});
+				expect(plans.some((plan) => plan.name === 'Sticker pack')).toBe(false);
+				expect((await entitlements(alice.browser)).plan_name).toBe('Supporter Gold');
+
+				expect(await syncPlansFromProvider(h.deps)).toMatchObject({
+					created: [],
+					linked: [],
+					updated: [],
+				});
+			} finally {
+				remoteProducts = [];
+				await h.owner.query(
+					`UPDATE plans SET name = $1, description = $2 WHERE slug = 'supporter'`,
+					[plan.rows[0].name, plan.rows[0].description],
+				);
+				await h.owner.query(`DELETE FROM plans WHERE slug = 'team'`);
+				await h.owner.query(`UPDATE storage_accounts SET entitlements = $2 WHERE id = $1`, [
+					alice.accountId,
+					before.rows[0].entitlements,
+				]);
+			}
 		});
 	});
 });

@@ -9,6 +9,7 @@ import {
 	applyPendingBillingEvents,
 	reconcileSubscriptions,
 } from '../modules/billing/billing.service';
+import { syncPlansFromProvider } from '../modules/billing/plan-sync';
 import { gcBlobs, gcPending } from './gc';
 import {
 	expireBrowserTrust,
@@ -47,6 +48,7 @@ export const JOBS: JobDefinition[] = [
 	{ name: 'account.delete', cron: '42 * * * *', run: purgeDeletedAccounts },
 	{ name: 'entitlements.refresh', cron: '0 2 * * *', run: refreshAllEntitlements },
 	{ name: 'billing.apply', cron: '*/5 * * * *', run: applyPendingBillingEvents },
+	{ name: 'billing.plans', cron: '3 * * * *', run: syncPlansFromProvider },
 	{ name: 'billing.reconcile', cron: '45 2 * * *', run: reconcileSubscriptions },
 	{ name: 'devices.stale', cron: '50 2 * * *', run: flagStaleDevices },
 ];

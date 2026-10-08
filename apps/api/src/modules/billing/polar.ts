@@ -15,6 +15,7 @@ import type {
 	BillingProvider,
 	NormalizedInvoice,
 	NormalizedSubscription,
+	PlanProduct,
 	PlanProductInput,
 } from './provider';
 
@@ -121,6 +122,41 @@ export function normalizePolarOrder(data: Record<string, unknown>): NormalizedIn
 		currency: String(data.currency ?? 'usd'),
 		status: (ORDER_STATUSES.has(status) ? status : 'pending') as NormalizedInvoice['status'],
 		invoiceAvailable: Boolean(data.is_invoice_generated),
+	};
+}
+
+/** Same shape as plan slugs created in the admin dashboard. */
+const PLAN_SLUG = /^[a-z0-9-]{2,64}$/;
+
+/** A positive whole number from metadata (Polar keeps numbers; strings are accepted too). */
+function wholeNumber(value: unknown): number | null {
+	const number = typeof value === 'string' && value.trim() ? Number(value) : value;
+	return typeof number === 'number' && Number.isSafeInteger(number) && number > 0 ? number : null;
+}
+
+/**
+ * Maps a Polar product to the plan it sells, or null when it isn't one: not
+ * tagged with `plan`, archived, one-time, or without a fixed active price.
+ */
+export function planProductFromPolar(data: Record<string, unknown>): PlanProduct | null {
+	const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+	const slug = typeof metadata.plan === 'string' ? metadata.plan.trim() : '';
+	const interval = data.recurring_interval;
+	if (!PLAN_SLUG.test(slug) || data.is_archived || (interval !== 'month' && interval !== 'year'))
+		return null;
+	const prices = (data.prices ?? []) as Record<string, unknown>[];
+	const price = prices.find((entry) => entry.amount_type === 'fixed' && !entry.is_archived);
+	if (!price || typeof price.price_amount !== 'number') return null;
+	return {
+		productId: String(data.id),
+		slug,
+		name: String(data.name ?? slug),
+		description: typeof data.description === 'string' ? data.description : '',
+		priceCents: price.price_amount,
+		currency: String(price.price_currency ?? 'usd').toLowerCase(),
+		interval,
+		pouchLimit: wholeNumber(metadata.pouch_limit),
+		storageBytes: wholeNumber(metadata.storage_bytes),
 	};
 }
 
@@ -280,7 +316,23 @@ export class PolarProvider implements BillingProvider {
 			description: input.description,
 			recurring_interval: input.interval,
 			prices,
+			metadata: { plan: input.slug },
 		});
 		return created.id;
+	}
+
+	async listPlanProducts(): Promise<PlanProduct[]> {
+		const products: PlanProduct[] = [];
+		for (let page = 1; ; page++) {
+			const result = await this.call<{
+				items: Record<string, unknown>[];
+				pagination: { max_page: number };
+			}>('GET', `/v1/products/?is_archived=false&limit=100&page=${page}`);
+			for (const item of result.items) {
+				const product = planProductFromPolar(item);
+				if (product) products.push(product);
+			}
+			if (page >= result.pagination.max_page) return products;
+		}
 	}
 }

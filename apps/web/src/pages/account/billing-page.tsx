@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/account/billing` — Free or Supporter. Supporter only adds room
- * (pouches, storage); every feature is free for everyone.
+ * `/app/account/billing` — the plans synced from the billing provider. Paid
+ * plans only add room (pouches, storage); every feature is free for everyone.
+ * Plan names always come from the API.
  */
 import { Check } from 'lucide-react';
-import { Sparkle } from '@/components/brand/sparkle';
 import { useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,8 @@ import {
 	usePlans,
 	usePortal,
 } from '@/features/billing/billing';
+import { PlanName } from '@/features/billing/plan-badge';
+import { planStyle } from '@/features/billing/plan-styles';
 import { usePouches } from '@/features/pouches/pouches';
 import { useUnlocked } from '@/features/session/session-store';
 import { describeError } from '@/lib/api/errors';
@@ -48,24 +50,28 @@ export function BillingPage() {
 	const [downgrading, setDowngrading] = useState(false);
 
 	const current = me.account.entitlements;
-	const isFree = current.plan_slug === 'free';
+	const currentStyle = planStyle(current.plan_slug);
 	const subscription = billing.data?.subscriptions.find((entry) =>
 		['active', 'trialing', 'past_due'].includes(entry.status),
 	);
 	const activePouches = (pouches.data ?? []).filter((pouch) => pouch.state === 'active').length;
-	const freePlan = plans.data?.find((plan) => plan.slug === 'free');
+	const freePlan = plans.data?.find((plan) => plan.price_cents === 0);
+	const freeName = freePlan?.name ?? 'the free plan';
 
 	return (
 		<>
 			<PageHeader
 				title="Billing"
-				description="SkillPouch is free for everyone. Supporter adds room and keeps it running."
+				description="SkillPouch is free for everyone. Paid plans add room and keep it running."
 			/>
-			{!isFree ? (
-				<section className="supporter-shimmer mb-8">
+			{currentStyle ? (
+				<section className={cn('plan-shimmer mb-8', currentStyle.className)}>
 					<p className="flex items-center gap-2 text-lg font-medium">
-						<Sparkle className="size-4" />
-						<span className="supporter-text">You’re a {current.plan_name}</span>
+						<PlanName
+							name={`You’re a ${current.plan_name}`}
+							paid
+							sparkleClassName="size-4"
+						/>
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
 						Thank you. Your support keeps SkillPouch running.
@@ -107,7 +113,10 @@ export function BillingPage() {
 				error={portal.error ?? checkout.error ?? billing.error}
 				className="mb-4"
 			/>
-			<section className="grid gap-4 sm:grid-cols-2" aria-label="Plans">
+			<section
+				className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4"
+				aria-label="Plans"
+			>
 				{plans.isPending ? (
 					<>
 						<Skeleton className="h-56 rounded-lg" />
@@ -186,8 +195,8 @@ export function BillingPage() {
 					title="What happens when you downgrade"
 					description={
 						subscription?.current_period_end
-							? `You keep ${current.plan_name} until ${formatDate(subscription.current_period_end)}. After that your account moves to Free.`
-							: 'Your account moves to Free at the end of the billing period.'
+							? `You keep ${current.plan_name} until ${formatDate(subscription.current_period_end)}. After that your account moves to ${freeName}.`
+							: `Your account moves to ${freeName} at the end of the billing period.`
 					}
 					footer={
 						<>
@@ -220,8 +229,8 @@ export function BillingPage() {
 						{freePlan && me.account.used_bytes > freePlan.storage_bytes ? (
 							<li className="border-l border-border-strong pl-3">
 								<strong className="font-medium">
-									You use {formatBytes(me.account.used_bytes)}; Free includes{' '}
-									{formatBytes(freePlan.storage_bytes)}
+									You use {formatBytes(me.account.used_bytes)}; {freeName}{' '}
+									includes {formatBytes(freePlan.storage_bytes)}
 								</strong>{' '}
 								<span className="text-muted">
 									— you’ll need to free up{' '}
@@ -281,18 +290,18 @@ function PlanTile({
 	onUpgrade: () => void;
 }) {
 	const paid = plan.price_cents > 0;
+	const style = planStyle(plan.slug, paid);
 	return (
 		<article
 			className={cn(
 				'flex flex-col gap-4 rounded-lg border p-5',
-				paid ? 'supporter-card supporter-shimmer' : 'border-border',
+				style ? ['plan-card plan-shimmer', style.className] : 'border-border',
 			)}
 			aria-label={plan.name}
 		>
 			<div className="flex items-start justify-between">
 				<p className="flex items-center gap-1.5 text-sm font-medium">
-					{paid ? <Sparkle className="size-4" /> : null}
-					{paid ? <span className="supporter-text">{plan.name}</span> : plan.name}
+					<PlanName name={plan.name} paid={paid} sparkleClassName="size-4" />
 				</p>
 				{current ? <Badge>Current plan</Badge> : null}
 			</div>

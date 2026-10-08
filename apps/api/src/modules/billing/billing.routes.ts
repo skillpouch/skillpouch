@@ -10,6 +10,7 @@ import { sessionOf } from '../../http/principal';
 import { rawSchema } from '../../http/serialization';
 import type { ZodApp } from '../../http/zod-app';
 import { withTenantTx } from '../../security/tenant-tx';
+import { syncPlansOnMiss } from './plan-sync';
 import {
 	applySubscription,
 	markBillingEventProcessed,
@@ -92,10 +93,17 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 		async (request) => {
 			const principal = sessionOf(request);
 			const provider = requireBilling(deps);
-			const [plan] = await deps.db.app
-				.select()
-				.from(plans)
-				.where(and(eq(plans.slug, request.body.plan_slug), eq(plans.isActive, true)));
+			const findPlan = async () =>
+				(
+					await deps.db.app
+						.select()
+						.from(plans)
+						.where(
+							and(eq(plans.slug, request.body.plan_slug), eq(plans.isActive, true)),
+						)
+				)[0];
+			let plan = await findPlan();
+			if (!plan?.polarProductId && (await syncPlansOnMiss(deps))) plan = await findPlan();
 			if (!plan || !plan.polarProductId || plan.priceCents === 0)
 				throw new AppError('not_found');
 			return provider.createCheckout({

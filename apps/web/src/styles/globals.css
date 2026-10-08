@@ -156,9 +156,31 @@
 	}
 }
 
-/* Supporter: gradient border, gradient text, shimmer on hover (from the design). */
+/*
+ * Paid plan looks: gradient border, gradient text, shimmer on hover. A
+ * `.plan-style-*` class sets the palette (registered in
+ * features/billing/plan-styles.ts); the `.plan-*` classes below use it.
+ */
 @layer components {
-	.supporter-badge {
+	.plan-style-supporter {
+		--plan-edge-1: oklch(0.62 0.2 300);
+		--plan-edge-2: oklch(0.78 0.13 350);
+		--plan-edge-3: oklch(0.95 0.02 320);
+		--plan-text-1: oklch(0.78 0.14 300);
+		--plan-text-2: oklch(0.86 0.1 350);
+		--plan-text-3: oklch(0.97 0.01 320);
+		--plan-sparkle: oklch(0.82 0.12 325);
+	}
+	.plan-style-supporter-plus {
+		--plan-edge-1: oklch(0.7 0.14 65);
+		--plan-edge-2: oklch(0.84 0.12 85);
+		--plan-edge-3: oklch(0.96 0.03 95);
+		--plan-text-1: oklch(0.8 0.13 70);
+		--plan-text-2: oklch(0.89 0.11 90);
+		--plan-text-3: oklch(0.98 0.02 95);
+		--plan-sparkle: oklch(0.86 0.13 85);
+	}
+	.plan-badge {
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
@@ -170,73 +192,73 @@
 			linear-gradient(var(--color-bg), var(--color-bg)) padding-box,
 			linear-gradient(
 					120deg,
-					oklch(0.62 0.2 300 / 0.75),
-					oklch(0.78 0.13 350 / 0.6),
-					oklch(0.95 0.02 320 / 0.45)
+					color-mix(in oklch, var(--plan-edge-1) 75%, transparent),
+					color-mix(in oklch, var(--plan-edge-2) 60%, transparent),
+					color-mix(in oklch, var(--plan-edge-3) 45%, transparent)
 				)
 				border-box;
 		font: 500 12px/1 var(--font-sans);
 	}
-	.supporter-badge .supporter-sparkle {
+	.plan-badge .plan-sparkle {
 		width: 12px;
 		height: 12px;
 	}
-	.supporter-text {
+	.plan-text {
 		background: linear-gradient(
 			100deg,
-			oklch(0.78 0.14 300),
-			oklch(0.86 0.1 350),
-			oklch(0.97 0.01 320),
-			oklch(0.86 0.1 350),
-			oklch(0.78 0.14 300)
+			var(--plan-text-1),
+			var(--plan-text-2),
+			var(--plan-text-3),
+			var(--plan-text-2),
+			var(--plan-text-1)
 		);
 		background-size: 220% 100%;
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
 	}
-	.supporter-sparkle {
-		color: oklch(0.82 0.12 325);
+	.plan-sparkle {
+		color: var(--plan-sparkle);
 	}
-	.supporter-card {
+	.plan-card {
 		border-color: transparent;
 		background:
 			linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
 			linear-gradient(
 					135deg,
-					oklch(0.62 0.2 300 / 0.6),
-					oklch(0.78 0.13 350 / 0.4),
-					oklch(0.95 0.02 320 / 0.22)
+					color-mix(in oklch, var(--plan-edge-1) 60%, transparent),
+					color-mix(in oklch, var(--plan-edge-2) 40%, transparent),
+					color-mix(in oklch, var(--plan-edge-3) 22%, transparent)
 				)
 				border-box;
-		box-shadow: 0 0 48px -16px oklch(0.62 0.2 300 / 0.4);
+		box-shadow: 0 0 48px -16px color-mix(in oklch, var(--plan-edge-1) 40%, transparent);
 	}
-	.supporter-shimmer:hover .supporter-text {
-		animation: supporter-shimmer 2.4s linear infinite;
+	.plan-shimmer:hover .plan-text {
+		animation: plan-shimmer 2.4s linear infinite;
 	}
 	@media (max-width: 639px) {
-		.supporter-badge.supporter-badge-compact {
+		.plan-badge.plan-badge-compact {
 			justify-content: center;
 			width: 32px;
 			height: 32px;
 			padding: 0;
 		}
-		.supporter-badge.supporter-badge-compact .supporter-text {
+		.plan-badge.plan-badge-compact .plan-text {
 			display: none;
 		}
-		.supporter-badge.supporter-badge-compact .supporter-sparkle {
+		.plan-badge.plan-badge-compact .plan-sparkle {
 			width: 14px;
 			height: 14px;
 		}
 	}
 }
-@keyframes supporter-shimmer {
+@keyframes plan-shimmer {
 	to {
 		background-position: -220% 0;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.supporter-shimmer:hover .supporter-text {
+	.plan-shimmer:hover .plan-text {
 		animation: none;
 	}
 }

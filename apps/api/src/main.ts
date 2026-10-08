@@ -15,6 +15,7 @@ import { loadEnv } from './config/env';
 import { closeDeps, createDeps } from './deps';
 import { createLogger } from './infra/logger';
 import { Metrics } from './infra/metrics';
+import { syncPlansFromProvider } from './modules/billing/plan-sync';
 import { openStreams } from './modules/events/event-stream';
 import { buildServer } from './server';
 import { runWorker } from './worker';
@@ -44,6 +45,9 @@ if (env.API_ROLE === 'worker') {
 	await app.listen({ host: env.HOST, port: env.PORT, backlog: 4096 });
 	const metricsServer =
 		env.METRICS_PORT > 0 ? await metrics.listen('0.0.0.0', env.METRICS_PORT) : null;
+	syncPlansFromProvider(deps).catch((error: unknown) =>
+		log.warn({ err: error }, 'plan sync at start failed'),
+	);
 	if (env.SWAGGER) log.info(`Swagger UI: ${env.API_PUBLIC_URL.replace(/\/+$/, '')}/docs`);
 
 	let stopping = false;

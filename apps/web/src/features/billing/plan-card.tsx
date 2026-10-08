@@ -1,45 +1,50 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * The plan summary: usage bars, and either the Supporter pitch (Free) or a
- * thank-you with "Manage" (Supporter).
+ * The plan summary: usage bars, and either the pitch for the cheapest paid
+ * plan (free plans) or a thank-you with "Manage" (paid plans).
  */
 import { cn } from '@/lib/cn';
 import { Link } from '@tanstack/react-router';
-import { Sparkle } from '@/components/brand/sparkle';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { formatBytes } from '@/lib/format';
+import { formatBytes, formatMoney, plural } from '@/lib/format';
 import { usePouches } from '../pouches/pouches';
 import { useUnlocked } from '../session/session-store';
+import { cheapestPaidPlan, usePlans } from './billing';
+import { PlanName } from './plan-badge';
+import { planStyle } from './plan-styles';
 
 export function PlanCard() {
 	const { me } = useUnlocked();
 	const pouches = usePouches();
 	const { entitlements, used_bytes, quota_bytes } = me.account;
 	const active = (pouches.data ?? []).filter((pouch) => pouch.state === 'active').length;
-	const isFree = entitlements.plan_slug === 'free';
+	const style = planStyle(entitlements.plan_slug);
+	const isFree = style === null;
+	const pitch = cheapestPaidPlan(usePlans().data);
 	return (
 		<section
 			className={cn(
 				'rounded-lg border bg-surface p-5',
-				isFree ? 'border-border' : 'supporter-card supporter-shimmer',
+				isFree ? 'border-border' : ['plan-card plan-shimmer', style.className],
 			)}
 			aria-label="Plan"
 		>
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div>
 					<p className="flex items-center gap-1.5 text-sm font-medium">
-						{isFree ? null : <Sparkle className="size-4" />}
-						{isFree ? (
-							entitlements.plan_name
-						) : (
-							<span className="supporter-text">{entitlements.plan_name}</span>
-						)}
+						<PlanName
+							name={entitlements.plan_name}
+							paid={!isFree}
+							sparkleClassName="size-4"
+						/>
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
-						{isFree
-							? 'Supporter: 3 pouches, 1 GB, $5/mo — and it keeps SkillPouch running.'
-							: 'Thank you for supporting SkillPouch.'}
+						{!isFree
+							? 'Thank you for supporting SkillPouch.'
+							: pitch
+								? `${pitch.name}: ${plural(pitch.pouch_limit, 'pouch', 'pouches')}, ${formatBytes(pitch.storage_bytes)}, ${formatMoney(pitch.price_cents, pitch.currency)}/${pitch.interval ?? 'month'} — and it keeps SkillPouch running.`
+								: 'More room, and it keeps SkillPouch running.'}
 					</p>
 				</div>
 				<Button variant={isFree ? 'primary' : 'outline'} size="sm" asChild>

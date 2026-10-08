@@ -17,6 +17,17 @@ export function usePlans() {
 	});
 }
 
+/** The entry-level paid plan, pitched to free users. */
+export function cheapestPaidPlan(plans: PlanRecord[] | undefined): PlanRecord | undefined {
+	return (plans ?? [])
+		.filter((plan) => plan.price_cents > 0)
+		.reduce<PlanRecord | undefined>(
+			(cheapest, plan) =>
+				!cheapest || plan.price_cents < cheapest.price_cents ? plan : cheapest,
+			undefined,
+		);
+}
+
 export function useBilling() {
 	return useQuery({
 		queryKey: queryKeys.billing,

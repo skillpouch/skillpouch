@@ -11,7 +11,7 @@ const Aurora = lazy(() => import('./aurora'));
 const reducedMotion =
 	typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Deep violet → brand purple → soft pink, the Supporter palette. */
+/** Deep violet → brand purple → soft pink, the paid-plan palette. */
 const COLORS = ['#3b1a78', '#8442d9', '#c77dd6'];
 
 export function SignInBackground() {

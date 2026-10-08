@@ -44,11 +44,29 @@ export interface BillingEvent {
 
 export interface PlanProductInput {
 	productId: string | null;
+	/** Tagged on new products as metadata `plan`, so they link back to the plan. */
+	slug: string;
 	name: string;
 	description: string;
 	priceCents: number;
 	currency: string;
 	interval: 'month' | 'year';
+}
+
+/**
+ * A provider product tagged with metadata `plan=<slug>`: the plan it sells,
+ * its current price and, for plans that don't exist yet, their limits.
+ */
+export interface PlanProduct {
+	productId: string;
+	slug: string;
+	name: string;
+	description: string;
+	priceCents: number;
+	currency: string;
+	interval: 'month' | 'year';
+	pouchLimit: number | null;
+	storageBytes: number | null;
 }
 
 export interface BillingProvider {
@@ -69,4 +87,6 @@ export interface BillingProvider {
 	invoiceUrl(storageAccountId: string, invoiceId: string): Promise<string | null>;
 	/** Creates or updates the provider product for a paid plan; returns its id. */
 	syncProduct(input: PlanProductInput): Promise<string>;
+	/** Every active recurring product tagged with a plan slug. */
+	listPlanProducts(): Promise<PlanProduct[]>;
 }

@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/logo';
 import { Kbd } from '@/components/ui/kbd';
 import { AccountMenu } from '@/features/account/account-menu';
-import { SupporterPill } from '@/features/billing/supporter-pill';
+import { PlanPill } from '@/features/billing/plan-badge';
 import { modKey } from '@/lib/platform';
 
 export interface TopBarProps {
@@ -68,7 +68,7 @@ export function TopBar({ onOpenMenu, showLogo = false, leading, onSearch }: TopB
 					</button>
 				</>
 			) : null}
-			<SupporterPill />
+			<PlanPill />
 			<AccountMenu />
 		</header>
 	);

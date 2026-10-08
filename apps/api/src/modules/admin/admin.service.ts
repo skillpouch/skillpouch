@@ -555,6 +555,7 @@ interface PlanInput {
 
 async function syncProduct(
 	deps: Deps,
+	slug: string,
 	input: PlanInput,
 	productId: string | null,
 ): Promise<string | null> {
@@ -562,6 +563,7 @@ async function syncProduct(
 	if (!deps.billing) return productId;
 	return deps.billing.syncProduct({
 		productId,
+		slug,
 		name: input.name,
 		description: input.description,
 		priceCents: input.price_cents,
@@ -585,7 +587,7 @@ export async function createPlan(deps: Deps, admin: SessionPrincipal, input: Pla
 		.from(plans)
 		.where(eq(plans.slug, input.slug));
 	if (existing) throw new AppError('validation_failed', { reason: 'slug already exists' });
-	const polarProductId = await syncProduct(deps, input, null);
+	const polarProductId = await syncProduct(deps, input.slug, input, null);
 	const [plan] = await deps.db.admin
 		.insert(plans)
 		.values({
@@ -629,7 +631,7 @@ export async function updatePlan(
 		current.interval !== input.interval ||
 		current.name !== input.name;
 	const polarProductId = priceChanged
-		? await syncProduct(deps, input, current.polarProductId)
+		? await syncProduct(deps, current.slug, input, current.polarProductId)
 		: current.polarProductId;
 	const [plan] = await deps.db.admin
 		.update(plans)
