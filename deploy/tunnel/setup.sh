@@ -100,9 +100,47 @@ fi
 log "first deploy (builds everything; a few minutes, 10–20 on a Pi)"
 sudo -u "$USER" sg docker -c "$DEPLOY/tunnel/update.sh --force"
 
+RUNNER_DIR="$HOME/actions-runner"
+if [ "${AUTO_UPDATE:-actions}" != timer ] && [ ! -x "$RUNNER_DIR/config.sh" ]; then
+	log "downloading the GitHub Actions runner for $ARCH"
+	RUNNER_ARCH=$([ "$ARCH" = amd64 ] && echo x64 || echo arm64)
+	RUNNER_VERSION=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest \
+		| grep -m1 '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+	mkdir -p "$RUNNER_DIR"
+	curl -fsSL "https://github.com/actions/runner/releases/download/v$RUNNER_VERSION/actions-runner-linux-$RUNNER_ARCH-$RUNNER_VERSION.tar.gz" \
+		| tar xz -C "$RUNNER_DIR"
+fi
+
 cat <<DONE
 
 [setup] Done. SkillPouch answers on http://127.0.0.1 on this server.
-Next: connect Cloudflare Tunnel (deploy/tunnel/README.md, step 4).
-Next: install the GitHub Actions runner (deploy/tunnel/README.md, step 5).
+
+Next steps
+----------
+1. Back up deploy/secrets/pepper_key and deploy/secrets/jwt_signing_key offline.
+
+2. Settings: edit $DEPLOY/env/api.env (ADMIN_EMAILS, GITHUB_CLIENT_ID, ...),
+   put OAuth secrets in $DEPLOY/secrets/, then: sudo chown 10001:10001 $DEPLOY/secrets/*
+
+3. Cloudflare Tunnel: Zero Trust -> Networks -> Tunnels -> Create -> Cloudflared,
+   run the 'sudo cloudflared service install <token>' command it shows here, and
+   add the public hostname  skillpouch.net -> HTTP -> localhost:80
 DONE
+
+if [ "${AUTO_UPDATE:-actions}" = timer ]; then
+	echo "4. Deploys: the timer checks GitHub every 2 minutes (journalctl -fu skillpouch-update)."
+else
+	cat <<DONE
+
+4. Deploys (GitHub Actions runner, already downloaded to $RUNNER_DIR):
+   a. GitHub -> skillpouch/skillpouch -> Settings -> Actions -> Runners ->
+      New self-hosted runner, and copy only the token from its "Configure" step.
+   b. Run here:
+        cd $RUNNER_DIR
+        ./config.sh --url https://github.com/skillpouch/skillpouch --token <TOKEN> \\
+          --name "\$(hostname)" --labels skillpouch-server --unattended
+        sudo ./svc.sh install && sudo ./svc.sh start
+   c. Check: the runner shows "Idle" on that GitHub page. Test with
+      Actions -> deploy -> Run workflow.
+DONE
+fi

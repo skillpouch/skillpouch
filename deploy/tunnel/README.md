@@ -61,7 +61,8 @@ the runner once, as the same user that ran `setup.sh`:
 
 1. GitHub → `skillpouch/skillpouch` → Settings → Actions → Runners →
    **New self-hosted runner** → Linux, your architecture (ARM64 on a Pi).
-2. Run the download commands it shows in `~/actions-runner`, then:
+2. `setup.sh` already downloaded the right runner to `~/actions-runner`; from
+   GitHub's page copy only the token, then:
    ```sh
    ./config.sh --url https://github.com/skillpouch/skillpouch --token <TOKEN> \
      --name "$(hostname)" --labels skillpouch-server --unattended
@@ -79,12 +80,12 @@ timer that deploys new commits of `main` every 2 minutes (without waiting for CI
 
 ## Day to day
 
-|                   |                                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| Deploy            | push/merge to `main`; the server picks it up within 2 minutes                            |
-| Watch a deploy    | `journalctl -fu skillpouch-update`                                                       |
-| Deploy now        | `deploy/tunnel/update.sh --force`                                                        |
-| Roll back the API | `cd deploy && COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml scripts/rollback.sh`  |
-| Stop auto-deploys | `sudo systemctl disable --now skillpouch-update.timer`                                   |
-| Logs              | `cd deploy && docker compose --env-file env/stack.env logs -f api-blue api-green worker` |
-| Backup            | `deploy/scripts/backup.sh`                                                               |
+|                                |                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------- |
+| Deploy                         | push/merge to `main`; deployed right after CI passes                                        |
+| Watch a deploy                 | GitHub → Actions → deploy                                                                   |
+| Deploy now / a specific commit | Actions → deploy → Run workflow → `deploy` (+ commit), or `deploy/tunnel/update.sh --force` |
+| Roll back the API              | Actions → deploy → Run workflow → `rollback`                                                |
+| Stop auto-deploys              | Actions → deploy → ⋯ → Disable workflow                                                     |
+| Logs                           | `cd deploy && docker compose --env-file env/stack.env logs -f api-blue api-green worker`    |
+| Backup                         | `deploy/scripts/backup.sh`                                                                  |
