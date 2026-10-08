@@ -3204,6 +3204,77 @@
 				}
 			}
 		},
+		"/v1/devices/me/logout": {
+			"post": {
+				"summary": "A CLI logs itself out: revoked now and removed from the devices list",
+				"tags": [
+					"devices"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"revoked": {
+													"type": "boolean",
+													"enum": [
+														true
+													]
+												},
+												"rotation_pending": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"revoked",
+												"rotation_pending"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/v1/browsers/{id}/revoke": {
 			"post": {
 				"summary": "Revoke a browser member (ends its sessions)",

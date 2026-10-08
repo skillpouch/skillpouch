@@ -13,7 +13,7 @@ import {
 	securityEvents,
 	sessions,
 } from '@skillpouch/db';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne, or } from 'drizzle-orm';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
 import { notifyAccount, notifyDeviceRevoked } from '../../infra/notify';
@@ -207,6 +207,8 @@ export async function revokeDevice(
 	deviceId: string,
 	input: { roster?: RosterAppendRequest | undefined; reason?: string | undefined },
 ) {
+	if (principal.kind === 'device' && principal.deviceId !== deviceId)
+		throw new AppError('not_found');
 	const result = await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 		const [device] = await tx
 			.select()
@@ -317,6 +319,9 @@ async function finishRemoval(
 	};
 }
 
+/** A CLI that logged itself out is gone for good; it doesn't stay listed as revoked. */
+export const LOGGED_OUT = 'logged_out';
+
 /** Devices page: every CLI (with its sync cursors) and every browser member of the account. */
 export async function listDevices(deps: Deps, principal: Principal) {
 	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
@@ -332,6 +337,7 @@ export async function listDevices(deps: Deps, principal: Principal) {
 				and(eq(deviceKeys.deviceId, devices.id), isNull(deviceKeys.retiredAt)),
 			)
 			.leftJoin(accountMembers, eq(accountMembers.deviceId, devices.id))
+			.where(or(isNull(devices.revokeReason), ne(devices.revokeReason, LOGGED_OUT)))
 			.orderBy(asc(devices.createdAt));
 		const cursors = await tx
 			.select({

@@ -25,6 +25,7 @@ import { findPouch } from '../pouches/pouches.service';
 import {
 	listDevices,
 	refreshDeviceTokens,
+	LOGGED_OUT,
 	renameDevice,
 	reportDevice,
 	revokeBrowser,
@@ -110,6 +111,22 @@ export async function devicesRoutes(app: ZodApp, deps: Deps) {
 				roster: request.body.roster,
 				reason: request.body.reason,
 			}),
+	);
+
+	app.post(
+		'/v1/devices/me/logout',
+		{
+			config: { auth: 'device' },
+			schema: {
+				tags: ['devices'],
+				summary: 'A CLI logs itself out: revoked now and removed from the devices list',
+				response: { 200: RevokeResponse },
+			},
+		},
+		async (request) => {
+			const device = deviceOf(request);
+			return revokeDevice(deps, device, device.deviceId, { reason: LOGGED_OUT });
+		},
 	);
 
 	app.post(

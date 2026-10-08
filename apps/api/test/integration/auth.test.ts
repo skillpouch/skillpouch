@@ -378,6 +378,33 @@ describe('authentication', () => {
 		});
 	});
 
+	describe('logging out from the CLI', () => {
+		it('revokes the CLI and drops it from the devices list', async () => {
+			const cli = await authorizeCli(h, account, 'logs-out');
+			const listed = async () =>
+				(await account.browser.get('/v1/devices')).body.data.devices.map(
+					(device: { id: string }) => device.id,
+				);
+			expect(await listed()).toContain(cli.deviceId);
+			const response = await cli.post('/v1/devices/me/logout');
+			expect(response.body.data).toEqual({ revoked: true, rotation_pending: true });
+			expect(await listed()).not.toContain(cli.deviceId);
+			expect((await cli.get('/v1/devices')).body.error.code).toBe('device_revoked');
+			const refresh = await cli
+				.anonymous()
+				.post('/v1/devices/token', { refresh_token: cli.refreshToken });
+			expect(refresh.body.error.code).toBe('device_revoked');
+		});
+
+		it('cannot revoke another computer', async () => {
+			const cli = await authorizeCli(h, account, 'meddler');
+			const target = await authorizeCli(h, account, 'target');
+			const response = await cli.post(`/v1/devices/${target.deviceId}/revoke`, {});
+			expect(response.status).toBe(404);
+			expect((await target.get('/v1/devices')).status).toBe(200);
+		});
+	});
+
 	describe('revoke from the web', () => {
 		it('stops the CLI on its very next request, even with an unexpired token', async () => {
 			const cli = await authorizeCli(h, account, 'to-revoke');
