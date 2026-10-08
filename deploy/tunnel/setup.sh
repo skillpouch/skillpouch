@@ -58,9 +58,10 @@ fi
 
 log "starting Postgres and Caddy"
 cd "$DEPLOY"
-export COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml
-$DOCKER compose --env-file env/stack.env up -d --wait postgres
-$DOCKER compose --env-file env/stack.env up -d caddy
+# Explicit -f flags: sudo drops COMPOSE_FILE from the environment.
+COMPOSE=($DOCKER compose -f compose.yaml -f tunnel/compose.tunnel.yaml --env-file env/stack.env)
+"${COMPOSE[@]}" up -d --wait postgres
+"${COMPOSE[@]}" up -d --force-recreate caddy
 
 # Deploys come from the GitHub Actions workflow (self-hosted runner, after CI
 # passes). `AUTO_UPDATE=timer` instead polls GitHub every 2 minutes.
