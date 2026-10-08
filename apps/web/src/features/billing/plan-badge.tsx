@@ -20,17 +20,21 @@ export function PlanName({
 	if (!style) return <>{name}</>;
 	return (
 		<>
-			{style.mark === 'heart' ? (
-				<Heart
-					className={cn('plan-sparkle size-3.5 shrink-0', markClassName)}
-					strokeWidth={1.6}
-					aria-hidden
-				/>
-			) : (
-				<Sparkle className={markClassName} />
-			)}
+			<PlanMark style={style} className={markClassName} />
 			<span className="plan-text">{name}</span>
 		</>
+	);
+}
+
+function PlanMark({ style, className }: { style: PlanStyle; className?: string | undefined }) {
+	return style.mark === 'heart' ? (
+		<Heart
+			className={cn('plan-sparkle size-3.5 shrink-0', className)}
+			strokeWidth={1.6}
+			aria-hidden
+		/>
+	) : (
+		<Sparkle className={className} />
 	);
 }
 
@@ -46,7 +50,12 @@ export function PlanPill() {
 			className={cn('plan-badge plan-badge-compact plan-shimmer', style.className)}
 			aria-label={`${plan_name} plan, open billing`}
 		>
-			<PlanName name={plan_name} style={style} />
+			<PlanMark style={style} />
+			<span className="plan-badge-label">
+				<span>
+					<span className="plan-text">{plan_name}</span>
+				</span>
+			</span>
 		</Link>
 	);
 }

@@ -245,15 +245,48 @@
 	.plan-shimmer .plan-text {
 		animation: plan-shimmer 2.4s linear infinite;
 	}
+	/* Only the mark shows; hovering or focusing slides the name out. */
+	.plan-badge.plan-badge-compact {
+		gap: 0;
+		padding: 0 5px;
+		transition: padding-right 220ms ease;
+	}
+	.plan-badge-label {
+		display: grid;
+		grid-template-columns: 0fr;
+		opacity: 0;
+		transition:
+			grid-template-columns 220ms ease,
+			opacity 180ms ease;
+	}
+	.plan-badge-label > span {
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+	}
+	.plan-badge-label .plan-text {
+		padding-left: 5px;
+	}
+	.plan-badge-compact:focus-visible {
+		padding-right: 10px;
+	}
+	.plan-badge-compact:focus-visible .plan-badge-label {
+		grid-template-columns: 1fr;
+		opacity: 1;
+	}
+	@media (hover: hover) {
+		.plan-badge-compact:hover {
+			padding-right: 10px;
+		}
+		.plan-badge-compact:hover .plan-badge-label {
+			grid-template-columns: 1fr;
+			opacity: 1;
+		}
+	}
 	@media (max-width: 639px) {
 		.plan-badge.plan-badge-compact {
-			justify-content: center;
-			width: 32px;
 			height: 32px;
-			padding: 0;
-		}
-		.plan-badge.plan-badge-compact .plan-text {
-			display: none;
+			padding: 0 8px;
 		}
 		.plan-badge.plan-badge-compact .plan-sparkle {
 			width: 14px;
@@ -273,5 +306,9 @@
 @media (prefers-reduced-motion: reduce) {
 	.plan-shimmer .plan-text {
 		animation: none;
+	}
+	.plan-badge.plan-badge-compact,
+	.plan-badge-label {
+		transition: none;
 	}
 }

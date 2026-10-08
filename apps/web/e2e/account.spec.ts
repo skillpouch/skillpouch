@@ -148,6 +148,12 @@ test.describe('account', () => {
 		await page.mouse.move(0, 0);
 		const pillText = page.locator('.plan-badge .plan-text').first();
 		await expect(pillText).toHaveCSS('animation-name', 'plan-shimmer');
+
+		// The top-bar pill shows only the mark until hovered.
+		const pill = page.getByRole('link', { name: 'Supporter plan, open billing' });
+		await expect.poll(async () => (await pill.boundingBox())?.width).toBeLessThan(30);
+		await pill.hover();
+		await expect.poll(async () => (await pill.boundingBox())?.width).toBeGreaterThan(60);
 	});
 
 	test('a hidden plan given by an admin stays off the plans and locks paying', async ({
