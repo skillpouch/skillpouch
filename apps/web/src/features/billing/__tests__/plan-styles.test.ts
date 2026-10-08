@@ -16,6 +16,14 @@ describe('planStyle', () => {
 		expect(planStyle('supporter-plus')?.id).toBe('supporter-plus');
 	});
 
+	it('gives the friends pass its own mark, thanks and gift note', () => {
+		expect(planStyle('friends-pass')).toMatchObject({
+			mark: 'heart',
+			thanks: 'Thank you for being a friend of Fenish.',
+			giftNote: expect.stringContaining('Friends don’t pay'),
+		});
+	});
+
 	it('gives unknown paid plans the first style', () => {
 		expect(planStyle('team')).toBe(PLAN_STYLES[0]);
 	});

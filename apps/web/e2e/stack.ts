@@ -12,12 +12,20 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createTestDatabase } from '@skillpouch/db/testing';
+import pg from 'pg';
 
 const apiPort = process.env.E2E_API_PORT ?? '18080';
 const webOrigin = `http://localhost:${process.env.E2E_WEB_PORT ?? '15173'}`;
 const apiDir = resolve(import.meta.dirname, '../../api');
 
 const database = await createTestDatabase();
+// A hidden plan, the kind only an admin gives out.
+const seed = new pg.Client({ connectionString: database.url });
+await seed.connect();
+await seed.query(`
+	INSERT INTO plans (slug, name, price_cents, pouch_limit, storage_bytes, is_public, sort)
+	VALUES ('friends-pass', 'Friends Pass', 0, 10, 5368709120, false, 90)`);
+await seed.end();
 const blobRoot = mkdtempSync(join(tmpdir(), 'sp-e2e-blobs-'));
 
 const api = spawn(process.execPath, ['--import', 'tsx', 'src/main.ts'], {

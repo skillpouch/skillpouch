@@ -886,4 +886,80 @@ describe('billing and admin', () => {
 			expect(planChanges()).toHaveLength(before);
 		});
 	});
+
+	describe('hidden plans', () => {
+		let friend: Account;
+		const checkouts = () => calls.filter((call) => call.url.endsWith('/v1/checkouts/'));
+		const friendsPass = (metadata: Record<string, unknown>) =>
+			polarProduct('prod_friends', 'Friends Pass', {
+				plan: 'friends-pass',
+				pouch_limit: 20,
+				storage_bytes: 10737418240,
+				...metadata,
+			});
+
+		beforeAll(async () => {
+			friend = await setupAccount(h, 'grace@skillpouch.test');
+		});
+		afterAll(async () => {
+			remoteProducts = [];
+			await h.owner.query(
+				`DELETE FROM plan_grants WHERE plan_id = (SELECT id FROM plans WHERE slug = 'friends-pass')`,
+			);
+			await h.owner.query(`DELETE FROM plans WHERE slug = 'friends-pass'`);
+		});
+
+		it('metadata visible=0 keeps a plan off the pricing page and out of checkout', async () => {
+			remoteProducts = [friendsPass({ visible: 0 })];
+			expect(await syncPlansFromProvider(h.deps)).toMatchObject({
+				created: ['friends-pass'],
+			});
+			const plans = (await friend.browser.get('/v1/plans')).body.data.plans as {
+				slug: string;
+			}[];
+			expect(plans.some((plan) => plan.slug === 'friends-pass')).toBe(false);
+
+			const before = checkouts().length;
+			const bought = await friend.browser.post('/v1/billing/checkout', {
+				plan_slug: 'friends-pass',
+			});
+			expect(bought.status).toBe(404);
+			expect(checkouts()).toHaveLength(before);
+		});
+
+		it('an admin grants it, and the account can’t pay for another plan meanwhile', async () => {
+			const grant = await admin.post(`/v1/admin/users/${friend.browser.userId}/grants`, {
+				plan_slug: 'friends-pass',
+				reason: 'a friend',
+			});
+			expect(grant.status).toBe(200);
+			expect(await entitlements(friend.browser)).toMatchObject({
+				plan_slug: 'friends-pass',
+				plan_name: 'Friends Pass',
+				source: 'grant',
+			});
+
+			const before = checkouts().length;
+			const paying = await friend.browser.post('/v1/billing/checkout', {
+				plan_slug: 'supporter',
+			});
+			expect(paying.status).toBe(409);
+			expect(paying.body.error).toMatchObject({
+				code: 'plan_change_unavailable',
+				details: { reason: 'granted_plan' },
+			});
+			expect(checkouts()).toHaveLength(before);
+		});
+
+		it('shows the plan again once the metadata no longer hides it', async () => {
+			remoteProducts = [friendsPass({ visible: '1' })];
+			expect(await syncPlansFromProvider(h.deps)).toMatchObject({
+				updated: ['friends-pass'],
+			});
+			const plans = (await friend.browser.get('/v1/plans')).body.data.plans as {
+				slug: string;
+			}[];
+			expect(plans.some((plan) => plan.slug === 'friends-pass')).toBe(true);
+		});
+	});
 });

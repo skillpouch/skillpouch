@@ -149,6 +149,25 @@ test.describe('account', () => {
 		const pillText = page.locator('.plan-badge .plan-text').first();
 		await expect(pillText).toHaveCSS('animation-name', 'plan-shimmer');
 	});
+
+	test('a hidden plan given by an admin stays off the plans and locks paying', async ({
+		page,
+	}) => {
+		await createAccount(page);
+		await page.goto('/app/account/billing');
+		const plans = page.getByRole('region', { name: 'Plans' });
+		await expect(plans.getByRole('article', { name: 'Supporter' })).toBeVisible();
+		await expect(plans.getByRole('article', { name: 'Friends Pass' })).toHaveCount(0);
+
+		await setPlan(page, 'friends-pass');
+		await expect(page.getByText('You’re a Friends Pass')).toBeVisible();
+		await expect(page.getByText('Thank you for being a friend of Fenish.')).toBeVisible();
+		await expect(page.getByText(/Friends don’t pay here/)).toBeVisible();
+		await expect(plans.getByRole('article', { name: 'Friends Pass' })).toHaveCount(0);
+		const supporter = plans.getByRole('article', { name: 'Supporter' });
+		await expect(supporter).toHaveAttribute('aria-disabled', 'true');
+		await expect(supporter.getByRole('button', { name: /Supporter/ })).toBeDisabled();
+	});
 });
 
 test.describe('isolation', () => {

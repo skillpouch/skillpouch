@@ -7,6 +7,8 @@
  * A tagged product without a plan creates one from its `pouch_limit` and
  * `storage_bytes` metadata. Limits of an existing plan are never touched:
  * editing metadata must not silently change what paying users get.
+ * Metadata `visible=0` hides the plan from the pricing and billing pages and
+ * from checkout; an admin can still grant it.
  *
  * Runs when the API starts, hourly in the worker, from the admin dashboard,
  * and when a checkout finds no product for its plan.
@@ -77,6 +79,7 @@ async function syncOne(
 			pouchLimit: product.pouchLimit,
 			storageBytes: product.storageBytes,
 			polarProductId: product.productId,
+			isPublic: product.visible,
 			sort: sort + 10,
 		});
 		return 'created';
@@ -89,7 +92,8 @@ async function syncOne(
 		plan.description !== product.description ||
 		plan.priceCents !== product.priceCents ||
 		plan.currency !== product.currency ||
-		plan.interval !== product.interval;
+		plan.interval !== product.interval ||
+		plan.isPublic !== product.visible;
 	if (!linking && !changed) return null;
 	await db
 		.update(plans)
@@ -100,6 +104,7 @@ async function syncOne(
 			priceCents: product.priceCents,
 			currency: product.currency,
 			interval: product.interval,
+			isPublic: product.visible,
 			updatedAt: deps.now(),
 		})
 		.where(eq(plans.id, plan.id));

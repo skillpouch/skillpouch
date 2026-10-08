@@ -11,12 +11,30 @@ export interface PlanStyle {
 	/** Plan slugs that use this style. */
 	slugs: readonly string[];
 	className: string;
+	/** Mark before the plan name; the sparkle unless set. */
+	mark?: 'sparkle' | 'heart';
+	/** Replaces the usual thank-you line. */
+	thanks?: string;
+	/** Shown above the plans when this plan was given by an admin and nothing can be bought. */
+	giftNote?: string;
 }
 
 export const PLAN_STYLES: readonly PlanStyle[] = [
 	{ id: 'supporter', slugs: ['supporter'], className: 'plan-style-supporter' },
 	{ id: 'supporter-plus', slugs: ['supporter-plus'], className: 'plan-style-supporter-plus' },
+	{
+		id: 'friends-pass',
+		slugs: ['friends-pass'],
+		className: 'plan-style-friends-pass',
+		mark: 'heart',
+		thanks: 'Thank you for being a friend of Fenish.',
+		giftNote:
+			'Friends don’t pay here. Your pass is on the house for as long as we’re friends, so there’s nothing to buy.',
+	},
 ];
+
+export const DEFAULT_GIFT_NOTE =
+	'Your plan was given to you by the SkillPouch team, so there’s nothing to buy here.';
 
 const FALLBACK_STYLE = PLAN_STYLES[0]!;
 

@@ -144,6 +144,12 @@ function wholeNumber(value: unknown): number | null {
 	return typeof number === 'number' && Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
+/** Metadata `visible=0` (or `false`) hides a plan; anything else, or nothing, shows it. */
+function visibleFlag(value: unknown): boolean {
+	const flag = typeof value === 'string' ? value.trim().toLowerCase() : value;
+	return !(flag === 0 || flag === '0' || flag === false || flag === 'false');
+}
+
 /**
  * Maps a Polar product to the plan it sells, or null when it isn't one: not
  * tagged with `plan`, archived, one-time, or without a fixed active price.
@@ -167,6 +173,7 @@ export function planProductFromPolar(data: Record<string, unknown>): PlanProduct
 		interval,
 		pouchLimit: wholeNumber(metadata.pouch_limit),
 		storageBytes: wholeNumber(metadata.storage_bytes),
+		visible: visibleFlag(metadata.visible),
 	};
 }
 

@@ -77,6 +77,8 @@ export interface PlanProduct {
 	interval: 'month' | 'year';
 	pouchLimit: number | null;
 	storageBytes: number | null;
+	/** Shown on the pricing and billing pages; hidden plans are only granted by an admin. */
+	visible: boolean;
 }
 
 export interface BillingProvider {

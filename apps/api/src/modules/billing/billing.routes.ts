@@ -10,7 +10,7 @@ import { sessionOf } from '../../http/principal';
 import { rawSchema } from '../../http/serialization';
 import type { ZodApp } from '../../http/zod-app';
 import { withTenantTx } from '../../security/tenant-tx';
-import { changePlan, findPaidPlan, openSubscription } from './plan-change';
+import { assertCanPay, changePlan, findPaidPlan, openSubscription } from './plan-change';
 import {
 	applySubscription,
 	markBillingEventProcessed,
@@ -96,6 +96,7 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 		async (request) => {
 			const principal = sessionOf(request);
 			const provider = requireBilling(deps);
+			await assertCanPay(deps, principal.storageAccountId);
 			const plan = await findPaidPlan(deps, request.body.plan_slug);
 			if (await openSubscription(deps, principal.storageAccountId))
 				throw new AppError('subscription_exists');

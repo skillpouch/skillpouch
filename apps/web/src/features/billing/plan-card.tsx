@@ -35,13 +35,13 @@ export function PlanCard() {
 					<p className="flex items-center gap-1.5 text-sm font-medium">
 						<PlanName
 							name={entitlements.plan_name}
-							paid={!isFree}
-							sparkleClassName="size-4"
+							style={style}
+							markClassName="size-4"
 						/>
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
 						{!isFree
-							? 'Thank you for supporting SkillPouch.'
+							? (style.thanks ?? 'Thank you for supporting SkillPouch.')
 							: pitch
 								? `${pitch.name}: ${plural(pitch.pouch_limit, 'pouch', 'pouches')}, ${formatBytes(pitch.storage_bytes)}, ${formatMoney(pitch.price_cents, pitch.currency)}/${pitch.interval ?? 'month'} — and it keeps SkillPouch running.`
 								: 'More room, and it keeps SkillPouch running.'}

@@ -1,25 +1,34 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** A paid plan's name in its style, and the top-bar pill that links to billing. */
 import { Link } from '@tanstack/react-router';
+import { Heart } from 'lucide-react';
 import { Sparkle } from '@/components/brand/sparkle';
 import { useSession } from '@/features/session/session-store';
 import { cn } from '@/lib/cn';
-import { planStyle } from './plan-styles';
+import { planStyle, type PlanStyle } from './plan-styles';
 
-/** Sparkle and gradient name; plain text for free plans. Wrap in the plan's style class. */
+/** The style's mark and gradient name; plain text without a style. Wrap in the style's class. */
 export function PlanName({
 	name,
-	paid,
-	sparkleClassName,
+	style,
+	markClassName,
 }: {
 	name: string;
-	paid: boolean;
-	sparkleClassName?: string;
+	style: PlanStyle | null;
+	markClassName?: string;
 }) {
-	if (!paid) return <>{name}</>;
+	if (!style) return <>{name}</>;
 	return (
 		<>
-			<Sparkle className={sparkleClassName} />
+			{style.mark === 'heart' ? (
+				<Heart
+					className={cn('plan-sparkle size-3.5 shrink-0', markClassName)}
+					strokeWidth={1.6}
+					aria-hidden
+				/>
+			) : (
+				<Sparkle className={markClassName} />
+			)}
 			<span className="plan-text">{name}</span>
 		</>
 	);
@@ -37,7 +46,7 @@ export function PlanPill() {
 			className={cn('plan-badge plan-badge-compact plan-shimmer', style.className)}
 			aria-label={`${plan_name} plan, open billing`}
 		>
-			<PlanName name={plan_name} paid />
+			<PlanName name={plan_name} style={style} />
 		</Link>
 	);
 }

@@ -27,7 +27,7 @@ import {
 	type BillingDocument,
 } from '@/features/billing/billing';
 import { PlanName } from '@/features/billing/plan-badge';
-import { planStyle } from '@/features/billing/plan-styles';
+import { DEFAULT_GIFT_NOTE, planStyle } from '@/features/billing/plan-styles';
 import { usePouches } from '@/features/pouches/pouches';
 import { useUnlocked } from '@/features/session/session-store';
 import { describeError } from '@/lib/api/errors';
@@ -64,6 +64,12 @@ export function BillingPage() {
 	const freePlan = plans.data?.find((plan) => plan.price_cents === 0);
 	const freeName = freePlan?.name ?? 'the free plan';
 	const available = billing.data?.available === true;
+	// Plans missing from the public list can only be given by an admin; while on
+	// one, nothing can be bought (the server refuses too).
+	const gifted =
+		plans.data !== undefined &&
+		(current.source === 'grant' || current.source === 'override') &&
+		!plans.data.some((plan) => plan.slug === current.plan_slug);
 
 	/**
 	 * Free users check out; subscribers switch their subscription instead
@@ -105,15 +111,15 @@ export function BillingPage() {
 					<p className="flex items-center gap-2 text-lg font-medium">
 						<PlanName
 							name={`You’re a ${current.plan_name}`}
-							paid
-							sparkleClassName="size-4"
+							style={currentStyle}
+							markClassName="size-4"
 						/>
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
-						Thank you. Your support keeps SkillPouch running.
+						{currentStyle.thanks ?? 'Thank you. Your support keeps SkillPouch running.'}
 						{subscription
 							? ` ${formatMoney(subscription.amount_cents)}/${subscription.interval ?? 'month'} · ${subscription.cancel_at_period_end ? 'Ends' : 'Renews'} on ${formatDate(subscription.current_period_end)}`
-							: current.source === 'grant'
+							: current.source === 'grant' && !currentStyle.thanks
 								? ' Granted by the SkillPouch team.'
 								: ''}
 					</p>
@@ -149,6 +155,11 @@ export function BillingPage() {
 				error={portal.error ?? checkout.error ?? billing.error}
 				className="mb-4"
 			/>
+			{gifted ? (
+				<p className="mb-4 text-[13px] text-muted">
+					{currentStyle?.giftNote ?? DEFAULT_GIFT_NOTE}
+				</p>
+			) : null}
 			<section
 				className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4"
 				aria-label="Plans"
@@ -164,6 +175,7 @@ export function BillingPage() {
 							key={plan.slug}
 							plan={plan}
 							current={plan.slug === current.plan_slug}
+							locked={gifted}
 							action={tileAction(plan)}
 						/>
 					))
@@ -416,10 +428,13 @@ interface TileAction {
 function PlanTile({
 	plan,
 	current,
+	locked,
 	action,
 }: {
 	plan: PlanRecord;
 	current: boolean;
+	/** On a plan given by an admin: shown, but nothing can be bought. */
+	locked: boolean;
 	action: TileAction | null;
 }) {
 	const paid = plan.price_cents > 0;
@@ -429,12 +444,14 @@ function PlanTile({
 			className={cn(
 				'flex flex-col gap-4 rounded-lg border p-5',
 				style ? ['plan-card plan-shimmer', style.className] : 'border-border',
+				locked && 'opacity-50',
 			)}
 			aria-label={plan.name}
+			aria-disabled={locked || undefined}
 		>
 			<div className="flex items-start justify-between">
 				<p className="flex items-center gap-1.5 text-sm font-medium">
-					<PlanName name={plan.name} paid={paid} sparkleClassName="size-4" />
+					<PlanName name={plan.name} style={style} markClassName="size-4" />
 				</p>
 				{current ? <Badge>Current plan</Badge> : null}
 			</div>
@@ -463,7 +480,7 @@ function PlanTile({
 					variant={action.primary ? 'primary' : 'outline'}
 					className="mt-auto"
 					loading={action.loading ?? false}
-					disabled={action.disabled ?? false}
+					disabled={locked || (action.disabled ?? false)}
 					onClick={action.onClick}
 				>
 					{action.label}

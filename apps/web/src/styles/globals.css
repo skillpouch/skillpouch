@@ -180,6 +180,15 @@
 		--plan-text-3: oklch(0.98 0.02 95);
 		--plan-sparkle: oklch(0.86 0.13 85);
 	}
+	.plan-style-friends-pass {
+		--plan-edge-1: oklch(0.7 0.13 175);
+		--plan-edge-2: oklch(0.82 0.12 150);
+		--plan-edge-3: oklch(0.95 0.04 120);
+		--plan-text-1: oklch(0.8 0.12 175);
+		--plan-text-2: oklch(0.88 0.11 150);
+		--plan-text-3: oklch(0.97 0.03 120);
+		--plan-sparkle: oklch(0.82 0.13 165);
+	}
 	.plan-badge {
 		display: inline-flex;
 		align-items: center;
