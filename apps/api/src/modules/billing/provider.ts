@@ -38,6 +38,12 @@ export interface NormalizedInvoice {
 
 export type BillingDocument = 'invoice' | 'receipt';
 
+/**
+ * How a plan change settles the price difference: `now` charges (or
+ * credits) it right away, `next_invoice` adds it to the next renewal.
+ */
+export type Proration = 'now' | 'next_invoice';
+
 export interface BillingEvent {
 	/** Provider event id — the idempotency key. */
 	id: string;
@@ -85,6 +91,16 @@ export interface BillingProvider {
 	/** Throws `webhook_invalid` on a bad signature or stale timestamp. */
 	verifyWebhook(rawBody: Buffer, headers: IncomingHttpHeaders): Promise<BillingEvent>;
 	fetchSubscription(externalSubscriptionId: string): Promise<NormalizedSubscription | null>;
+	/**
+	 * Moves a subscription to another product right away; returns its new
+	 * state. Throws `payment_failed` when the charge fails and
+	 * `plan_change_unavailable` when the subscription can't change.
+	 */
+	changePlan(input: {
+		externalSubscriptionId: string;
+		productId: string;
+		proration: Proration;
+	}): Promise<NormalizedSubscription>;
 	/** Every subscription of one account, straight from the provider. */
 	listSubscriptions(storageAccountId: string): Promise<NormalizedSubscription[]>;
 	/** Newest first; empty when the account never paid. */

@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
-import type { BillingOverview, Invoice, PlanRecord } from '@/lib/api/types';
+import type { BillingOverview, Invoice, PlanRecord, Subscription } from '@/lib/api/types';
 
 export function usePlans() {
 	return useQuery({
@@ -60,6 +60,34 @@ export function useCheckout() {
 				plan_slug: planSlug,
 			});
 			go(url);
+		},
+	});
+}
+
+const monthlyCents = (cents: number, interval: string | null) =>
+	interval === 'year' ? cents / 12 : cents;
+
+/**
+ * Whether moving a subscriber to `plan` costs more per month (charged now,
+ * prorated) or not (the difference is credited on the next bill).
+ */
+export function isUpgrade(plan: PlanRecord, subscription: Subscription): boolean {
+	return (
+		monthlyCents(plan.price_cents, plan.interval) >
+		monthlyCents(subscription.amount_cents, subscription.interval)
+	);
+}
+
+/** Switches an existing subscription to another paid plan; takes effect at once. */
+export function useChangePlan() {
+	const client = useQueryClient();
+	return useMutation({
+		mutationFn: (planSlug: string) =>
+			api.post<{ changed: boolean }>('/v1/billing/change-plan', { plan_slug: planSlug }),
+		onSuccess: () => {
+			void client.invalidateQueries({ queryKey: queryKeys.billing });
+			void client.invalidateQueries({ queryKey: queryKeys.me });
+			void client.invalidateQueries({ queryKey: queryKeys.storage });
 		},
 	});
 }

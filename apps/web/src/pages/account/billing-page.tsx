@@ -15,9 +15,11 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toast';
 import {
+	isUpgrade,
 	openBillingDocument,
 	useBilling,
 	useBillingSync,
+	useChangePlan,
 	useCheckout,
 	useInvoices,
 	usePlans,
@@ -29,7 +31,7 @@ import { planStyle } from '@/features/billing/plan-styles';
 import { usePouches } from '@/features/pouches/pouches';
 import { useUnlocked } from '@/features/session/session-store';
 import { describeError } from '@/lib/api/errors';
-import type { Invoice, PlanRecord } from '@/lib/api/types';
+import type { Invoice, PlanRecord, Subscription } from '@/lib/api/types';
 import { cn } from '@/lib/cn';
 import { formatBytes, formatDate, formatMoney, plural } from '@/lib/format';
 
@@ -51,6 +53,7 @@ export function BillingPage() {
 	const portal = usePortal();
 	const pouches = usePouches();
 	const [downgrading, setDowngrading] = useState(false);
+	const [switchingTo, setSwitchingTo] = useState<PlanRecord | null>(null);
 
 	const current = me.account.entitlements;
 	const currentStyle = planStyle(current.plan_slug);
@@ -60,6 +63,36 @@ export function BillingPage() {
 	const activePouches = (pouches.data ?? []).filter((pouch) => pouch.state === 'active').length;
 	const freePlan = plans.data?.find((plan) => plan.price_cents === 0);
 	const freeName = freePlan?.name ?? 'the free plan';
+	const available = billing.data?.available === true;
+
+	/**
+	 * Free users check out; subscribers switch their subscription instead
+	 * (moving to the free plan means canceling it).
+	 */
+	const tileAction = (plan: PlanRecord): TileAction | null => {
+		if (plan.slug === current.plan_slug) return null;
+		const paid = plan.price_cents > 0;
+		if (subscription) {
+			if (subscription.cancel_at_period_end) return null;
+			if (!paid)
+				return { label: `Switch to ${plan.name}`, onClick: () => setDowngrading(true) };
+			const upgrade = isUpgrade(plan, subscription);
+			return {
+				label: `${upgrade ? 'Upgrade' : 'Switch'} to ${plan.name}`,
+				primary: upgrade,
+				disabled: !available,
+				onClick: () => setSwitchingTo(plan),
+			};
+		}
+		if (!paid) return null;
+		return {
+			label: `Become a ${plan.name}`,
+			primary: true,
+			disabled: !available,
+			loading: checkout.isPending && checkout.variables === plan.slug,
+			onClick: () => checkout.mutate(plan.slug),
+		};
+	};
 
 	return (
 		<>
@@ -131,9 +164,7 @@ export function BillingPage() {
 							key={plan.slug}
 							plan={plan}
 							current={plan.slug === current.plan_slug}
-							available={billing.data?.available === true}
-							loading={checkout.isPending && checkout.variables === plan.slug}
-							onUpgrade={() => checkout.mutate(plan.slug)}
+							action={tileAction(plan)}
 						/>
 					))
 				)}
@@ -141,6 +172,9 @@ export function BillingPage() {
 			<p className="mt-4 text-xs text-meta">
 				Payments are handled by Polar. Nothing is ever deleted when you downgrade: extra
 				pouches become read-only.
+				{subscription?.cancel_at_period_end
+					? ' To switch plans, resume your subscription in Manage subscription first.'
+					: ''}
 				{billing.data && !billing.data.available
 					? ' Billing isn’t set up on this server.'
 					: ''}
@@ -217,44 +251,135 @@ export function BillingPage() {
 						</>
 					}
 				>
-					<ul className="flex flex-col gap-3 text-[13px]">
-						{freePlan && activePouches > freePlan.pouch_limit ? (
-							<li className="border-l border-border-strong pl-3">
-								<strong className="font-medium">
-									{activePouches - freePlan.pouch_limit} of your {activePouches}{' '}
-									pouches will be locked
-								</strong>{' '}
-								<span className="text-muted">
-									(you choose which stays active). Locked pouches stay readable
-									here; your computers stop syncing them.
-								</span>
-							</li>
-						) : null}
-						{freePlan && me.account.used_bytes > freePlan.storage_bytes ? (
-							<li className="border-l border-border-strong pl-3">
-								<strong className="font-medium">
-									You use {formatBytes(me.account.used_bytes)}; {freeName}{' '}
-									includes {formatBytes(freePlan.storage_bytes)}
-								</strong>{' '}
-								<span className="text-muted">
-									— you’ll need to free up{' '}
-									{formatBytes(me.account.used_bytes - freePlan.storage_bytes)}{' '}
-									before new changes sync.
-								</span>
-							</li>
-						) : null}
-						<li className="border-l border-border-strong pl-3">
-							<strong className="font-medium">
-								Nothing is deleted automatically.
-							</strong>{' '}
-							<span className="text-muted">
-								Upgrading again unlocks everything instantly.
-							</span>
-						</li>
-					</ul>
+					<DowngradeEffects
+						plan={freePlan}
+						activePouches={activePouches}
+						usedBytes={me.account.used_bytes}
+					/>
 				</DialogContent>
 			</Dialog>
+			{switchingTo && subscription ? (
+				<PlanChangeDialog
+					plan={switchingTo}
+					subscription={subscription}
+					currentName={current.plan_name}
+					activePouches={activePouches}
+					usedBytes={me.account.used_bytes}
+					onClose={() => setSwitchingTo(null)}
+				/>
+			) : null}
 		</>
+	);
+}
+
+/** Confirms moving a subscription to another paid plan; it applies at once. */
+function PlanChangeDialog({
+	plan,
+	subscription,
+	currentName,
+	activePouches,
+	usedBytes,
+	onClose,
+}: {
+	plan: PlanRecord;
+	subscription: Subscription;
+	currentName: string;
+	activePouches: number;
+	usedBytes: number;
+	onClose: () => void;
+}) {
+	const change = useChangePlan();
+	const upgrade = isUpgrade(plan, subscription);
+	const price = `${formatMoney(plan.price_cents, plan.currency)}/${plan.interval ?? 'month'}`;
+	const then = subscription.current_period_end
+		? `then ${price} from ${formatDate(subscription.current_period_end)}`
+		: `then ${price}`;
+	return (
+		<Dialog open onOpenChange={(open) => (open ? null : onClose())}>
+			<DialogContent
+				title={`${upgrade ? 'Upgrade' : 'Switch'} to ${plan.name}`}
+				description={
+					upgrade
+						? `${plan.name} starts right away. You pay the prorated difference for the rest of this billing period now, ${then}.`
+						: `${plan.name} starts right away. What you haven’t used of ${currentName} is credited to your next bill, ${then}.`
+				}
+				busy={change.isPending}
+				footer={
+					<>
+						<Button variant="ghost" disabled={change.isPending} onClick={onClose}>
+							Keep {currentName}
+						</Button>
+						<Button
+							variant="primary"
+							loading={change.isPending}
+							onClick={() =>
+								change.mutate(plan.slug, {
+									onSuccess: () => {
+										toast.success(`You’re now on ${plan.name}.`);
+										onClose();
+									},
+								})
+							}
+						>
+							{upgrade ? 'Upgrade and pay now' : `Switch to ${plan.name}`}
+						</Button>
+					</>
+				}
+			>
+				{upgrade ? null : (
+					<DowngradeEffects
+						plan={plan}
+						activePouches={activePouches}
+						usedBytes={usedBytes}
+					/>
+				)}
+				<ErrorMessage error={change.error} className={upgrade ? '' : 'mt-4'} />
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+/** What moving to a smaller plan means for this account; nothing is ever deleted. */
+function DowngradeEffects({
+	plan,
+	activePouches,
+	usedBytes,
+}: {
+	plan: PlanRecord | undefined;
+	activePouches: number;
+	usedBytes: number;
+}) {
+	return (
+		<ul className="flex flex-col gap-3 text-[13px]">
+			{plan && activePouches > plan.pouch_limit ? (
+				<li className="border-l border-border-strong pl-3">
+					<strong className="font-medium">
+						{activePouches - plan.pouch_limit} of your {activePouches} pouches will be
+						locked
+					</strong>{' '}
+					<span className="text-muted">
+						(you choose which stays active). Locked pouches stay readable here; your
+						computers stop syncing them.
+					</span>
+				</li>
+			) : null}
+			{plan && usedBytes > plan.storage_bytes ? (
+				<li className="border-l border-border-strong pl-3">
+					<strong className="font-medium">
+						You use {formatBytes(usedBytes)}; {plan.name} includes{' '}
+						{formatBytes(plan.storage_bytes)}
+					</strong>{' '}
+					<span className="text-muted">
+						— you’ll need to free up {formatBytes(usedBytes - plan.storage_bytes)}{' '}
+						before new changes sync.
+					</span>
+				</li>
+			) : null}
+			<li className="border-l border-border-strong pl-3">
+				<strong className="font-medium">Nothing is deleted automatically.</strong>{' '}
+				<span className="text-muted">Upgrading again unlocks everything instantly.</span>
+			</li>
+		</ul>
 	);
 }
 
@@ -280,18 +405,22 @@ function UsageBar({
 	);
 }
 
+interface TileAction {
+	label: string;
+	onClick: () => void;
+	primary?: boolean;
+	disabled?: boolean;
+	loading?: boolean;
+}
+
 function PlanTile({
 	plan,
 	current,
-	available,
-	loading,
-	onUpgrade,
+	action,
 }: {
 	plan: PlanRecord;
 	current: boolean;
-	available: boolean;
-	loading: boolean;
-	onUpgrade: () => void;
+	action: TileAction | null;
 }) {
 	const paid = plan.price_cents > 0;
 	const style = planStyle(plan.slug, paid);
@@ -329,15 +458,15 @@ function PlanTile({
 					</li>
 				))}
 			</ul>
-			{paid && !current ? (
+			{action ? (
 				<Button
-					variant="primary"
+					variant={action.primary ? 'primary' : 'outline'}
 					className="mt-auto"
-					loading={loading}
-					disabled={!available}
-					onClick={onUpgrade}
+					loading={action.loading ?? false}
+					disabled={action.disabled ?? false}
+					onClick={action.onClick}
 				>
-					Become a {plan.name}
+					{action.label}
 				</Button>
 			) : null}
 		</article>

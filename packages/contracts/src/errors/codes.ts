@@ -199,6 +199,23 @@ export const ErrorCodes = {
 		retryable: true,
 		message: 'The document is still being prepared; try again in a few seconds.',
 	},
+	subscription_exists: {
+		status: 409,
+		retryable: false,
+		message: 'You already have a subscription; switch plans instead of checking out again.',
+	},
+	plan_change_unavailable: {
+		status: 409,
+		retryable: false,
+		message:
+			'Your subscription can’t switch plans right now. Open Manage subscription to check it.',
+	},
+	payment_failed: {
+		status: 402,
+		retryable: false,
+		message:
+			'The payment didn’t go through. Update your payment method in Manage subscription and try again.',
+	},
 	upstream_unavailable: {
 		status: 502,
 		retryable: true,

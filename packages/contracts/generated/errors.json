@@ -311,6 +311,24 @@
 		"message": "The document is still being prepared; try again in a few seconds.",
 		"docs_url": "https://docs.skillpouch.net/errors/document_pending"
 	},
+	"subscription_exists": {
+		"status": 409,
+		"retryable": false,
+		"message": "You already have a subscription; switch plans instead of checking out again.",
+		"docs_url": "https://docs.skillpouch.net/errors/subscription_exists"
+	},
+	"plan_change_unavailable": {
+		"status": 409,
+		"retryable": false,
+		"message": "Your subscription can’t switch plans right now. Open Manage subscription to check it.",
+		"docs_url": "https://docs.skillpouch.net/errors/plan_change_unavailable"
+	},
+	"payment_failed": {
+		"status": 402,
+		"retryable": false,
+		"message": "The payment didn’t go through. Update your payment method in Manage subscription and try again.",
+		"docs_url": "https://docs.skillpouch.net/errors/payment_failed"
+	},
 	"upstream_unavailable": {
 		"status": 502,
 		"retryable": true,

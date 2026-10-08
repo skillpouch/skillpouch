@@ -59,6 +59,9 @@ Every API error uses the standard response envelope. Clients branch on `code`;
 | `billing_unavailable` | 503 | no | Billing is not configured. |
 | `invoice_details_missing` | 409 | no | Add your billing name and address in the billing portal to get an invoice. |
 | `document_pending` | 503 | yes | The document is still being prepared; try again in a few seconds. |
+| `subscription_exists` | 409 | no | You already have a subscription; switch plans instead of checking out again. |
+| `plan_change_unavailable` | 409 | no | Your subscription can’t switch plans right now. Open Manage subscription to check it. |
+| `payment_failed` | 402 | no | The payment didn’t go through. Update your payment method in Manage subscription and try again. |
 | `upstream_unavailable` | 502 | yes | An upstream service (e.g. GitHub) did not answer as expected. |
 | `webhook_invalid` | 401 | no | Webhook signature invalid. |
 | `last_admin` | 409 | no | The last admin cannot be demoted. |

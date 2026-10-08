@@ -18,6 +18,7 @@ import type {
 	NormalizedSubscription,
 	PlanProduct,
 	PlanProductInput,
+	Proration,
 } from './provider';
 
 const TOLERANCE_SECONDS = 300;
@@ -358,6 +359,27 @@ export class PolarProvider implements BillingProvider {
 		return normalizePolarSubscription(data);
 	}
 
+	async changePlan(input: {
+		externalSubscriptionId: string;
+		productId: string;
+		proration: Proration;
+	}): Promise<NormalizedSubscription> {
+		const path = `/v1/subscriptions/${encodeURIComponent(input.externalSubscriptionId)}`;
+		const response = await this.send('PATCH', path, {
+			product_id: input.productId,
+			proration_behavior: input.proration === 'now' ? 'invoice' : 'prorate',
+		});
+		if (response.ok)
+			return normalizePolarSubscription((await response.json()) as Record<string, unknown>);
+		// 402: the charge failed; 403: canceled, scheduled to cancel or inactive;
+		// 409: a change is already pending; 422: Polar refused the product.
+		const reason = await errorName(response);
+		if (response.status === 402) throw new AppError('payment_failed', { reason });
+		if ([403, 404, 409, 422].includes(response.status))
+			throw new AppError('plan_change_unavailable', { reason });
+		throw new AppError('upstream_unavailable', { status: response.status, path });
+	}
+
 	async syncProduct(input: PlanProductInput): Promise<string> {
 		const prices = [
 			{
@@ -403,6 +425,12 @@ export class PolarProvider implements BillingProvider {
 			if (page >= result.pagination.max_page) return products;
 		}
 	}
+}
+
+/** Polar's error type (`SubscriptionLocked`, `PaymentFailed`, …), for logs and details. */
+async function errorName(response: Response): Promise<string> {
+	const error = (await response.json().catch(() => null)) as { error?: unknown } | null;
+	return typeof error?.error === 'string' ? error.error : `http_${response.status}`;
 }
 
 /** Whether a Polar validation error names `field` in the request body. */

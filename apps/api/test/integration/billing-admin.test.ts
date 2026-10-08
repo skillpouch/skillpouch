@@ -70,6 +70,10 @@ describe('billing and admin', () => {
 	const remoteSubscriptions = new Map<string, Record<string, unknown>[]>();
 	const foreignOrder = { ...orders[0]!, id: 'ord_other', customer_id: 'cus_other' };
 	let remoteProducts: Record<string, unknown>[] = [];
+	/** The account whose subscription changes plans. */
+	let changer: Account;
+	/** What Polar answers to the next plan change instead of success. */
+	let planChangeFailure: { status: number; error: string } | null = null;
 	const polarProduct = (
 		id: string,
 		name: string,
@@ -118,6 +122,22 @@ describe('billing and admin', () => {
 		const listed = /\/v1\/subscriptions\/\?external_customer_id=([^&]+)/.exec(url);
 		if (listed)
 			return json({ items: remoteSubscriptions.get(decodeURIComponent(listed[1]!)) ?? [] });
+		const patched = /\/v1\/subscriptions\/([^/?]+)$/.exec(url);
+		if (patched && init?.method === 'PATCH') {
+			if (planChangeFailure)
+				return new Response(JSON.stringify({ error: planChangeFailure.error }), {
+					status: planChangeFailure.status,
+				});
+			return json(
+				subscriptionEvent('subscription.updated', {
+					id: patched[1],
+					customer: { external_id: changer.accountId },
+					product_id: body?.product_id,
+					amount: body?.product_id === 'prod_team' ? 1000 : 500,
+					modified_at: new Date().toISOString(),
+				}).data,
+			);
+		}
 		if (url.includes('/v1/subscriptions/')) return json(remoteSubscription);
 		if (url.includes('/v1/customers/external/')) {
 			return url.endsWith(encodeURIComponent(alice.accountId))
@@ -733,6 +753,137 @@ describe('billing and admin', () => {
 			]);
 			expect((await erin.browser.post('/v1/billing/sync')).body.data.changed).toBe(0);
 			expect((await entitlements(erin.browser)).plan_slug).toBe('free');
+		});
+	});
+
+	describe('changing plans', () => {
+		const planChanges = () =>
+			calls.filter(
+				(call) => call.method === 'PATCH' && call.url.includes('/v1/subscriptions/'),
+			);
+
+		beforeAll(async () => {
+			remoteProducts = [
+				polarProduct(
+					'prod_team',
+					'Team',
+					{ plan: 'team', pouch_limit: 10, storage_bytes: 5368709120 },
+					1000,
+				),
+			];
+			await syncPlansFromProvider(h.deps);
+			remoteProducts = [];
+			changer = await setupAccount(h, 'frank@skillpouch.test');
+			await webhook(
+				subscriptionEvent('subscription.active', {
+					id: 'sub_frank',
+					customer: { external_id: changer.accountId },
+					modified_at: '2026-10-01T00:00:00Z',
+				}),
+			);
+		});
+		afterAll(async () => {
+			await h.owner.query(`DELETE FROM plans WHERE slug = 'team'`);
+		});
+
+		it('sends a subscriber to a plan change instead of a second checkout', async () => {
+			const checkouts = calls.length;
+			const response = await changer.browser.post('/v1/billing/checkout', {
+				plan_slug: 'team',
+			});
+			expect(response.status).toBe(409);
+			expect(response.body.error.code).toBe('subscription_exists');
+			expect(calls.slice(checkouts).some((call) => call.url.endsWith('/v1/checkouts/'))).toBe(
+				false,
+			);
+		});
+
+		it('upgrades at once, charging the prorated difference now', async () => {
+			const response = await changer.browser.post('/v1/billing/change-plan', {
+				plan_slug: 'team',
+			});
+			expect(response.body.data.changed).toBe(true);
+			expect(planChanges().at(-1)).toMatchObject({
+				url: expect.stringMatching(/\/v1\/subscriptions\/sub_frank$/),
+				body: { product_id: 'prod_team', proration_behavior: 'invoice' },
+			});
+			expect(await entitlements(changer.browser)).toMatchObject({
+				plan_slug: 'team',
+				pouch_limit: 10,
+			});
+			const billing = await changer.browser.get('/v1/billing');
+			expect(billing.body.data.subscriptions).toEqual([
+				expect.objectContaining({ plan_slug: 'team', amount_cents: 1000 }),
+			]);
+		});
+
+		it('downgrades at once, crediting the difference on the next bill', async () => {
+			const response = await changer.browser.post('/v1/billing/change-plan', {
+				plan_slug: 'supporter',
+			});
+			expect(response.body.data.changed).toBe(true);
+			expect(planChanges().at(-1)?.body).toEqual({
+				product_id: PRODUCT,
+				proration_behavior: 'prorate',
+			});
+			expect((await entitlements(changer.browser)).plan_slug).toBe('supporter');
+		});
+
+		it('does nothing when the plan is already the current one', async () => {
+			const before = planChanges().length;
+			const response = await changer.browser.post('/v1/billing/change-plan', {
+				plan_slug: 'supporter',
+			});
+			expect(response.body.data.changed).toBe(false);
+			expect(planChanges()).toHaveLength(before);
+		});
+
+		it('keeps the plan when the payment fails or Polar refuses', async () => {
+			try {
+				planChangeFailure = { status: 402, error: 'PaymentFailed' };
+				const failed = await changer.browser.post('/v1/billing/change-plan', {
+					plan_slug: 'team',
+				});
+				expect(failed.status).toBe(402);
+				expect(failed.body.error.code).toBe('payment_failed');
+
+				planChangeFailure = { status: 409, error: 'SubscriptionLocked' };
+				const locked = await changer.browser.post('/v1/billing/change-plan', {
+					plan_slug: 'team',
+				});
+				expect(locked.status).toBe(409);
+				expect(locked.body.error.code).toBe('plan_change_unavailable');
+			} finally {
+				planChangeFailure = null;
+			}
+			expect((await entitlements(changer.browser)).plan_slug).toBe('supporter');
+		});
+
+		it('refuses without a subscription, for a scheduled cancellation and for free plans', async () => {
+			const none = await admin.post('/v1/billing/change-plan', { plan_slug: 'team' });
+			expect(none.status).toBe(409);
+			expect(none.body.error.code).toBe('plan_change_unavailable');
+
+			const free = await changer.browser.post('/v1/billing/change-plan', {
+				plan_slug: 'free',
+			});
+			expect(free.status).toBe(404);
+
+			await webhook(
+				subscriptionEvent('subscription.updated', {
+					id: 'sub_frank',
+					customer: { external_id: changer.accountId },
+					cancel_at_period_end: true,
+					modified_at: new Date(Date.now() + 1000).toISOString(),
+				}),
+			);
+			const before = planChanges().length;
+			const canceling = await changer.browser.post('/v1/billing/change-plan', {
+				plan_slug: 'team',
+			});
+			expect(canceling.status).toBe(409);
+			expect(canceling.body.error.code).toBe('plan_change_unavailable');
+			expect(planChanges()).toHaveLength(before);
 		});
 	});
 });

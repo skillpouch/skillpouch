@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Billing routes: checkout, customer portal, subscription, webhooks. */
+/** Billing routes: checkout, plan changes, customer portal, subscription, webhooks. */
 import { BillingCheckout, BillingUrl, Timestamp } from '@skillpouch/contracts';
 import { plans, subscriptions } from '@skillpouch/db';
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
@@ -10,7 +10,7 @@ import { sessionOf } from '../../http/principal';
 import { rawSchema } from '../../http/serialization';
 import type { ZodApp } from '../../http/zod-app';
 import { withTenantTx } from '../../security/tenant-tx';
-import { syncPlansOnMiss } from './plan-sync';
+import { changePlan, findPaidPlan, openSubscription } from './plan-change';
 import {
 	applySubscription,
 	markBillingEventProcessed,
@@ -96,19 +96,9 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 		async (request) => {
 			const principal = sessionOf(request);
 			const provider = requireBilling(deps);
-			const findPlan = async () =>
-				(
-					await deps.db.app
-						.select()
-						.from(plans)
-						.where(
-							and(eq(plans.slug, request.body.plan_slug), eq(plans.isActive, true)),
-						)
-				)[0];
-			let plan = await findPlan();
-			if (!plan?.polarProductId && (await syncPlansOnMiss(deps))) plan = await findPlan();
-			if (!plan || !plan.polarProductId || plan.priceCents === 0)
-				throw new AppError('not_found');
+			const plan = await findPaidPlan(deps, request.body.plan_slug);
+			if (await openSubscription(deps, principal.storageAccountId))
+				throw new AppError('subscription_exists');
 			return provider.createCheckout({
 				storageAccountId: principal.storageAccountId,
 				email: principal.email,
@@ -116,6 +106,27 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 				successUrl: `${deps.env.WEB_ORIGIN}/app/account/billing?ok=1`,
 			});
 		},
+	);
+
+	app.post(
+		'/v1/billing/change-plan',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['billing'],
+				summary:
+					'Switch the current subscription to another paid plan (upgrades charge the prorated difference now)',
+				body: BillingCheckout,
+				response: { 200: z.object({ changed: z.boolean() }) },
+			},
+		},
+		async (request) => ({
+			changed: await changePlan(
+				deps,
+				sessionOf(request).storageAccountId,
+				request.body.plan_slug,
+			),
+		}),
 	);
 
 	app.get(
