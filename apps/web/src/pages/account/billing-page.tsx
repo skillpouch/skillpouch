@@ -117,12 +117,16 @@ export function BillingPage() {
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
 						{currentStyle.thanks ?? 'Thank you. Your support keeps SkillPouch running.'}
-						{subscription
-							? ` ${formatMoney(subscription.amount_cents)}/${subscription.interval ?? 'month'} · ${subscription.cancel_at_period_end ? 'Ends' : 'Renews'} on ${formatDate(subscription.current_period_end)}`
-							: current.source === 'grant' && !currentStyle.thanks
-								? ' Granted by the SkillPouch team.'
-								: ''}
 					</p>
+					{subscription ? (
+						<p className="mt-0.5 text-[13px] text-muted">
+							{`${formatMoney(subscription.amount_cents)}/${subscription.interval ?? 'month'} · ${subscription.cancel_at_period_end ? 'Ends' : 'Renews'} on ${formatDate(subscription.current_period_end)}`}
+						</p>
+					) : current.source === 'grant' && !currentStyle.thanks ? (
+						<p className="mt-0.5 text-[13px] text-muted">
+							Granted by the SkillPouch team.
+						</p>
+					) : null}
 				</section>
 			) : null}
 			<section className="mb-8 grid gap-6 sm:grid-cols-2" aria-label="Usage">
