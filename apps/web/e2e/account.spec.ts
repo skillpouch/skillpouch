@@ -144,6 +144,10 @@ test.describe('account', () => {
 		await setPlan(page, 'supporter');
 		await expect(page.getByText('You’re a Supporter')).toBeVisible();
 		await expect(page.getByText('Granted by the SkillPouch team.')).toBeVisible();
+		// The plan name shimmers all the time, not only on hover.
+		await page.mouse.move(0, 0);
+		const pillText = page.locator('.plan-badge .plan-text').first();
+		await expect(pillText).toHaveCSS('animation-name', 'plan-shimmer');
 	});
 });
 

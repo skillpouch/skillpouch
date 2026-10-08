@@ -157,7 +157,7 @@
 }
 
 /*
- * Paid plan looks: gradient border, gradient text, shimmer on hover. A
+ * Paid plan looks: gradient border, gradient text with a constant shimmer. A
  * `.plan-style-*` class sets the palette (registered in
  * features/billing/plan-styles.ts); the `.plan-*` classes below use it.
  */
@@ -233,7 +233,7 @@
 				border-box;
 		box-shadow: 0 0 48px -16px color-mix(in oklch, var(--plan-edge-1) 40%, transparent);
 	}
-	.plan-shimmer:hover .plan-text {
+	.plan-shimmer .plan-text {
 		animation: plan-shimmer 2.4s linear infinite;
 	}
 	@media (max-width: 639px) {
@@ -252,13 +252,17 @@
 		}
 	}
 }
+/*
+ * Moves the 220%-wide gradient by exactly its own width ((100% - 220%) x
+ * -183.33% = 220%), so the loop restarts without a jump.
+ */
 @keyframes plan-shimmer {
 	to {
-		background-position: -220% 0;
+		background-position: -183.333% 0;
 	}
 }
 @media (prefers-reduced-motion: reduce) {
-	.plan-shimmer:hover .plan-text {
+	.plan-shimmer .plan-text {
 		animation: none;
 	}
 }
