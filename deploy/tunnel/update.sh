@@ -45,8 +45,10 @@ echo "[update] deploying $SHA"
 docker build -q -f deploy/docker/api.Dockerfile -t "skillpouch/api:$SHA" . >/dev/null
 
 # 2. Web app: build in a throwaway Node container, publish as a new release.
+# Hand the build output back to us, but never touch deploy/ (secrets are
+# owned by the API container user).
 docker run --rm -v "$REPO":/repo -w /repo -e CI=1 node:24-alpine sh -c \
-	'corepack enable >/dev/null && pnpm install --frozen-lockfile --filter @skillpouch/web... >/dev/null && pnpm --filter @skillpouch/web build >/dev/null && chown -R '"$(id -u):$(id -g)"' /repo'
+	'corepack enable >/dev/null && pnpm install --frozen-lockfile --filter @skillpouch/web... >/dev/null && pnpm --filter @skillpouch/web build >/dev/null && find /repo -path /repo/deploy -prune -o -user 0 -exec chown '"$(id -u):$(id -g)"' {} +'
 mkdir -p "$DATA_ROOT/web/releases"
 rm -rf "$DATA_ROOT/web/releases/$SHA"
 cp -r apps/web/dist "$DATA_ROOT/web/releases/$SHA"
