@@ -17,6 +17,7 @@ import { ShareDialog } from '@/features/shares/components/share-dialog';
 import { plural } from '@/lib/format';
 import {
 	inScope,
+	newestFirst,
 	useDescriptions,
 	useOpenConflicts,
 	usePouchContents,
@@ -26,6 +27,7 @@ import type { KindDefinition } from '../kinds';
 import { useDeleteIngredient } from '../mutations';
 import { IngredientSheet, type SheetMode } from './ingredient-sheet';
 import { IngredientTable } from './ingredient-table';
+import { SingleIngredient } from './single-ingredient';
 
 export interface PanelSearch {
 	item?: string;
@@ -75,26 +77,54 @@ export function IngredientList({
 		(conflicts.data ?? []).map((conflict) => conflict.artifact_id).filter(Boolean) as string[],
 	);
 	const selected = search.item ? (all.find((item) => item.id === search.item) ?? null) : null;
-	const mode: SheetMode | null = search.new
-		? 'create'
-		: selected
-			? (search.mode ?? 'show')
-			: null;
+	const [single = null, ...extras] = kind.single ? newestFirst(all) : [];
+	// A single-item kind that already has its item never creates a second one.
+	const mode: SheetMode | null =
+		search.new && !single ? 'create' : selected ? (search.mode ?? 'show') : null;
+
+	const tableActions = {
+		onShow: (item: Ingredient) => onPanel({ item: item.id }),
+		onEdit: (item: Ingredient) => onPanel({ item: item.id, mode: 'edit' }),
+		onShare: setSharing,
+		onDelete: setDeleting,
+	};
 
 	return (
 		<>
-			{all.length > 0 ? (
-				<div className="mb-4 max-w-xs">
-					<Input
-						value={filter}
-						onChange={(event) => setFilter(event.target.value)}
-						placeholder="Filter by name…"
-						aria-label={`Filter ${kind.label.toLowerCase()}`}
-					/>
-				</div>
-			) : null}
 			<ErrorMessage error={contents.error} className="mb-4" />
-			{!contents.isPending && all.length === 0 ? (
+			{kind.single ? (
+				<>
+					<SingleIngredient
+						pouchId={pouch.id}
+						kind={kind}
+						item={single}
+						loading={contents.isPending}
+						readOnly={readOnly}
+						onCreate={() => onPanel({ new: true })}
+						onEdit={tableActions.onEdit}
+						onShare={setSharing}
+					/>
+					{extras.length > 0 ? (
+						<section className="mt-8" aria-label={`Older ${kind.label.toLowerCase()}`}>
+							<h2 className="text-sm font-medium">
+								Older {kind.label.toLowerCase()}
+							</h2>
+							<p className="mt-1 mb-3 text-[13px] text-muted">
+								Only the one above is used. Copy what you still need into it, then
+								delete these.
+							</p>
+							<IngredientTable
+								items={extras}
+								descriptions={descriptions.data}
+								conflicted={conflicted}
+								readOnly={readOnly}
+								loading={false}
+								{...tableActions}
+							/>
+						</section>
+					) : null}
+				</>
+			) : !contents.isPending && all.length === 0 ? (
 				<EmptyState
 					icon={kind.icon}
 					title={`No ${kind.label.toLowerCase()} yet`}
@@ -108,17 +138,26 @@ export function IngredientList({
 					}
 				/>
 			) : (
-				<IngredientTable
-					items={items}
-					descriptions={descriptions.data}
-					conflicted={conflicted}
-					readOnly={readOnly}
-					loading={contents.isPending}
-					onShow={(item) => onPanel({ item: item.id })}
-					onEdit={(item) => onPanel({ item: item.id, mode: 'edit' })}
-					onShare={setSharing}
-					onDelete={setDeleting}
-				/>
+				<>
+					{all.length > 0 ? (
+						<div className="mb-4 max-w-xs">
+							<Input
+								value={filter}
+								onChange={(event) => setFilter(event.target.value)}
+								placeholder="Filter by name…"
+								aria-label={`Filter ${kind.label.toLowerCase()}`}
+							/>
+						</div>
+					) : null}
+					<IngredientTable
+						items={items}
+						descriptions={descriptions.data}
+						conflicted={conflicted}
+						readOnly={readOnly}
+						loading={contents.isPending}
+						{...tableActions}
+					/>
+				</>
 			)}
 			{contents.data && contents.data.unreadable.length > 0 ? (
 				<p className="mt-4 text-xs text-warn">
@@ -141,7 +180,7 @@ export function IngredientList({
 				onShare={setSharing}
 				onDelete={setDeleting}
 				onCreated={() => {
-					toast.success(`${kind.singular} added`);
+					toast.success(kind.single ? `${kind.label} saved` : `${kind.singular} added`);
 					onPanel({});
 				}}
 			/>

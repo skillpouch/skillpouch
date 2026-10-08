@@ -302,12 +302,28 @@ function ImportDialog({
 	const pouches = usePouches();
 	const writable = (pouches.data ?? []).filter((pouch) => pouch.state === 'active');
 	const [pouchId, setPouchId] = useState<string | null>(null);
-	const [duplicate, setDuplicate] = useState<DuplicateChoice>('keep_both');
+	const kind = kindDefinition(bundle.kind);
+	// A pouch has one set of instructions: an import extends or replaces it.
+	const [duplicateLabel, duplicateOptions] = kind?.single
+		? [
+				`If the pouch has ${kind.label.toLowerCase()}`,
+				[
+					{ value: 'append' as const, label: 'Add to the end' },
+					{ value: 'replace' as const, label: 'Replace' },
+				],
+			]
+		: [
+				'If an item with this name exists',
+				[
+					{ value: 'keep_both' as const, label: 'Keep both' },
+					{ value: 'replace' as const, label: 'Replace' },
+				],
+			];
+	const [duplicate, setDuplicate] = useState<DuplicateChoice>(duplicateOptions[0]!.value);
 	const [reviewed, setReviewed] = useState(false);
 	const [secrets, setSecrets] = useState<Record<string, string>>({});
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<unknown>(null);
-	const kind = kindDefinition(bundle.kind);
 	const target = writable.find((pouch) => pouch.id === (pouchId ?? writable[0]?.id));
 
 	const submit = async () => {
@@ -383,17 +399,12 @@ function ImportDialog({
 						</fieldset>
 					)}
 					<div className="flex flex-col gap-2">
-						<span className="text-[13px] font-medium">
-							If an item with this name exists
-						</span>
+						<span className="text-[13px] font-medium">{duplicateLabel}</span>
 						<Segmented
-							label="If an item with this name exists"
+							label={duplicateLabel}
 							value={duplicate}
 							onChange={setDuplicate}
-							options={[
-								{ value: 'keep_both', label: 'Keep both' },
-								{ value: 'replace', label: 'Replace' },
-							]}
+							options={duplicateOptions}
 						/>
 					</div>
 					{bundle.stripped.length > 0 ? (

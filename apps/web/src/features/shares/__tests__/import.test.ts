@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { b64 } from '@skillpouch/crypto';
 import { describe, expect, it } from 'vitest';
-import { bundleFiles, freeName } from '../import';
+import { appendFiles, bundleFiles, freeName } from '../import';
 import { keyFromHash } from '../shares';
 
 describe('freeName', () => {
@@ -43,5 +43,25 @@ describe('bundleFiles', () => {
 		const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 		expect(JSON.parse(decode(files[0]!.bytes)).env.URL).toBe('postgres://x');
 		expect(decode(files[1]!.bytes)).toBe('hi');
+	});
+});
+
+describe('appendFiles', () => {
+	const file = (path: string, text: string) => ({
+		path,
+		bytes: new TextEncoder().encode(text),
+	});
+	const text = (files: { path: string; bytes: Uint8Array }[], path: string) =>
+		new TextDecoder().decode(files.find((entry) => entry.path === path)?.bytes);
+
+	it('joins the main files and adds only new extra files', () => {
+		const merged = appendFiles(
+			[file('INSTRUCTIONS.md', '# Mine\n\n'), file('notes.md', 'mine')],
+			[file('INSTRUCTIONS.md', '# Theirs\n'), file('notes.md', 'theirs'), file('x.md', 'x')],
+			'INSTRUCTIONS.md',
+		);
+		expect(text(merged, 'INSTRUCTIONS.md')).toBe('# Mine\n\n# Theirs\n');
+		expect(text(merged, 'notes.md')).toBe('mine');
+		expect(merged.map((entry) => entry.path)).toEqual(['INSTRUCTIONS.md', 'notes.md', 'x.md']);
 	});
 });

@@ -5,14 +5,20 @@
  */
 import { unb64, type ShareBundle } from '@skillpouch/crypto';
 import { asText, fillSecrets } from '../ingredients/content';
-import { inScope, loadPouchContents } from '../ingredients/ingredients';
-import { isIngredientKind } from '../ingredients/kinds';
+import {
+	fetchIngredientFiles,
+	inScope,
+	loadPouchContents,
+	newestFirst,
+	type Ingredient,
+} from '../ingredients/ingredients';
+import { isIngredientKind, kindDefinition } from '../ingredients/kinds';
 import { commitIngredient, type DraftFile } from '../ingredients/write';
 import type { PouchView } from '../pouches/pouches';
 import { currentKeyring } from '../session/session-store';
 import { recordImport } from './shares';
 
-export type DuplicateChoice = 'keep_both' | 'replace';
+export type DuplicateChoice = 'keep_both' | 'replace' | 'append';
 
 /** `name` → `name-2`, `name-3`, … until it is free in the pouch. */
 export function freeName(name: string, taken: Set<string>): string {
@@ -21,6 +27,32 @@ export function freeName(name: string, taken: Set<string>): string {
 		const candidate = `${name}-${index}`;
 		if (!taken.has(candidate.toLowerCase())) return candidate;
 	}
+}
+
+/**
+ * `incoming` added to `current`: the main files are joined with a blank line,
+ * other files are added unless one with the same path exists.
+ */
+export function appendFiles(
+	current: DraftFile[],
+	incoming: DraftFile[],
+	mainFile: string,
+): DraftFile[] {
+	const decoder = new TextDecoder();
+	const encoder = new TextEncoder();
+	const incomingMain = incoming.find((file) => file.path === mainFile);
+	const merged = current.map((file) =>
+		file.path === mainFile && incomingMain
+			? {
+					...file,
+					bytes: encoder.encode(
+						`${decoder.decode(file.bytes).trimEnd()}\n\n${decoder.decode(incomingMain.bytes)}`,
+					),
+				}
+			: file,
+	);
+	const paths = new Set(current.map((file) => file.path));
+	return [...merged, ...incoming.filter((file) => !paths.has(file.path))];
 }
 
 /** Secret values per file, keyed like `stripped`: `<path>:<dotted.key>`. */
@@ -55,9 +87,49 @@ export async function importBundle(input: {
 	const keyring = currentKeyring();
 	const contents = await loadPouchContents(keyring, pouch.id);
 	const sameKind = inScope(contents.ingredients).filter((item) => item.kind === bundle.kind);
-	const existing = sameKind.find((item) => item.name.toLowerCase() === bundle.name.toLowerCase());
-	const files = bundleFiles(bundle, input.secrets);
+	const definition = kindDefinition(bundle.kind);
+	const single = definition?.single;
+	let files = bundleFiles(bundle, input.secrets);
 
+	// A pouch has one set of instructions: an import goes into it.
+	if (single) {
+		const [existing] = newestFirst(sameKind);
+		if (existing && input.duplicate === 'append') {
+			files = appendFiles(
+				await currentFiles(keyring, pouch.id, existing),
+				files,
+				definition.mainFile,
+			);
+		}
+		await commitIngredient(
+			existing
+				? {
+						keyring,
+						pouch,
+						type: 'update',
+						artifactId: existing.id,
+						base: existing,
+						kind: existing.kind,
+						scope: existing.scope,
+						name: existing.name,
+						files,
+					}
+				: {
+						keyring,
+						pouch,
+						type: 'create',
+						artifactId: crypto.randomUUID(),
+						base: null,
+						kind: bundle.kind,
+						name: single,
+						files,
+					},
+		);
+		if (!input.oneTime) await recordImport(input.shareId).catch(() => undefined);
+		return { name: existing?.name ?? single };
+	}
+
+	const existing = sameKind.find((item) => item.name.toLowerCase() === bundle.name.toLowerCase());
 	let name = bundle.name;
 	if (existing && input.duplicate === 'replace') {
 		await commitIngredient({
@@ -86,4 +158,17 @@ export async function importBundle(input: {
 	}
 	if (!input.oneTime) await recordImport(input.shareId).catch(() => undefined);
 	return { name };
+}
+
+async function currentFiles(
+	keyring: ReturnType<typeof currentKeyring>,
+	pouchId: string,
+	ingredient: Ingredient,
+): Promise<DraftFile[]> {
+	const bytes = await fetchIngredientFiles(keyring, pouchId, ingredient);
+	return ingredient.files.map((entry) => ({
+		path: entry.path,
+		bytes: bytes.get(entry.path) ?? new Uint8Array(),
+		mode: entry.mode,
+	}));
 }

@@ -225,6 +225,11 @@ export function useDescriptions(pouchId: string, ingredients: Ingredient[] | und
 	});
 }
 
+/** Most recently updated first; a single-item kind uses the first. */
+export function newestFirst(ingredients: readonly Ingredient[]): Ingredient[] {
+	return [...ingredients].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 /** Live global ingredients, sorted by name. */
 export function inScope(ingredients: Ingredient[]): Ingredient[] {
 	return ingredients.filter(

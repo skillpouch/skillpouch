@@ -37,6 +37,8 @@ export interface KindDefinition {
 	runsCommands?: boolean;
 	/** JSON values under these keys are secrets: stripped from share links. */
 	secretKeys?: readonly string[];
+	/** A pouch holds at most one of this kind, always under this name. */
+	single?: string;
 }
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
@@ -60,8 +62,9 @@ export const KINDS: readonly KindDefinition[] = [
 		singular: 'Instructions',
 		icon: FileText,
 		mainFile: 'INSTRUCTIONS.md',
-		blurb: 'Global rules every assistant follows (AGENTS.md, CLAUDE.md, …).',
-		template: (name) => `# ${name}\n\n`,
+		blurb: 'Rules every assistant follows on all your computers. They are linked into AGENTS.md, CLAUDE.md, GEMINI.md and the rest, so editing any of them edits these.',
+		template: () => '# Instructions\n\n',
+		single: 'instructions',
 	},
 	{
 		kind: 'agent',

@@ -47,9 +47,13 @@ export function IngredientsPage() {
 		<>
 			<PageHeader
 				title={kind.label}
-				description={`${plural(items.length, kind.singular.toLowerCase())} in ${pouch.name}`}
+				description={
+					kind.single
+						? `Used by every assistant on your computers, in ${pouch.name}`
+						: `${plural(items.length, kind.singular.toLowerCase())} in ${pouch.name}`
+				}
 				actions={
-					readOnly ? null : (
+					readOnly || kind.single ? null : (
 						<Button variant="primary" onClick={() => setPanel({ new: true })}>
 							<Plus /> Add {kind.singular.toLowerCase()}
 						</Button>

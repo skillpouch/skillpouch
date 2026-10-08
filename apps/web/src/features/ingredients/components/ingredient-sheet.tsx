@@ -80,7 +80,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 			dispatch({
 				type: 'reset',
 				draft: createDraft(
-					'',
+					kind.single ?? '',
 					[
 						{
 							path: kind.mainFile,
@@ -148,9 +148,11 @@ export function IngredientSheet(props: IngredientSheetProps) {
 		<Sheet open={open} onOpenChange={(next) => !next && guard(props.onClose)}>
 			<SheetContent
 				title={
-					mode === 'create'
-						? `New ${kind.singular.toLowerCase()}`
-						: (ingredient?.name ?? kind.singular)
+					kind.single
+						? kind.label
+						: mode === 'create'
+							? `New ${kind.singular.toLowerCase()}`
+							: (ingredient?.name ?? kind.singular)
 				}
 				hideTitle
 				onEscapeKeyDown={(event) => {
@@ -162,7 +164,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 			>
 				<header className="flex items-center gap-3 border-b border-border px-4 py-3 sm:px-5">
 					<Icon className="size-4 shrink-0 text-meta" aria-hidden />
-					{editing ? (
+					{editing && !kind.single ? (
 						<Input
 							aria-label="Item name"
 							maxLength={NAME_MAX}
@@ -189,8 +191,13 @@ export function IngredientSheet(props: IngredientSheetProps) {
 						/>
 					) : (
 						<div className="min-w-0 flex-1">
-							<h2 className="truncate font-mono text-sm font-medium">
-								{ingredient?.name}
+							<h2
+								className={cn(
+									'truncate text-sm font-medium',
+									!kind.single && 'font-mono',
+								)}
+							>
+								{kind.single ? kind.label : ingredient?.name}
 							</h2>
 							{ingredient ? (
 								<p className="text-xs text-meta">
@@ -391,7 +398,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 								disabled={mode === 'edit' && changedCount(draft) === 0}
 								onClick={() => void save()}
 							>
-								{mode === 'create'
+								{mode === 'create' && !kind.single
 									? `Add ${kind.singular.toLowerCase()}`
 									: 'Save changes'}
 							</Button>

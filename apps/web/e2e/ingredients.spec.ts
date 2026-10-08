@@ -4,7 +4,7 @@
  * signed in the browser; every list is decrypted from the server's ciphertext,
  * so a reload proves the round trip.
  */
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { createAccount, expect, openFirstPouch, test } from './fixtures';
 
 async function openKind(page: Page, label: string): Promise<void> {
@@ -17,8 +17,13 @@ async function openKind(page: Page, label: string): Promise<void> {
 }
 
 /** Replaces the whole text of the open CodeMirror file. */
-async function typeInEditor(page: Page, path: string, text: string): Promise<void> {
-	const editor = page.getByLabel(`Contents of ${path}`);
+async function typeInEditor(
+	page: Page,
+	path: string,
+	text: string,
+	within: Page | Locator = page,
+): Promise<void> {
+	const editor = within.getByLabel(`Contents of ${path}`);
 	await editor.click();
 	await page.keyboard.press('ControlOrMeta+a');
 	await page.keyboard.press('Delete');
@@ -57,6 +62,42 @@ test.describe('ingredients', () => {
 			await openKind(page, label);
 			await expect(page.getByText(`No ${label.toLowerCase()} yet`)).toBeVisible();
 		}
+	});
+
+	test('a pouch has one set of instructions, shown and edited in place', async ({ page }) => {
+		await openKind(page, 'Instructions');
+		await page.getByRole('button', { name: 'Write instructions' }).click();
+		const sheet = page.getByRole('dialog');
+		await expect(sheet.getByLabel('Item name')).toHaveCount(0);
+		await typeInEditor(page, 'INSTRUCTIONS.md', '# Rules\n\nAlways write tests.');
+		await sheet.getByRole('button', { name: 'Save changes' }).click();
+		await expect(page.getByText('Instructions saved')).toBeVisible();
+
+		await page.reload();
+		const card = page.getByRole('region', { name: 'Instructions' });
+		await expect(card.getByLabel('Contents of INSTRUCTIONS.md')).toContainText(
+			'Always write tests.',
+		);
+		await expect(page.getByRole('button', { name: /Add instructions/ })).toHaveCount(0);
+		await expect(page.getByRole('table')).toHaveCount(0);
+
+		await card.getByRole('button', { name: 'Edit' }).click();
+		await typeInEditor(
+			page,
+			'INSTRUCTIONS.md',
+			'# Rules\n\nUse pnpm.',
+			page.getByRole('dialog'),
+		);
+		await page.getByRole('dialog').getByRole('button', { name: 'Save changes' }).click();
+		await expect(page.getByRole('dialog').getByRole('button', { name: 'Edit' })).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(card.getByLabel('Contents of INSTRUCTIONS.md')).toContainText('Use pnpm.');
+		await expect(
+			page
+				.getByRole('navigation')
+				.getByRole('link', { name: /^Instructions/ })
+				.first(),
+		).toContainText('1');
 	});
 
 	test('a new skill’s template follows its name, and it saves encrypted', async ({ page }) => {

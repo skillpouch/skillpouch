@@ -72,12 +72,12 @@ describe('secret stripping', () => {
 });
 
 describe('kinds', () => {
-	it('every kind has a unique slug and a template that names the item', () => {
+	it('every kind has a unique slug, and a template that names the item unless the name is fixed', () => {
 		const slugs = new Set(KINDS.map((kind) => kind.slug));
 		expect(slugs.size).toBe(KINDS.length);
 		for (const kind of KINDS) {
 			expect(kindBySlug(kind.slug)).toBe(kind);
-			expect(kind.template('zz-name')).toContain('zz-name');
+			if (!kind.single) expect(kind.template('zz-name')).toContain('zz-name');
 			if (kind.mainFile.endsWith('.json')) {
 				expect(() => JSON.parse(kind.template('zz-name'))).not.toThrow();
 			}
