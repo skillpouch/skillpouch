@@ -1,20 +1,35 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
-# Builds and deploys the current main branch on this server, if it changed.
-#   deploy/tunnel/update.sh            only when origin/main has new commits
-#   deploy/tunnel/update.sh --force    rebuild and redeploy now
-# Run by the skillpouch-update.timer every 2 minutes.
+# Builds and deploys a commit of main on this server.
+#   deploy/tunnel/update.sh                 origin/main, only if it changed
+#   deploy/tunnel/update.sh --force         origin/main, rebuild and redeploy now
+#   deploy/tunnel/update.sh --ref <sha>     that commit (must be on main), now
+# Run by the GitHub Actions deploy workflow (self-hosted runner) or, if
+# enabled, the skillpouch-update.timer.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO"
 exec 9>/tmp/skillpouch-update.lock
-flock -n 9 || { echo "[update] another update is running"; exit 0; }
+flock -w 3600 9 || { echo "[update] another update is still running" >&2; exit 1; }
+
+FORCE=0
+REF=origin/main
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--force) FORCE=1 ;;
+	--ref) REF="${2:?--ref needs a commit}"; FORCE=1; shift ;;
+	*) echo "unknown option: $1" >&2; exit 2 ;;
+	esac
+	shift
+done
 
 git fetch --quiet origin main
 CURRENT=$(git rev-parse HEAD)
-TARGET=$(git rev-parse origin/main)
+TARGET=$(git rev-parse --verify --quiet "$REF^{commit}") || { echo "[update] unknown commit $REF" >&2; exit 1; }
+# Only commits that are on main can be deployed.
+git merge-base --is-ancestor "$TARGET" origin/main || { echo "[update] $REF is not on main" >&2; exit 1; }
 DEPLOYED=$(cat deploy/caddy/.deployed 2>/dev/null || true)
-if [ "${1:-}" != "--force" ] && [ "$TARGET" = "$DEPLOYED" ]; then exit 0; fi
+if [ "$FORCE" = 0 ] && [ "$TARGET" = "$DEPLOYED" ]; then exit 0; fi
 if [ "$CURRENT" != "$TARGET" ]; then
 	# The live upstream file is rewritten by deploys; keep it across the checkout.
 	cp deploy/caddy/upstreams.caddy /tmp/skillpouch-upstreams.caddy

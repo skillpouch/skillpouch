@@ -4,7 +4,8 @@
 # arm64) as a SkillPouch server behind Cloudflare Tunnel. Safe to run again: it never overwrites secrets or env files.
 #
 #   git clone git@github.com:skillpouch/skillpouch.git ~/skillpouch
-#   ~/skillpouch/deploy/tunnel/setup.sh
+#   ~/skillpouch/deploy/tunnel/setup.sh                    (deploys via GitHub Actions)
+#   AUTO_UPDATE=timer ~/skillpouch/deploy/tunnel/setup.sh  (polls GitHub every 2 min)
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 DEPLOY="$REPO/deploy"
@@ -61,8 +62,11 @@ export COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml
 $DOCKER compose --env-file env/stack.env up -d --wait postgres
 $DOCKER compose --env-file env/stack.env up -d caddy
 
-log "auto-update timer (checks GitHub every 2 minutes)"
-sudo tee /etc/systemd/system/skillpouch-update.service >/dev/null <<UNIT
+# Deploys come from the GitHub Actions workflow (self-hosted runner, after CI
+# passes). `AUTO_UPDATE=timer` instead polls GitHub every 2 minutes.
+if [ "${AUTO_UPDATE:-actions}" = timer ]; then
+	log "auto-update timer (checks GitHub every 2 minutes)"
+	sudo tee /etc/systemd/system/skillpouch-update.service >/dev/null <<UNIT
 [Unit]
 Description=Build and deploy SkillPouch when main changes
 After=docker.service network-online.target
@@ -75,7 +79,7 @@ SupplementaryGroups=docker
 ExecStart=$DEPLOY/tunnel/update.sh
 TimeoutStartSec=1h
 UNIT
-sudo tee /etc/systemd/system/skillpouch-update.timer >/dev/null <<UNIT
+	sudo tee /etc/systemd/system/skillpouch-update.timer >/dev/null <<UNIT
 [Unit]
 Description=Check for new SkillPouch commits
 
@@ -86,8 +90,12 @@ OnUnitActiveSec=2min
 [Install]
 WantedBy=timers.target
 UNIT
-sudo systemctl daemon-reload
-sudo systemctl enable --now skillpouch-update.timer
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now skillpouch-update.timer
+else
+	sudo systemctl disable --now skillpouch-update.timer 2>/dev/null || true
+	echo "  → deploys come from GitHub Actions: install the runner (deploy/tunnel/README.md)"
+fi
 
 log "first deploy (builds everything; a few minutes, 10–20 on a Pi)"
 sudo -u "$USER" sg docker -c "$DEPLOY/tunnel/update.sh --force"
@@ -96,5 +104,5 @@ cat <<DONE
 
 [setup] Done. SkillPouch answers on http://127.0.0.1 on this server.
 Next: connect Cloudflare Tunnel (deploy/tunnel/README.md, step 4).
-Follow deploys with:  journalctl -fu skillpouch-update
+Next: install the GitHub Actions runner (deploy/tunnel/README.md, step 5).
 DONE

@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Deploys to the self-hosted server (runner label `skillpouch-server`, see
+# deploy/tunnel/README.md):
+#   - automatically, when CI passes for a push to main;
+#   - by hand (Actions → deploy → Run workflow): a specific commit of main,
+#     or a rollback to the previous API color.
+# Only main is ever deployed and pull requests never reach the runner.
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+      ref:
+        description: Commit of main to deploy (empty = latest main)
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  SKILLPOUCH_DIR: ${{ vars.SKILLPOUCH_DIR || '/home/fenish/skillpouch' }}
+  COMPOSE_FILE: compose.yaml:tunnel/compose.tunnel.yaml
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
+        && github.event.workflow_run.event == 'push'
+        && github.event.workflow_run.head_branch == 'main')
+      || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy')
+    runs-on: [self-hosted, skillpouch-server]
+    timeout-minutes: 60
+    steps:
+      - name: Build and deploy
+        env:
+          REF: ${{ github.event.workflow_run.head_sha || inputs.ref || 'origin/main' }}
+        run: |
+          if ! [[ "$REF" =~ ^([0-9a-f]{7,40}|origin/main)$ ]]; then echo "bad ref: $REF"; exit 1; fi
+          "$SKILLPOUCH_DIR/deploy/tunnel/update.sh" --ref "$REF"
+      - name: Health
+        run: curl -fsS http://127.0.0.1/readyz
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+    runs-on: [self-hosted, skillpouch-server]
+    timeout-minutes: 10
+    steps:
+      - name: Switch back to the previous API color
+        run: |
+          cd "$SKILLPOUCH_DIR/deploy"
+          scripts/rollback.sh
+          curl -fsS http://127.0.0.1/readyz

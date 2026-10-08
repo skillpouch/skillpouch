@@ -54,6 +54,29 @@ install <token>` command it shows and run it on the server. Then add a
 
 Open https://skillpouch.net — done.
 
+## 5. Deploys from GitHub Actions (self-hosted runner)
+
+After CI passes on `main`, the `deploy` workflow runs on this server. Install
+the runner once, as the same user that ran `setup.sh`:
+
+1. GitHub → `skillpouch/skillpouch` → Settings → Actions → Runners →
+   **New self-hosted runner** → Linux, your architecture (ARM64 on a Pi).
+2. Run the download commands it shows in `~/actions-runner`, then:
+   ```sh
+   ./config.sh --url https://github.com/skillpouch/skillpouch --token <TOKEN> \
+     --name "$(hostname)" --labels skillpouch-server --unattended
+   sudo ./svc.sh install && sudo ./svc.sh start
+   ```
+3. If the repo isn't cloned at `/home/fenish/skillpouch`, set the repository
+   variable `SKILLPOUCH_DIR` (Settings → Secrets and variables → Actions →
+   Variables) to its path.
+
+The runner updates itself. If the server is offline for more than 14 days,
+GitHub removes it: run `config.sh` again with a new token.
+
+Prefer polling instead? `AUTO_UPDATE=timer deploy/tunnel/setup.sh` installs a
+timer that deploys new commits of `main` every 2 minutes (without waiting for CI).
+
 ## Day to day
 
 |                   |                                                                                          |
