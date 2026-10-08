@@ -64,7 +64,7 @@ export function AppShell({ sidebar, topBar, pouchId, banners, children }: AppShe
 			{sidebar ? (
 				<aside
 					className={cn(
-						'sticky top-0 hidden h-dvh shrink-0 border-r border-border bg-bg transition-[width] duration-200 md:block',
+						'sticky top-0 hidden h-dvh shrink-0 overflow-hidden border-r border-border bg-bg transition-[width] duration-200 md:block',
 						collapsed ? 'w-[60px]' : 'w-[240px]',
 					)}
 				>

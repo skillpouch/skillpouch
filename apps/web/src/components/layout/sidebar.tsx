@@ -47,22 +47,31 @@ export function Sidebar({
 	return (
 		<nav aria-label="Main" className="flex h-full flex-col gap-4 px-3 pb-4">
 			{/* Same height and inset as the top bar (h-14, 24 px), so the logo never shifts between pages. */}
+			{/* Collapsing only clips and fades the text; the icons keep their place. */}
 			<div
 				className={cn(
-					'flex h-14 shrink-0 items-center border-b border-transparent',
-					collapsed ? 'justify-center' : 'justify-between px-3',
+					'flex h-14 shrink-0 items-center justify-between overflow-hidden border-b border-transparent whitespace-nowrap transition-[padding] duration-200',
+					collapsed ? 'px-2' : 'px-3',
 				)}
 			>
 				<Link to="/app" onClick={onNavigate} aria-label="All pouches">
-					<Logo withWordmark={!collapsed} />
+					<Logo />
 				</Link>
 				{headerAside}
 			</div>
-			<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+			<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto">
 				{sections.map((section) => (
 					<div key={section.id} className="flex flex-col gap-0.5">
-						{section.label && !collapsed ? (
-							<p className="px-2 pb-1 text-xs text-meta">{section.label}</p>
+						{section.label ? (
+							<p
+								className={cn(
+									'px-2.5 pb-1 text-xs whitespace-nowrap text-meta transition-opacity duration-200',
+									collapsed && 'opacity-0',
+								)}
+								aria-hidden={collapsed || undefined}
+							>
+								{section.label}
+							</p>
 						) : null}
 						{section.items.map((item) => (
 							<SidebarLink
@@ -75,7 +84,7 @@ export function Sidebar({
 					</div>
 				))}
 			</div>
-			{footer ? <div className="flex flex-col gap-0.5">{footer}</div> : null}
+			{footer ? <div className="flex shrink-0 flex-col gap-0.5">{footer}</div> : null}
 		</nav>
 	);
 }
@@ -105,9 +114,8 @@ export function SidebarLink({
 			onClick={onNavigate}
 			aria-current={active ? 'page' : undefined}
 			className={cn(
-				'group relative flex h-8 items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors max-md:h-11',
+				'group relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] whitespace-nowrap transition-colors max-md:h-11',
 				active ? 'bg-hover/60 text-fg' : 'text-muted hover:bg-hover/40 hover:text-fg',
-				collapsed && 'justify-center px-0',
 			)}
 		>
 			{active ? (
@@ -117,16 +125,12 @@ export function SidebarLink({
 				/>
 			) : null}
 			<Icon className="size-4 shrink-0" aria-hidden />
-			{collapsed ? (
-				<span className="sr-only">{item.label}</span>
-			) : (
-				<>
-					<span className="flex-1 truncate">{item.label}</span>
-					{item.count !== undefined ? (
-						<span className="font-mono text-[11px] text-meta">{item.count}</span>
-					) : null}
-				</>
-			)}
+			<span className={cn('flex min-w-0 flex-1 items-center gap-2.5', fade(collapsed))}>
+				<span className="flex-1 truncate">{item.label}</span>
+				{item.count !== undefined ? (
+					<span className="font-mono text-[11px] text-meta">{item.count}</span>
+				) : null}
+			</span>
 		</Link>
 	);
 	return collapsed ? <Tooltip content={item.label}>{link}</Tooltip> : link;
@@ -153,23 +157,24 @@ export function SidebarButton({
 			type="button"
 			onClick={onClick}
 			className={cn(
-				'flex h-9 w-full items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors max-md:h-11',
+				'flex h-9 w-full items-center gap-2.5 overflow-hidden rounded-md text-[13px] whitespace-nowrap transition-colors max-md:h-11',
+				// The border takes a pixel, so the icon lines up with the links above.
 				emphasis
-					? 'border border-border-strong bg-surface font-medium text-fg hover:bg-hover'
-					: 'text-muted hover:bg-hover/40 hover:text-fg',
-				collapsed && 'justify-center px-0',
+					? 'border border-border-strong bg-surface px-[9px] font-medium text-fg hover:bg-hover'
+					: 'px-2.5 text-muted hover:bg-hover/40 hover:text-fg',
 			)}
 		>
 			<Icon className="size-4 shrink-0" aria-hidden />
-			{collapsed ? (
-				<span className="sr-only">{label}</span>
-			) : (
-				<>
-					<span className="flex-1 text-left">{label}</span>
-					{trailing}
-				</>
-			)}
+			<span className={cn('flex min-w-0 flex-1 items-center gap-2.5', fade(collapsed))}>
+				<span className="flex-1 truncate text-left">{label}</span>
+				{trailing}
+			</span>
 		</button>
 	);
 	return collapsed ? <Tooltip content={label}>{button}</Tooltip> : button;
+}
+
+/** Labels stay mounted while collapsed: clipped by the narrow column and faded out. */
+function fade(collapsed: boolean) {
+	return cn('transition-opacity duration-200', collapsed && 'opacity-0');
 }

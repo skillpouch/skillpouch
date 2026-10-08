@@ -102,4 +102,31 @@ test.describe('pouches', () => {
 		await expect(page.getByRole('article', { name: 'Personal' })).toContainText('Locked');
 		await expect(page.getByRole('article', { name: 'Work' })).not.toContainText('Locked');
 	});
+
+	test('collapsing the sidebar never moves its icons, and labels stay on one line', async ({
+		page,
+	}) => {
+		await createAccount(page);
+		await page.getByRole('link', { name: 'Personal' }).click();
+		const sidebar = page.getByRole('complementary');
+		const icons = sidebar.locator('a svg, button svg');
+		const positions = () =>
+			icons.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().left));
+		const cli = sidebar.getByRole('button', { name: 'Connect CLI' });
+
+		const expanded = await positions();
+		const cliHeight = (await cli.boundingBox())?.height;
+
+		// Sample while the width animates, then after it settles.
+		await sidebar.getByRole('button', { name: 'Collapse' }).click();
+		await page.waitForTimeout(80);
+		expect(await positions()).toEqual(expanded);
+		await page.waitForTimeout(300);
+		expect(await positions()).toEqual(expanded);
+
+		await sidebar.getByRole('button', { name: 'Expand' }).click();
+		await page.waitForTimeout(80);
+		expect((await cli.boundingBox())?.height).toBe(cliHeight);
+		expect(await positions()).toEqual(expanded);
+	});
 });
