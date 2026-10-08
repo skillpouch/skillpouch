@@ -167,7 +167,7 @@ test.describe('account', () => {
 
 		await setPlan(page, 'friends-pass');
 		await expect(page.getByText('You’re a Friends Pass')).toBeVisible();
-		await expect(page.getByText('Thank you for being a friend of Fenish.')).toBeVisible();
+		await expect(page.getByText('Thank you for being a friend of mine.')).toBeVisible();
 		await expect(page.getByText(/Friends don’t pay here/)).toBeVisible();
 		await expect(plans.getByRole('article', { name: 'Friends Pass' })).toHaveCount(0);
 		const supporter = plans.getByRole('article', { name: 'Supporter' });

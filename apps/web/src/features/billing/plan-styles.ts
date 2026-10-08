@@ -27,7 +27,7 @@ export const PLAN_STYLES: readonly PlanStyle[] = [
 		slugs: ['friends-pass'],
 		className: 'plan-style-friends-pass',
 		mark: 'heart',
-		thanks: 'Thank you for being a friend of Fenish.',
+		thanks: 'Thank you for being a friend of mine.',
 		giftNote:
 			'Friends don’t pay here. Your pass is on the house for as long as we’re friends, so there’s nothing to buy.',
 	},
