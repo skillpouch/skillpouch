@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
-# One-time setup of a Raspberry Pi (64-bit OS) as a SkillPouch server behind
-# Cloudflare Tunnel. Safe to run again: it never overwrites secrets or env files.
+# One-time setup of any Linux server (Debian/Ubuntu/Raspberry Pi OS, x86_64 or
+# arm64) as a SkillPouch server behind Cloudflare Tunnel. Safe to run again: it never overwrites secrets or env files.
 #
 #   git clone git@github.com:skillpouch/skillpouch.git ~/skillpouch
-#   ~/skillpouch/deploy/pi/setup.sh
+#   ~/skillpouch/deploy/tunnel/setup.sh
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 DEPLOY="$REPO/deploy"
 DATA_ROOT=/srv/skillpouch
 log() { printf '\n[setup] %s\n' "$*"; }
 
-[ "$(uname -m)" = aarch64 ] || { echo "Needs a 64-bit OS (aarch64)."; exit 1; }
+ARCH=$(dpkg --print-architecture)
+case "$ARCH" in amd64 | arm64) ;; *) echo "Needs a 64-bit OS (amd64 or arm64), got $ARCH."; exit 1 ;; esac
 
 log "system updates + basics"
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
@@ -28,7 +29,7 @@ DOCKER="sudo docker"
 
 if ! command -v cloudflared >/dev/null; then
 	log "installing cloudflared"
-	curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb
+	curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$ARCH.deb
 	sudo dpkg -i /tmp/cloudflared.deb >/dev/null
 fi
 
@@ -56,7 +57,7 @@ fi
 
 log "starting Postgres and Caddy"
 cd "$DEPLOY"
-export COMPOSE_FILE=compose.yaml:pi/compose.pi.yaml
+export COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml
 $DOCKER compose --env-file env/stack.env up -d --wait postgres
 $DOCKER compose --env-file env/stack.env up -d caddy
 
@@ -71,7 +72,7 @@ Wants=network-online.target
 Type=oneshot
 User=$USER
 SupplementaryGroups=docker
-ExecStart=$DEPLOY/pi/update.sh
+ExecStart=$DEPLOY/tunnel/update.sh
 TimeoutStartSec=1h
 UNIT
 sudo tee /etc/systemd/system/skillpouch-update.timer >/dev/null <<UNIT
@@ -88,12 +89,12 @@ UNIT
 sudo systemctl daemon-reload
 sudo systemctl enable --now skillpouch-update.timer
 
-log "first deploy (builds everything; 10–20 min on a Pi)"
-sudo -u "$USER" sg docker -c "$DEPLOY/pi/update.sh --force"
+log "first deploy (builds everything; a few minutes, 10–20 on a Pi)"
+sudo -u "$USER" sg docker -c "$DEPLOY/tunnel/update.sh --force"
 
 cat <<DONE
 
-[setup] Done. SkillPouch answers on http://127.0.0.1 on this Pi.
-Next: connect Cloudflare Tunnel (deploy/pi/README.md, step 4).
+[setup] Done. SkillPouch answers on http://127.0.0.1 on this server.
+Next: connect Cloudflare Tunnel (deploy/tunnel/README.md, step 4).
 Follow deploys with:  journalctl -fu skillpouch-update
 DONE

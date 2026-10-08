@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-only
-# Builds and deploys the current main branch on the Pi, if it changed.
-#   deploy/pi/update.sh            only when origin/main has new commits
-#   deploy/pi/update.sh --force    rebuild and redeploy now
+# Builds and deploys the current main branch on this server, if it changed.
+#   deploy/tunnel/update.sh            only when origin/main has new commits
+#   deploy/tunnel/update.sh --force    rebuild and redeploy now
 # Run by the skillpouch-update.timer every 2 minutes.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -26,7 +26,7 @@ DATA_ROOT=$(grep -E '^DATA_ROOT=' deploy/env/stack.env | cut -d= -f2-)
 DATA_ROOT=${DATA_ROOT:-/srv/skillpouch}
 echo "[update] deploying $SHA"
 
-# 1. API image, built natively for arm64.
+# 1. API image, built natively for this machine (amd64 or arm64).
 docker build -q -f deploy/docker/api.Dockerfile -t "skillpouch/api:$SHA" . >/dev/null
 
 # 2. Web app: build in a throwaway Node container, publish as a new release.
@@ -41,7 +41,7 @@ ls -1t "$DATA_ROOT/web/releases" | tail -n +6 | xargs -r -I{} rm -rf "$DATA_ROOT
 
 # 3. Zero-downtime API switch (migrations, health check, rollback on failure).
 cd deploy
-export COMPOSE_FILE=compose.yaml:pi/compose.pi.yaml SMOKE_URL=http://127.0.0.1/readyz
+export COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml SMOKE_URL=http://127.0.0.1/readyz
 scripts/deploy.sh "skillpouch/api:$SHA"
 echo "$TARGET" > caddy/.deployed
 docker image prune -f --filter "until=168h" >/dev/null || true

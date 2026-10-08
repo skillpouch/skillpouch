@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Raspberry Pi behind Cloudflare Tunnel: Cloudflare terminates HTTPS, so
+# Any server behind Cloudflare Tunnel: Cloudflare terminates HTTPS, so
 # Caddy serves plain HTTP on 127.0.0.1:80 and only cloudflared reaches it.
 # The real client IP arrives in CF-Connecting-IP; it replaces whatever
 # X-Forwarded-For the client sent (the API trusts two hops: Caddy + cloudflared).

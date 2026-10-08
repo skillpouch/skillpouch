@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Overrides for a Raspberry Pi behind Cloudflare Tunnel (see pi/README.md).
+# Overrides for a server behind Cloudflare Tunnel (see tunnel/README.md).
 services:
   caddy:
     ports: !override ['127.0.0.1:80:80']
     volumes: !override
-      - ./pi/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./tunnel/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./caddy:/etc/caddy/conf.d
       - ${DATA_ROOT:-/srv/skillpouch}/web:/srv/web:ro
       - caddy_data:/data
