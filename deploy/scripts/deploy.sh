@@ -41,7 +41,8 @@ rollback() {
 
 log "live=$LIVE idle=$IDLE image=$IMAGE"
 export "$COLOR_VAR=$IMAGE" API_IMAGE="$IMAGE"
-"${COMPOSE[@]}" pull "api-$IDLE"
+# Images built on the host (the Raspberry Pi builds its own) are not pulled.
+docker image inspect "$IMAGE" >/dev/null 2>&1 || "${COMPOSE[@]}" pull "api-$IDLE"
 
 log "migrating"
 "${COMPOSE[@]}" run --rm migrate
@@ -71,5 +72,5 @@ log "restarting worker"
 "${COMPOSE[@]}" up -d --no-deps worker
 
 log "smoke test"
-curl -fsS "https://${PUBLIC_HOST:-skillpouch.net}/readyz" >/dev/null || { LIVE_BACK=$LIVE; LIVE=$IDLE; IDLE=$LIVE_BACK; rollback; }
+curl -fsS "${SMOKE_URL:-https://${PUBLIC_HOST:-skillpouch.net}/readyz}" >/dev/null || { LIVE_BACK=$LIVE; LIVE=$IDLE; IDLE=$LIVE_BACK; rollback; }
 log "done: live=$IDLE"

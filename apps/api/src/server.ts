@@ -33,18 +33,22 @@ export interface BuildOptions {
 }
 
 /**
- * Trusts only the proxy in front of us (the socket peer), so `request.ip` is
- * the address the proxy saw. Never `true`: that would also believe whatever
- * `X-Forwarded-For` entries a client sent itself.
+ * Trusts exactly `hops` proxies in front of us (the socket peer and the
+ * ones it vouches for), so `request.ip` is the address the outermost proxy
+ * saw. Never `true`: that would also believe whatever `X-Forwarded-For`
+ * entries a client sent itself.
  */
-export function trustOneProxyHop(_address: string, hop: number): boolean {
-	return hop === 0;
+export function trustProxyHops(hops: number) {
+	return (_address: string, hop: number): boolean => hop < hops;
 }
+
+/** One proxy (Caddy) in front of the API. */
+export const trustOneProxyHop = trustProxyHops(1);
 
 export async function buildServer(deps: Deps, options: BuildOptions = {}): Promise<BuiltServer> {
 	const app = Fastify({
 		loggerInstance: deps.log as FastifyBaseLogger,
-		trustProxy: deps.env.TRUST_PROXY ? trustOneProxyHop : false,
+		trustProxy: deps.env.TRUST_PROXY ? trustProxyHops(deps.env.TRUST_PROXY_HOPS) : false,
 		bodyLimit: 1024 * 1024,
 		requestIdHeader: false,
 		genReqId: (request) => {

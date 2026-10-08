@@ -40,6 +40,11 @@ const EnvSchema = z
 		 * `X-Forwarded-For` hop is trusted, so clients cannot spoof their IP.
 		 */
 		TRUST_PROXY: bool.default(false),
+		/**
+		 * How many proxies sit in front of the API: 1 behind Caddy, 2 behind
+		 * Cloudflare Tunnel + Caddy. Only these hops' `X-Forwarded-For` entries count.
+		 */
+		TRUST_PROXY_HOPS: z.coerce.number().int().min(1).max(5).default(1),
 
 		/** Public origin of the API (DPoP `htu`, OAuth callbacks). */
 		API_PUBLIC_URL: z.url().default('http://localhost:8080'),

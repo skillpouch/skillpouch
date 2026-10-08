@@ -17,5 +17,6 @@ deploy/env/*.env
 deploy/secrets/*
 !deploy/secrets/.gitkeep
 deploy/caddy/.live-color
+deploy/caddy/.deployed
 test-results/
 playwright-report/
