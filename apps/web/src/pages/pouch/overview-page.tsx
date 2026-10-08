@@ -10,6 +10,7 @@ import { PlanCard } from '@/features/billing/plan-card';
 import { activeDevices, deviceSyncState, useDevices } from '@/features/devices/devices';
 import {
 	countByKind,
+	inScope,
 	useOpenConflicts,
 	usePouchContents,
 } from '@/features/ingredients/ingredients';
@@ -25,7 +26,8 @@ export function OverviewPage() {
 	const devices = useDevices();
 	if (!pouch) return <PageSkeleton variant="overview" />;
 
-	const ingredients = (contents.data?.ingredients ?? []).filter((item) => !item.deleted);
+	const ingredients = inScope(contents.data?.ingredients ?? []);
+	const projectCount = (contents.data?.projects ?? []).filter((record) => !record.deleted).length;
 	const counts = countByKind(ingredients);
 	const computers = activeDevices(devices.data).filter(
 		(device) => deviceSyncState(device, pouch) !== 'never',
@@ -80,6 +82,10 @@ export function OverviewPage() {
 						{kind.label.toLowerCase()}
 					</Link>
 				))}
+				<Link to="/app/p/$pouchId/projects" params={{ pouchId }} className="hover:text-fg">
+					<span className="font-mono text-fg">{projectCount}</span>{' '}
+					{projectCount === 1 ? 'project' : 'projects'}
+				</Link>
 			</p>
 			{openConflicts.length > 0 ? (
 				<section

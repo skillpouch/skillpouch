@@ -21,13 +21,14 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { ArtifactRecord, RevisionRecord } from '@/lib/api/types';
+import { GLOBAL_SCOPE, PROJECT_KIND, type ProjectKind } from '../projects/scope';
 import { useUnlocked } from '../session/session-store';
 import { asText, describe } from './content';
 import { isIngredientKind, kindDefinition, type IngredientKind } from './kinds';
 
-export interface Ingredient {
+export interface Ingredient<K extends string = IngredientKind> {
 	id: string;
-	kind: IngredientKind;
+	kind: K;
 	scope: string;
 	name: string;
 	files: ManifestEntry[];
@@ -48,8 +49,13 @@ export interface UnreadableArtifact {
 	reason: string;
 }
 
+/** The record of one project (see `../projects/scope`). */
+export type ProjectRecord = Ingredient<ProjectKind>;
+
 export interface PouchContents {
+	/** Items of every scope; filter by `scope` for one place. */
 	ingredients: Ingredient[];
+	projects: ProjectRecord[];
 	unreadable: UnreadableArtifact[];
 }
 
@@ -59,7 +65,7 @@ export async function openHead(
 	head: RevisionRecord,
 	updatedAt: string,
 	deleted: boolean,
-): Promise<Ingredient | null> {
+): Promise<Ingredient<IngredientKind | ProjectKind> | null> {
 	const signer = keyring.roster.members.get(head.signer_member_id);
 	if (!signer) throw new Error('signed by an unknown member');
 	const body = await openRevision(
@@ -67,10 +73,11 @@ export async function openHead(
 		{ ...head, revision_id: head.id },
 		signer.signPub,
 	);
-	if (!isIngredientKind(body.kind)) return null;
+	const kind = body.kind;
+	if (!isIngredientKind(kind) && kind !== PROJECT_KIND) return null;
 	return {
 		id: body.artifact_id,
-		kind: body.kind,
+		kind,
 		scope: body.scope,
 		name: body.logical_key,
 		files: body.entries,
@@ -101,26 +108,28 @@ async function fetchAllArtifacts(pouchId: string): Promise<ArtifactRecord[]> {
 export async function loadPouchContents(keyring: Keyring, pouchId: string): Promise<PouchContents> {
 	const artifacts = await fetchAllArtifacts(pouchId);
 	const ingredients: Ingredient[] = [];
+	const projects: ProjectRecord[] = [];
 	const unreadable: UnreadableArtifact[] = [];
 	await Promise.all(
 		artifacts.map(async (artifact) => {
 			if (!artifact.head) return;
 			try {
-				const ingredient = await openHead(
+				const opened = await openHead(
 					keyring,
 					pouchId,
 					artifact.head,
 					artifact.updated_at,
 					artifact.deleted_at !== null,
 				);
-				if (ingredient) ingredients.push(ingredient);
+				if (opened?.kind === PROJECT_KIND) projects.push(opened as ProjectRecord);
+				else if (opened) ingredients.push(opened as Ingredient);
 			} catch (error) {
 				unreadable.push({ id: artifact.id, reason: (error as Error).message });
 			}
 		}),
 	);
 	ingredients.sort((a, b) => a.name.localeCompare(b.name));
-	return { ingredients, unreadable };
+	return { ingredients, projects, unreadable };
 }
 
 export function usePouchContents(pouchId: string) {
@@ -154,7 +163,7 @@ export async function fetchBlobs(
 export async function fetchIngredientFiles(
 	keyring: Keyring,
 	pouchId: string,
-	ingredient: Pick<Ingredient, 'files'>,
+	ingredient: Pick<Ingredient<string>, 'files'>,
 ): Promise<Map<string, Uint8Array>> {
 	const blobs = await fetchBlobs(
 		keyring,
@@ -220,8 +229,16 @@ export function useDescriptions(pouchId: string, ingredients: Ingredient[] | und
 	});
 }
 
-/** Live ingredients per kind (sidebar counts, overview). */
-export function countByKind(ingredients: Ingredient[]): Record<IngredientKind, number> {
+/** Live ingredients of one scope (global by default), sorted by name. */
+export function inScope(ingredients: Ingredient[], scope: string = GLOBAL_SCOPE): Ingredient[] {
+	return ingredients.filter((ingredient) => ingredient.scope === scope && !ingredient.deleted);
+}
+
+/** Live ingredients per kind of one scope (sidebar counts, overview). */
+export function countByKind(
+	ingredients: Ingredient[],
+	scope: string = GLOBAL_SCOPE,
+): Record<IngredientKind, number> {
 	const counts = {
 		skill: 0,
 		instructions: 0,
@@ -231,7 +248,7 @@ export function countByKind(ingredients: Ingredient[]): Record<IngredientKind, n
 		hook: 0,
 		plugin: 0,
 	} satisfies Record<IngredientKind, number>;
-	for (const ingredient of ingredients) if (!ingredient.deleted) counts[ingredient.kind]++;
+	for (const ingredient of inScope(ingredients, scope)) counts[ingredient.kind]++;
 	return counts;
 }
 

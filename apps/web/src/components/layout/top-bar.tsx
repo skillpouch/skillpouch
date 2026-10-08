@@ -2,16 +2,15 @@
 /**
  * The top bar. One component for every signed-in page; areas are switched on
  * by props: the menu button only when there is a sidebar, the logo only when
- * there isn't, search only inside a pouch.
+ * there isn't, search when the frame provides it.
  */
 import { Link } from '@tanstack/react-router';
 import { Menu, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/logo';
-import { Kbd } from '@/components/ui/kbd';
+import { Shortcut } from '@/components/ui/kbd';
 import { AccountMenu } from '@/features/account/account-menu';
 import { PlanPill } from '@/features/billing/plan-badge';
-import { modKey } from '@/lib/platform';
 
 export interface TopBarProps {
 	/** Opens the mobile drawer; the button is hidden when omitted. */
@@ -56,7 +55,7 @@ export function TopBar({ onOpenMenu, showLogo = false, leading, onSearch }: TopB
 					>
 						<Search className="size-4" aria-hidden />
 						<span className="flex-1 text-left">Search…</span>
-						<Kbd>{modKey()}K</Kbd>
+						<Shortcut keys={['mod', 'K']} />
 					</button>
 					<button
 						type="button"

@@ -8,6 +8,7 @@ export const queryKeys = {
 	pouches: ['pouches'] as const,
 	contents: (pouchId: string) => ['pouch', pouchId, 'contents'] as const,
 	descriptions: (pouchId: string) => ['pouch', pouchId, 'descriptions'] as const,
+	projects: (pouchId: string) => ['pouch', pouchId, 'projects'] as const,
 	files: (pouchId: string, revisionId: string) =>
 		['pouch', pouchId, 'files', revisionId] as const,
 	conflicts: (pouchId: string) => ['pouch', pouchId, 'conflicts'] as const,

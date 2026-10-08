@@ -189,6 +189,26 @@ test.describe('ingredients', () => {
 		await expect(row(page, 'postgres')).toBeVisible();
 	});
 
+	test('clicking anywhere on a row opens the item; the ⋯ menu does not', async ({ page }) => {
+		await openKind(page, 'Skills');
+		await addSkill(page, 'row-click');
+		await row(page, 'row-click').getByText('Synced').click();
+		await expect(page.getByLabel('Contents of SKILL.md')).toContainText('row-click');
+		await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+		await page.getByRole('button', { name: 'Actions for row-click' }).click();
+		await expect(page.getByRole('menu')).toBeVisible();
+		await expect(page.getByLabel('Contents of SKILL.md')).toHaveCount(0);
+	});
+
+	test('names stop at 64 characters', async ({ page }) => {
+		await openKind(page, 'Skills');
+		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		const name = page.getByRole('dialog').getByLabel('Item name');
+		await name.fill('a'.repeat(80));
+		await expect(name).toHaveValue('a'.repeat(64));
+	});
+
 	test('search finds items by their decrypted name', async ({ page }) => {
 		await openKind(page, 'Skills');
 		await addSkill(page, 'needle-in-pouch');
@@ -196,5 +216,18 @@ test.describe('ingredients', () => {
 		await page.keyboard.type('needle');
 		await page.keyboard.press('Enter');
 		await expect(page.getByLabel('Contents of SKILL.md')).toContainText('needle-in-pouch');
+	});
+
+	test('search works on account pages and finds settings and this browser', async ({ page }) => {
+		await page.goto('/app/account');
+		await page.getByRole('button', { name: 'Search' }).click();
+		await page.keyboard.type('recovery key');
+		await page.keyboard.press('Enter');
+		await expect(page).toHaveURL(/\/app\/account\/security$/);
+		await page.keyboard.press('ControlOrMeta+k');
+		await page.keyboard.type('this browser');
+		await expect(page.getByRole('option', { name: /this browser/ })).toBeVisible();
+		await page.keyboard.press('Enter');
+		await expect(page).toHaveURL(/\/app\/account\/devices$/);
 	});
 });

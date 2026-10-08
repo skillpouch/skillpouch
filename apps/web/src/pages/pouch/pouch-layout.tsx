@@ -5,13 +5,13 @@
  * locked or deleted pouches.
  */
 import { Link, Outlet, useParams } from '@tanstack/react-router';
-import { LayoutGrid, PanelLeft, Settings, Share2, TerminalSquare } from 'lucide-react';
+import { FolderGit2, LayoutGrid, PanelLeft, Settings, Share2, TerminalSquare } from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Banner } from '@/components/layout/banner';
 import { Sidebar, SidebarButton, SidebarLink } from '@/components/layout/sidebar';
 import { Button } from '@/components/ui/button';
-import { Kbd } from '@/components/ui/kbd';
+import { Shortcut } from '@/components/ui/kbd';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { AccountBanners } from '@/features/account/account-banners';
 import { ConnectCliDialog } from '@/features/devices/components/connect-cli-dialog';
@@ -19,9 +19,7 @@ import { countByKind, usePouchContents } from '@/features/ingredients/ingredient
 import { KINDS } from '@/features/ingredients/kinds';
 import { PouchSwitcher } from '@/features/pouches/components/pouch-switcher';
 import { usePouch, useRestorePouch } from '@/features/pouches/pouches';
-import { CommandPalette } from '@/features/search/command-palette';
 import { formatDate } from '@/lib/format';
-import { modKey } from '@/lib/platform';
 import { NotFoundPage } from '../not-found-page';
 
 export function PouchLayout() {
@@ -30,13 +28,13 @@ export function PouchLayout() {
 	const contents = usePouchContents(pouchId);
 	const restore = useRestorePouch();
 	const [connecting, setConnecting] = useState(false);
-	const [searching, setSearching] = useState(false);
 
 	// While the pouch list loads, the frame is already drawn and the page shows a skeleton.
 	if (!pouch.isPending && !pouch.data) return <NotFoundPage />;
 	const state = pouch.data?.state;
 
 	const counts = countByKind(contents.data?.ingredients ?? []);
+	const projectCount = contents.data?.projects.filter((record) => !record.deleted).length;
 	const params = { pouchId };
 	const sections = [
 		{
@@ -55,14 +53,24 @@ export function PouchLayout() {
 				...(contents.data ? { count: counts[kind.kind] } : {}),
 			})),
 		},
+		{
+			id: 'projects',
+			items: [
+				{
+					to: '/app/p/$pouchId/projects',
+					params,
+					label: 'Projects',
+					icon: FolderGit2,
+					...(projectCount !== undefined ? { count: projectCount } : {}),
+				},
+			],
+		},
 	];
 
 	return (
 		<AppShell
-			topBar={{
-				leading: <PouchSwitcher pouchId={pouchId} />,
-				onSearch: () => setSearching(true),
-			}}
+			topBar={{ leading: <PouchSwitcher pouchId={pouchId} /> }}
+			pouchId={pouchId}
 			banners={
 				<>
 					<AccountBanners />
@@ -132,7 +140,7 @@ export function PouchLayout() {
 									label={collapsed ? 'Expand' : 'Collapse'}
 									onClick={toggleCollapsed}
 									collapsed={collapsed}
-									trailing={<Kbd>{modKey()}B</Kbd>}
+									trailing={<Shortcut keys={['mod', 'B']} />}
 								/>
 							) : null}
 							<div className="mt-2">
@@ -154,7 +162,6 @@ export function PouchLayout() {
 		>
 			{pouch.data ? <Outlet /> : <PageSkeleton variant="overview" />}
 			<ConnectCliDialog open={connecting} onOpenChange={setConnecting} />
-			<CommandPalette pouchId={pouchId} open={searching} onOpenChange={setSearching} />
 		</AppShell>
 	);
 }

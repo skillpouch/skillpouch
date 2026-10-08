@@ -8,7 +8,7 @@ import type { Ingredient } from './ingredients';
 import type { IngredientKind } from './kinds';
 import { commitIngredient, type DraftFile } from './write';
 
-function useInvalidateContents(pouchId: string) {
+export function useInvalidateContents(pouchId: string) {
 	const client = useQueryClient();
 	return () =>
 		Promise.all([
@@ -24,7 +24,12 @@ type PouchRef = Pick<PouchRecord, 'id' | 'epoch'>;
 export function useCreateIngredient(pouch: PouchRef) {
 	const invalidate = useInvalidateContents(pouch.id);
 	return useMutation({
-		mutationFn: (input: { kind: IngredientKind; name: string; files: DraftFile[] }) =>
+		mutationFn: (input: {
+			kind: IngredientKind;
+			scope: string;
+			name: string;
+			files: DraftFile[];
+		}) =>
 			commitIngredient({
 				keyring: currentKeyring(),
 				pouch,
@@ -32,6 +37,7 @@ export function useCreateIngredient(pouch: PouchRef) {
 				artifactId: crypto.randomUUID(),
 				base: null,
 				kind: input.kind,
+				scope: input.scope,
 				name: input.name,
 				files: input.files,
 			}),

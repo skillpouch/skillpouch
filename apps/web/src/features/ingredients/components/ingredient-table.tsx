@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * The list every ingredient type uses: a table on desktop, stacked rows on
- * phones. Row actions live in one ⋯ menu.
+ * phones. Clicking a row opens the item; other actions live in one ⋯ menu.
+ * Cells never wrap: the description gives up its room first.
  */
 import { Ellipsis, Eye, Pencil, Share2, Trash2 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -76,6 +77,11 @@ function RowMenu({
 	);
 }
 
+/** The ⋯ menu (and its portal, whose events bubble through React) must not open the row. */
+function stopRowClick(event: MouseEvent) {
+	event.stopPropagation();
+}
+
 function Description({ value }: { value: string | undefined }): ReactNode {
 	if (value === undefined) return <Skeleton className="h-3.5 w-40" />;
 	return value || <span className="text-meta">—</span>;
@@ -102,12 +108,12 @@ export function IngredientTable(props: IngredientTableProps) {
 		<>
 			<table className="hidden w-full table-fixed border-collapse text-[13px] md:table">
 				<thead>
-					<tr className="border-b border-border text-left text-xs text-meta">
-						<th className="w-[22%] py-2.5 pr-4 font-normal">Name</th>
+					<tr className="border-b border-border text-left text-xs whitespace-nowrap text-meta">
+						<th className="w-[24%] py-2.5 pr-4 font-normal">Name</th>
 						<th className="py-2.5 pr-4 font-normal">Description</th>
-						<th className="w-16 py-2.5 pr-4 font-normal">Files</th>
-						<th className="w-20 py-2.5 pr-4 font-normal">Size</th>
-						<th className="w-28 py-2.5 pr-4 font-normal">Updated</th>
+						<th className="w-14 py-2.5 pr-4 font-normal">Files</th>
+						<th className="w-24 py-2.5 pr-4 font-normal">Size</th>
+						<th className="w-36 py-2.5 pr-4 font-normal">Updated</th>
 						<th className="w-24 py-2.5 pr-4 font-normal">Sync</th>
 						<th className="w-12 py-2.5 font-normal">
 							<span className="sr-only">Actions</span>
@@ -118,33 +124,33 @@ export function IngredientTable(props: IngredientTableProps) {
 					{items.map((ingredient) => (
 						<tr
 							key={ingredient.id}
-							className="group border-b border-border-soft transition-colors hover:bg-surface"
+							tabIndex={0}
+							onClick={() => props.onShow(ingredient)}
+							onKeyDown={(event: KeyboardEvent) => {
+								if (event.target === event.currentTarget && event.key === 'Enter')
+									props.onShow(ingredient);
+							}}
+							className="group cursor-pointer border-b border-border-soft whitespace-nowrap transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
 						>
-							<td className="truncate py-3 pr-4">
-								<button
-									type="button"
-									onClick={() => props.onShow(ingredient)}
-									className="truncate font-mono text-fg hover:underline"
-								>
-									{ingredient.name}
-								</button>
+							<td className="truncate py-3 pr-4 font-mono text-fg">
+								{ingredient.name}
 							</td>
 							<td className="truncate py-3 pr-4 text-muted">
 								<Description value={descriptions?.get(ingredient.id)} />
 							</td>
-							<td className="py-3 pr-4 font-mono text-muted">
+							<td className="truncate py-3 pr-4 font-mono text-muted">
 								{ingredient.files.length}
 							</td>
-							<td className="py-3 pr-4 font-mono text-muted">
+							<td className="truncate py-3 pr-4 font-mono text-muted">
 								{formatBytes(ingredient.size)}
 							</td>
-							<td className="py-3 pr-4 text-muted">
+							<td className="truncate py-3 pr-4 text-muted">
 								{formatRelative(ingredient.updatedAt)}
 							</td>
 							<td className="py-3 pr-4">
 								<SyncCell conflicted={conflicted.has(ingredient.id)} />
 							</td>
-							<td className="py-3 text-right">
+							<td className="py-3 text-right" onClick={stopRowClick}>
 								<RowMenu ingredient={ingredient} readOnly={readOnly} {...actions} />
 							</td>
 						</tr>

@@ -5,7 +5,7 @@
  */
 import { unb64, type ShareBundle } from '@skillpouch/crypto';
 import { asText, fillSecrets } from '../ingredients/content';
-import { loadPouchContents } from '../ingredients/ingredients';
+import { inScope, loadPouchContents } from '../ingredients/ingredients';
 import { isIngredientKind } from '../ingredients/kinds';
 import { commitIngredient, type DraftFile } from '../ingredients/write';
 import type { PouchView } from '../pouches/pouches';
@@ -54,9 +54,7 @@ export async function importBundle(input: {
 		throw new Error('This link contains an unsupported item type.');
 	const keyring = currentKeyring();
 	const contents = await loadPouchContents(keyring, pouch.id);
-	const sameKind = contents.ingredients.filter(
-		(item) => item.kind === bundle.kind && !item.deleted,
-	);
+	const sameKind = inScope(contents.ingredients).filter((item) => item.kind === bundle.kind);
 	const existing = sameKind.find((item) => item.name.toLowerCase() === bundle.name.toLowerCase());
 	const files = bundleFiles(bundle, input.secrets);
 

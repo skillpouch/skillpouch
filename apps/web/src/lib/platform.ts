@@ -24,7 +24,7 @@ export function browserLabel(userAgent = navigator.userAgent): string {
 	return `${browserName(userAgent)} on ${osName(userAgent)}`;
 }
 
-/** `⌘` on Apple platforms, `Ctrl` elsewhere. */
-export function modKey(userAgent = navigator.userAgent): string {
-	return /Mac|iPhone|iPad/.test(userAgent) ? '⌘' : 'Ctrl';
+/** Apple keyboards use ⌘ where others use Ctrl. */
+export function isApple(userAgent = navigator.userAgent): boolean {
+	return /Mac|iPhone|iPad/.test(userAgent);
 }

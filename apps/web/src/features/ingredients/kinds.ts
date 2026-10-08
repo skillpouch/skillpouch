@@ -17,6 +17,7 @@ import {
 	Webhook,
 	type LucideIcon,
 } from 'lucide-react';
+import { GLOBAL_SCOPE } from '../projects/scope';
 
 export type IngredientKind =
 	'skill' | 'instructions' | 'agent' | 'command' | 'mcp_server' | 'hook' | 'plugin';
@@ -33,6 +34,8 @@ export interface KindDefinition {
 	template: (name: string) => string;
 	/** Short helper text on the empty list. */
 	blurb: string;
+	/** Differences inside a project, where files are kept exactly as they are. */
+	inProject?: { blurb: string; placeholder: string };
 	/** Commands run on your computers: importing one needs an explicit review. */
 	runsCommands?: boolean;
 	/** JSON values under these keys are secrets: stripped from share links. */
@@ -61,6 +64,10 @@ export const KINDS: readonly KindDefinition[] = [
 		icon: FileText,
 		mainFile: 'INSTRUCTIONS.md',
 		blurb: 'Global rules every assistant follows (AGENTS.md, CLAUDE.md, …).',
+		inProject: {
+			blurb: 'Instruction files of this project, each kept as its own file: AGENTS.md, CLAUDE.md, GEMINI.md, …',
+			placeholder: 'AGENTS.md',
+		},
 		template: (name) => `# ${name}\n\n`,
 	},
 	{
@@ -123,6 +130,17 @@ export const KINDS: readonly KindDefinition[] = [
 	},
 ];
 
+export function namePlaceholder(kind: KindDefinition, scope: string): string {
+	return (
+		(scope !== GLOBAL_SCOPE && kind.inProject?.placeholder) ||
+		`${kind.singular.toLowerCase()}-name`
+	);
+}
+
+export function kindBlurb(kind: KindDefinition, scope: string): string {
+	return (scope !== GLOBAL_SCOPE && kind.inProject?.blurb) || kind.blurb;
+}
+
 const BY_KIND = new Map(KINDS.map((definition) => [definition.kind, definition]));
 const BY_SLUG = new Map(KINDS.map((definition) => [definition.slug, definition]));
 
@@ -139,11 +157,12 @@ export function isIngredientKind(kind: string): kind is IngredientKind {
 }
 
 /** Names become folder and file names on every OS: keep them portable. */
+export const NAME_MAX = 64;
 export const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
 export function validateName(name: string): string | null {
 	if (!name) return 'Give it a name.';
-	if (name.length > 64) return 'Use at most 64 characters.';
+	if (name.length > NAME_MAX) return `Use at most ${NAME_MAX} characters.`;
 	if (!NAME_PATTERN.test(name)) {
 		return 'Use letters, numbers, dots, dashes and underscores. Start with a letter or number.';
 	}

@@ -8,7 +8,7 @@
  *   /setup                   first-time onboarding (master password, Recovery Key)
  *   /unlock                  new or lapsed browser
  *   /app                     pouches
- *   /app/p/:pouchId          overview, /:kind lists, /shared, /settings
+ *   /app/p/:pouchId          overview, /:kind lists, /projects(/:projectId), /shared, /settings
  *   /app/account             profile, /devices, /security, /billing
  *   /cli/authorize           approve a `skillpouch login`
  *   /s/:shareId              public share link
@@ -28,6 +28,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { SessionGate, type GateRequirement } from '@/features/session/session-gate';
 import { NotFoundPage } from '@/pages/not-found-page';
 import type { IngredientsSearch } from '@/pages/pouch/ingredients-page';
+import type { ProjectSearch } from '@/pages/pouch/project-page';
 import { AuthSkeleton, PageSkeleton } from '@/components/ui/page-skeleton';
 import { AccountLayout } from '@/pages/account/account-layout';
 import { PouchLayout } from '@/pages/pouch/pouch-layout';
@@ -88,6 +89,8 @@ const IngredientsPage = lazyPage(
 	'IngredientsPage',
 	list,
 );
+const ProjectsPage = lazyPage(() => import('@/pages/pouch/projects-page'), 'ProjectsPage', list);
+const ProjectPage = lazyPage(() => import('@/pages/pouch/project-page'), 'ProjectPage', list);
 const OverviewPage = lazyPage(
 	() => import('@/pages/pouch/overview-page'),
 	'OverviewPage',
@@ -234,20 +237,36 @@ const pouchSettingsRoute = createRoute({
 	component: PouchSettingsPage,
 });
 
+const panelSearch = (search: Record<string, unknown>): IngredientsSearch => {
+	const item = optionalString(search.item);
+	return {
+		...(item ? { item } : {}),
+		...(search.mode === 'edit' || search.mode === 'show' ? { mode: search.mode } : {}),
+		...(search.new === true || search.new === 'true' || search.new === 1 ? { new: true } : {}),
+	};
+};
+
 const kindRoute = createRoute({
 	getParentRoute: () => pouchRoute,
 	path: '/$kind',
-	validateSearch: (search: Record<string, unknown>): IngredientsSearch => {
-		const item = optionalString(search.item);
-		return {
-			...(item ? { item } : {}),
-			...(search.mode === 'edit' || search.mode === 'show' ? { mode: search.mode } : {}),
-			...(search.new === true || search.new === 'true' || search.new === 1
-				? { new: true }
-				: {}),
-		};
-	},
+	validateSearch: panelSearch,
 	component: IngredientsPage,
+});
+
+const projectsRoute = createRoute({
+	getParentRoute: () => pouchRoute,
+	path: '/projects',
+	component: ProjectsPage,
+});
+
+const projectRoute = createRoute({
+	getParentRoute: () => pouchRoute,
+	path: '/projects/$projectId',
+	validateSearch: (search: Record<string, unknown>): ProjectSearch => {
+		const kind = optionalString(search.kind);
+		return { ...(kind ? { kind } : {}), ...panelSearch(search) };
+	},
+	component: ProjectPage,
 });
 
 const accountRoute = createRoute({
@@ -288,7 +307,14 @@ const routeTree = rootRoute.addChildren([
 	privacyRoute,
 	appRoute.addChildren([
 		pouchesRoute,
-		pouchRoute.addChildren([overviewRoute, sharedRoute, pouchSettingsRoute, kindRoute]),
+		pouchRoute.addChildren([
+			overviewRoute,
+			sharedRoute,
+			pouchSettingsRoute,
+			projectsRoute,
+			projectRoute,
+			kindRoute,
+		]),
 		accountRoute.addChildren([profileRoute, devicesRoute, securityRoute, billingRoute]),
 	]),
 ]);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * The signed-in frame: optional sidebar (desktop column, mobile drawer),
- * top bar, banners and the scrolling content area.
+ * top bar with search (⌘K), banners and the scrolling content area.
  *
  * The sidebar is a render prop so it can adapt to where it is shown
  * (collapsed column vs. drawer with a close button).
@@ -9,6 +9,7 @@
 import { X } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Sheet, SheetClose, SheetContent } from '@/components/ui/sheet';
+import { CommandPalette } from '@/features/search/command-palette';
 import { cn } from '@/lib/cn';
 import { TopBar, type TopBarProps } from './top-bar';
 
@@ -22,7 +23,9 @@ export interface SidebarRenderProps {
 
 export interface AppShellProps {
 	sidebar?: (props: SidebarRenderProps) => ReactNode;
-	topBar?: Omit<TopBarProps, 'onOpenMenu'>;
+	topBar?: Omit<TopBarProps, 'onOpenMenu' | 'onSearch'>;
+	/** The open pouch, so search covers its items and projects too. */
+	pouchId?: string;
 	banners?: ReactNode;
 	children: ReactNode;
 }
@@ -52,9 +55,10 @@ function useCollapsed(): [boolean, () => void] {
 /** Every page shares one content width, so nothing shifts when you navigate. */
 const CONTENT_WIDTH = 'max-w-[1200px]';
 
-export function AppShell({ sidebar, topBar, banners, children }: AppShellProps) {
+export function AppShell({ sidebar, topBar, pouchId, banners, children }: AppShellProps) {
 	const [collapsed, toggleCollapsed] = useCollapsed();
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [searching, setSearching] = useState(false);
 	return (
 		<div className="flex min-h-dvh">
 			{sidebar ? (
@@ -88,6 +92,7 @@ export function AppShell({ sidebar, topBar, banners, children }: AppShellProps) 
 			<div className="flex min-w-0 flex-1 flex-col">
 				<TopBar
 					{...topBar}
+					onSearch={() => setSearching(true)}
 					{...(sidebar ? { onOpenMenu: () => setDrawerOpen(true) } : {})}
 				/>
 				{banners}
@@ -95,6 +100,7 @@ export function AppShell({ sidebar, topBar, banners, children }: AppShellProps) 
 					<div className={cn('mx-auto w-full', CONTENT_WIDTH)}>{children}</div>
 				</main>
 			</div>
+			<CommandPalette pouchId={pouchId} open={searching} onOpenChange={setSearching} />
 		</div>
 	);
 }
