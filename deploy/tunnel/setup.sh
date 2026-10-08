@@ -98,9 +98,6 @@ else
 	echo "  → deploys come from GitHub Actions: install the runner (deploy/tunnel/README.md)"
 fi
 
-log "first deploy (builds everything; a few minutes, 10–20 on a Pi)"
-sudo -u "$USER" sg docker -c "$DEPLOY/tunnel/update.sh --force"
-
 RUNNER_DIR="$HOME/actions-runner"
 if [ "${AUTO_UPDATE:-actions}" != timer ] && [ ! -x "$RUNNER_DIR/config.sh" ]; then
 	log "downloading the GitHub Actions runner for $ARCH"
@@ -111,6 +108,9 @@ if [ "${AUTO_UPDATE:-actions}" != timer ] && [ ! -x "$RUNNER_DIR/config.sh" ]; t
 	curl -fsSL "https://github.com/actions/runner/releases/download/v$RUNNER_VERSION/actions-runner-linux-$RUNNER_ARCH-$RUNNER_VERSION.tar.gz" \
 		| tar xz -C "$RUNNER_DIR"
 fi
+
+log "first deploy (builds everything; a few minutes, 10–20 on a Pi)"
+sudo -u "$USER" sg docker -c "$DEPLOY/tunnel/update.sh --force"
 
 cat <<DONE
 
