@@ -70,13 +70,15 @@ export function BillingPage() {
 		plans.data !== undefined &&
 		(current.source === 'grant' || current.source === 'override') &&
 		!plans.data.some((plan) => plan.slug === current.plan_slug);
+	// A gifted plan hides billing controls, even while an old subscription still runs.
+	const billed = gifted ? undefined : subscription;
 
 	/**
 	 * Free users check out; subscribers switch their subscription instead
 	 * (moving to the free plan means canceling it).
 	 */
 	const tileAction = (plan: PlanRecord): TileAction | null => {
-		if (plan.slug === current.plan_slug) return null;
+		if (gifted || plan.slug === current.plan_slug) return null;
 		const paid = plan.price_cents > 0;
 		if (subscription) {
 			if (subscription.cancel_at_period_end) return null;
@@ -118,9 +120,9 @@ export function BillingPage() {
 					<p className="mt-1 text-[13px] text-muted">
 						{currentStyle.thanks ?? 'Thank you. Your support keeps SkillPouch running.'}
 					</p>
-					{subscription ? (
+					{billed ? (
 						<p className="mt-0.5 text-[13px] text-muted">
-							{`${formatMoney(subscription.amount_cents)}/${subscription.interval ?? 'month'} · ${subscription.cancel_at_period_end ? 'Ends' : 'Renews'} on ${formatDate(subscription.current_period_end)}`}
+							{`${formatMoney(billed.amount_cents)}/${billed.interval ?? 'month'} · ${billed.cancel_at_period_end ? 'Ends' : 'Renews'} on ${formatDate(billed.current_period_end)}`}
 						</p>
 					) : current.source === 'grant' && !currentStyle.thanks ? (
 						<p className="mt-0.5 text-[13px] text-muted">
@@ -143,12 +145,12 @@ export function BillingPage() {
 					text={`${activePouches} of ${current.pouch_limit}`}
 				/>
 			</section>
-			{subscription ? (
+			{billed ? (
 				<div className="mb-8 flex flex-wrap gap-2">
 					<Button loading={portal.isPending} onClick={() => portal.mutate()}>
 						Manage subscription
 					</Button>
-					{subscription.cancel_at_period_end ? null : (
+					{billed.cancel_at_period_end ? null : (
 						<Button variant="danger-outline" onClick={() => setDowngrading(true)}>
 							Cancel subscription
 						</Button>
@@ -188,7 +190,7 @@ export function BillingPage() {
 			<p className="mt-4 text-xs text-meta">
 				Payments are handled by Polar. Nothing is ever deleted when you downgrade: extra
 				pouches become read-only.
-				{subscription?.cancel_at_period_end
+				{billed?.cancel_at_period_end
 					? ' To switch plans, resume your subscription in Manage subscription first.'
 					: ''}
 				{billing.data && !billing.data.available

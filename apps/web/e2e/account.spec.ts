@@ -166,7 +166,8 @@ test.describe('account', () => {
 		await expect(plans.getByRole('article', { name: 'Friends Pass' })).toHaveCount(0);
 		const supporter = plans.getByRole('article', { name: 'Supporter' });
 		await expect(supporter).toHaveAttribute('aria-disabled', 'true');
-		await expect(supporter.getByRole('button', { name: /Supporter/ })).toBeDisabled();
+		await expect(supporter.getByRole('button')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /subscription/ })).toHaveCount(0);
 	});
 });
 
