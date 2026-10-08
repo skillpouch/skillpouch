@@ -15,6 +15,10 @@ import { createAuth, type Auth } from './modules/auth/better-auth';
 import { PolarProvider } from './modules/billing/polar';
 import type { BillingProvider } from './modules/billing/provider';
 import { GithubImporter } from './modules/import/github.service';
+import { GithubApp } from './modules/marketplaces/github-app';
+import { McpRegistryClient } from './modules/marketplaces/mcp-registry';
+import { McpRegistryIndex } from './modules/marketplaces/mcp-registry-index';
+import { SkillsShClient } from './modules/marketplaces/skills-sh';
 import { AccessTokens } from './security/access-token';
 import { DeviceStatusCache } from './security/device-status';
 import { NonceService } from './security/nonce';
@@ -35,14 +39,21 @@ export interface Deps {
 	settings: SettingsCache;
 	/** Null when no billing provider is configured (self-hosting, dev): billing routes answer `billing_unavailable`. */
 	billing: BillingProvider | null;
-	/** Public GitHub repository scanner; tests swap its fetch. */
+	/** GitHub repository reader; tests swap its fetch. */
 	github: GithubImporter;
+	/** Null unless the GitHub App is configured: private-repo marketplaces are off. */
+	githubApp: GithubApp | null;
+	skillsSh: SkillsShClient;
+	mcpRegistry: McpRegistryClient;
+	/** Searchable copy of the MCP Registry in Postgres; API processes keep it synced. */
+	mcpIndex: McpRegistryIndex;
 	now: () => Date;
 }
 
 export async function createDeps(env: Env, log: pino.Logger, role: string): Promise<Deps> {
 	const now = () => new Date();
 	const db = createDatabases(env, `skillpouch-${role}`);
+	const mcpRegistry = new McpRegistryClient();
 	const hub = new ListenHub(env.DATABASE_URL, log);
 	return {
 		env,
@@ -65,7 +76,28 @@ export async function createDeps(env: Env, log: pino.Logger, role: string): Prom
 						now,
 					})
 				: null,
-		github: new GithubImporter(),
+		github: new GithubImporter(fetch, env.GITHUB_PUBLIC_TOKEN),
+		githubApp:
+			env.GITHUB_APP_ID &&
+			env.GITHUB_APP_SLUG &&
+			env.GITHUB_APP_CLIENT_ID &&
+			env.GITHUB_APP_CLIENT_SECRET &&
+			env.GITHUB_APP_PRIVATE_KEY
+				? new GithubApp(
+						{
+							appId: env.GITHUB_APP_ID,
+							slug: env.GITHUB_APP_SLUG,
+							clientId: env.GITHUB_APP_CLIENT_ID,
+							clientSecret: env.GITHUB_APP_CLIENT_SECRET,
+							privateKey: env.GITHUB_APP_PRIVATE_KEY,
+						},
+						fetch,
+						now,
+					)
+				: null,
+		skillsSh: new SkillsShClient(),
+		mcpRegistry,
+		mcpIndex: new McpRegistryIndex(mcpRegistry, db, now),
 		now,
 	};
 }

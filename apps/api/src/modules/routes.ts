@@ -14,6 +14,7 @@ import { devRoutes } from './dev/dev.routes';
 import { devicesRoutes } from './devices/devices.routes';
 import { eventsRoutes } from './events/events.routes';
 import { importRoutes } from './import/import.routes';
+import { marketplacesRoutes } from './marketplaces/marketplaces.routes';
 import { healthRoutes, type HealthState } from './health/health.routes';
 import { operationsRoutes } from './operations/operations.routes';
 import { pouchesRoutes } from './pouches/pouches.routes';
@@ -45,5 +46,6 @@ export async function registerModules(app: ZodApp, deps: Deps, health: HealthSta
 	await billingRoutes(app, deps);
 	await adminRoutes(app, deps);
 	await importRoutes(app, deps);
+	await marketplacesRoutes(app, deps);
 	await devRoutes(app, deps);
 }

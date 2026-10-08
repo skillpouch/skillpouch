@@ -208,6 +208,8 @@ export async function purgeDeletedAccounts(deps: Deps): Promise<number> {
 				'cli_auth_requests',
 				'cli_connect_tokens',
 				'audit_log',
+				'marketplaces',
+				'github_installations',
 			]) {
 				await tx.execute(
 					sql`DELETE FROM ${sql.identifier(table)} WHERE storage_account_id = ${account.id}`,

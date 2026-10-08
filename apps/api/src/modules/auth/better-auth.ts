@@ -58,7 +58,12 @@ export function createAuth({ env, db }: AuthDeps) {
 		emailAndPassword: { enabled: false },
 		socialProviders,
 		account: {
-			accountLinking: { enabled: true, trustedProviders: ['github', 'google'] },
+			accountLinking: {
+				enabled: true,
+				trustedProviders: ['github', 'google'],
+				// A signed-in user may link a GitHub account whose email differs from their Google one.
+				allowDifferentEmails: true,
+			},
 		},
 		user: {
 			additionalFields: {

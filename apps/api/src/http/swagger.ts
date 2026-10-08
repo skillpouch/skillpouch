@@ -64,6 +64,7 @@ export async function registerSwagger(app: FastifyInstance, env: Env): Promise<v
 				{ name: 'billing', description: 'Plans, Polar checkout/portal, webhooks' },
 				{ name: 'admin', description: 'Admin dashboard (role admin + step-up)' },
 				{ name: 'import', description: 'Public GitHub repository scan' },
+				{ name: 'marketplaces', description: 'Marketplaces and the GitHub connection' },
 			],
 		},
 		transform: envelopeJsonSchemaTransform,

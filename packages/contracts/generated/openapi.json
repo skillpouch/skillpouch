@@ -14907,6 +14907,8 @@
 																"type": "string",
 																"enum": [
 																	"skill",
+																	"agent",
+																	"command",
 																	"plugin",
 																	"marketplace",
 																	"instructions",
@@ -14998,6 +15000,1011 @@
 					}
 				}
 			}
+		},
+		"/v1/marketplaces": {
+			"get": {
+				"summary": "Built-in and added marketplaces, and the GitHub connection",
+				"tags": [
+					"marketplaces"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"marketplaces": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"type": "string"
+															},
+															"source": {
+																"type": "string",
+																"enum": [
+																	"skills_sh",
+																	"mcp_registry",
+																	"github"
+																]
+															},
+															"name": {
+																"type": "string"
+															},
+															"description": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"repo": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"private": {
+																"type": "boolean"
+															},
+															"builtin": {
+																"type": "boolean"
+															},
+															"url": {
+																"type": "string"
+															},
+															"kinds": {
+																"type": "array",
+																"items": {
+																	"type": "string",
+																	"enum": [
+																		"skill",
+																		"agent",
+																		"command",
+																		"instructions",
+																		"mcp_server",
+																		"plugin"
+																	]
+																}
+															}
+														},
+														"required": [
+															"id",
+															"source",
+															"name",
+															"description",
+															"repo",
+															"private",
+															"builtin",
+															"url",
+															"kinds"
+														],
+														"additionalProperties": false
+													}
+												},
+												"github": {
+													"type": "object",
+													"properties": {
+														"available": {
+															"type": "boolean"
+														},
+														"install_url": {
+															"type": [
+																"string",
+																"null"
+															]
+														},
+														"authorize_url": {
+															"type": [
+																"string",
+																"null"
+															]
+														},
+														"connections": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"installation_id": {
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	},
+																	"account": {
+																		"type": "string"
+																	},
+																	"type": {
+																		"type": "string",
+																		"enum": [
+																			"User",
+																			"Organization"
+																		]
+																	}
+																},
+																"required": [
+																	"installation_id",
+																	"account",
+																	"type"
+																],
+																"additionalProperties": false
+															}
+														}
+													},
+													"required": [
+														"available",
+														"install_url",
+														"authorize_url",
+														"connections"
+													],
+													"additionalProperties": false
+												}
+											},
+											"required": [
+												"marketplaces",
+												"github"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"summary": "Add a GitHub repository as a marketplace (public, or private via the GitHub App)",
+				"tags": [
+					"marketplaces"
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"repo": {
+										"type": "string",
+										"minLength": 3,
+										"maxLength": 300
+									}
+								},
+								"required": [
+									"repo"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"source": {
+													"type": "string",
+													"enum": [
+														"skills_sh",
+														"mcp_registry",
+														"github"
+													]
+												},
+												"name": {
+													"type": "string"
+												},
+												"description": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"repo": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"private": {
+													"type": "boolean"
+												},
+												"builtin": {
+													"type": "boolean"
+												},
+												"url": {
+													"type": "string"
+												},
+												"kinds": {
+													"type": "array",
+													"items": {
+														"type": "string",
+														"enum": [
+															"skill",
+															"agent",
+															"command",
+															"instructions",
+															"mcp_server",
+															"plugin"
+														]
+													}
+												}
+											},
+											"required": [
+												"id",
+												"source",
+												"name",
+												"description",
+												"repo",
+												"private",
+												"builtin",
+												"url",
+												"kinds"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/marketplaces/{marketplaceId}": {
+			"delete": {
+				"summary": "Remove an added marketplace",
+				"tags": [
+					"marketplaces"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"maxLength": 64
+						},
+						"in": "path",
+						"name": "marketplaceId",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"removed": {
+													"type": "boolean",
+													"enum": [
+														true
+													]
+												}
+											},
+											"required": [
+												"removed"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/marketplaces/{marketplaceId}/items": {
+			"get": {
+				"summary": "Search or list what a marketplace offers",
+				"tags": [
+					"marketplaces"
+				],
+				"description": "Pages of 30 or so; pass `next_cursor` back as `cursor` for more. Without `q`, skills.sh lists its most installed (`sort=popular`) or trending skills.",
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"maxLength": 200
+						},
+						"in": "query",
+						"name": "q",
+						"required": false
+					},
+					{
+						"schema": {
+							"type": "string",
+							"enum": [
+								"skill",
+								"agent",
+								"command",
+								"instructions",
+								"mcp_server",
+								"plugin"
+							]
+						},
+						"in": "query",
+						"name": "kind",
+						"required": false
+					},
+					{
+						"schema": {
+							"type": "string",
+							"maxLength": 500
+						},
+						"in": "query",
+						"name": "cursor",
+						"required": false
+					},
+					{
+						"schema": {
+							"type": "string",
+							"enum": [
+								"popular",
+								"trending"
+							]
+						},
+						"in": "query",
+						"name": "sort",
+						"required": false
+					},
+					{
+						"schema": {
+							"type": "string",
+							"maxLength": 64
+						},
+						"in": "path",
+						"name": "marketplaceId",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"items": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"key": {
+																"type": "string"
+															},
+															"kind": {
+																"type": "string",
+																"enum": [
+																	"skill",
+																	"agent",
+																	"command",
+																	"instructions",
+																	"mcp_server",
+																	"plugin"
+																]
+															},
+															"name": {
+																"type": "string"
+															},
+															"description": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"repo": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"installs": {
+																"anyOf": [
+																	{
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															}
+														},
+														"required": [
+															"key",
+															"kind",
+															"name",
+															"description",
+															"repo",
+															"installs"
+														],
+														"additionalProperties": false
+													}
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"total": {
+													"anyOf": [
+														{
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"items",
+												"next_cursor",
+												"total"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/marketplaces/{marketplaceId}/item": {
+			"get": {
+				"summary": "One item's files, ready to encrypt and save",
+				"tags": [
+					"marketplaces"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 500
+						},
+						"in": "query",
+						"name": "key",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string",
+							"maxLength": 64
+						},
+						"in": "path",
+						"name": "marketplaceId",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"kind": {
+													"type": "string",
+													"enum": [
+														"skill",
+														"agent",
+														"command",
+														"instructions",
+														"mcp_server",
+														"plugin"
+													]
+												},
+												"name": {
+													"type": "string"
+												},
+												"description": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"files": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"size": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"content_b64": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"path",
+															"size",
+															"content_b64"
+														],
+														"additionalProperties": false
+													}
+												},
+												"truncated": {
+													"type": "boolean"
+												},
+												"url": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"kind",
+												"name",
+												"description",
+												"files",
+												"truncated",
+												"url"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/github/repositories": {
+			"get": {
+				"summary": "Repositories the connected GitHub App installations can read",
+				"tags": [
+					"marketplaces"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"repositories": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"full_name": {
+																"type": "string"
+															},
+															"private": {
+																"type": "boolean"
+															},
+															"description": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"installation_id": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															}
+														},
+														"required": [
+															"full_name",
+															"private",
+															"description",
+															"installation_id"
+														],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": [
+												"repositories"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/github/connect": {
+			"post": {
+				"summary": "Connect GitHub with the code from its redirect",
+				"tags": [
+					"marketplaces"
+				],
+				"description": "Keeps only installations GitHub lists for the authorizing user: their own account or organizations they administer.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"code": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 200
+									}
+								},
+								"required": [
+									"code"
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"connections": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"installation_id": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"account": {
+																"type": "string"
+															},
+															"type": {
+																"type": "string",
+																"enum": [
+																	"User",
+																	"Organization"
+																]
+															}
+														},
+														"required": [
+															"installation_id",
+															"account",
+															"type"
+														],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": [
+												"connections"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"summary": "Disconnect GitHub and remove private-repository marketplaces",
+				"tags": [
+					"marketplaces"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"disconnected": {
+													"type": "boolean",
+													"enum": [
+														true
+													]
+												}
+											},
+											"required": [
+												"disconnected"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"servers": [
@@ -15050,6 +16057,10 @@
 		{
 			"name": "import",
 			"description": "Public GitHub repository scan"
+		},
+		{
+			"name": "marketplaces",
+			"description": "Marketplaces and the GitHub connection"
 		}
 	]
 }

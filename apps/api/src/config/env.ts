@@ -26,6 +26,14 @@ const DEV_PEPPER_KEY = 'ZGV2LW9ubHktcGVwcGVyLWtleS1jaGFuZ2UtbWUtISE';
 /** Where the Compose stack mounts `deploy/secrets/` inside the container. */
 export const DEFAULT_SECRETS_DIR = '/run/secrets';
 
+const GITHUB_APP_KEYS = [
+	'GITHUB_APP_ID',
+	'GITHUB_APP_SLUG',
+	'GITHUB_APP_CLIENT_ID',
+	'GITHUB_APP_CLIENT_SECRET',
+	'GITHUB_APP_PRIVATE_KEY',
+] as const;
+
 const EnvSchema = z
 	.object({
 		NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -65,6 +73,14 @@ const EnvSchema = z
 		GITHUB_CLIENT_SECRET: z.string().optional(),
 		GOOGLE_CLIENT_ID: z.string().optional(),
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
+		/** The GitHub App that reads private repositories for marketplaces (all five or none). */
+		GITHUB_APP_ID: z.string().optional(),
+		GITHUB_APP_SLUG: z.string().optional(),
+		GITHUB_APP_CLIENT_ID: z.string().optional(),
+		GITHUB_APP_CLIENT_SECRET: z.string().optional(),
+		GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+		/** Optional token for public GitHub reads: 5000 instead of 60 requests per hour. */
+		GITHUB_PUBLIC_TOKEN: z.string().optional(),
 		/** Comma-separated verified emails promoted to admin on sign-in. */
 		ADMIN_EMAILS: z.string().default(''),
 
@@ -130,6 +146,16 @@ const EnvSchema = z
 			'development secrets or DEV_LOGIN on a public URL — set NODE_ENV=production and real secrets',
 		path: ['NODE_ENV'],
 	})
+	.refine(
+		(env) => {
+			const set = GITHUB_APP_KEYS.filter((key) => env[key]).length;
+			return set === 0 || set === GITHUB_APP_KEYS.length;
+		},
+		{
+			message: `set all of ${GITHUB_APP_KEYS.join(', ')} or none`,
+			path: ['GITHUB_APP_ID'],
+		},
+	)
 	.transform((env) => ({
 		...env,
 		DB_SET_ROLE: env.DB_SET_ROLE ?? env.NODE_ENV !== 'production',
@@ -175,6 +201,9 @@ const SECRET_KEYS = [
 	'BETTER_AUTH_SECRET',
 	'GITHUB_CLIENT_SECRET',
 	'GOOGLE_CLIENT_SECRET',
+	'GITHUB_APP_CLIENT_SECRET',
+	'GITHUB_APP_PRIVATE_KEY',
+	'GITHUB_PUBLIC_TOKEN',
 	'JWT_SIGNING_KEY',
 	'DPOP_NONCE_SECRET',
 	'IP_HASH_SECRET',

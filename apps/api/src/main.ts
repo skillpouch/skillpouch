@@ -48,6 +48,7 @@ if (env.API_ROLE === 'worker') {
 	syncPlansFromProvider(deps).catch((error: unknown) =>
 		log.warn({ err: error }, 'plan sync at start failed'),
 	);
+	const stopMcpIndex = deps.mcpIndex.start(log);
 	if (env.SWAGGER) log.info(`Swagger UI: ${env.API_PUBLIC_URL.replace(/\/+$/, '')}/docs`);
 
 	let stopping = false;
@@ -63,6 +64,7 @@ if (env.API_ROLE === 'worker') {
 			process.exit(1);
 		}, env.SHUTDOWN_GRACE_MS);
 		timer.unref();
+		stopMcpIndex();
 		await app.close();
 		metricsServer?.close();
 		await closeDeps(deps);

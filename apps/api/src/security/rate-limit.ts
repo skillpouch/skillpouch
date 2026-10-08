@@ -21,6 +21,8 @@ export const BUCKETS: Record<RateLimitBucket, BucketPolicy> = {
 	blobs: { capacity: 600, perMinute: 600 },
 	/** GitHub scans: each one can fetch hundreds of files upstream. */
 	import: { capacity: 10, perMinute: 10 },
+	/** Marketplace browsing: searches as you type, items read one at a time. */
+	marketplace: { capacity: 60, perMinute: 60 },
 	/** Unauthenticated routes (share links, request cancel), per IP. */
 	public: { capacity: 120, perMinute: 120 },
 };

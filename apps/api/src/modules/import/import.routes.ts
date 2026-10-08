@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Deps } from '../../deps';
 import { principalOf } from '../../http/principal';
 import type { ZodApp } from '../../http/zod-app';
-import { REF_PATTERN, REPO_PATTERN } from './github.service';
+import { IMPORT_KINDS, REF_PATTERN, REPO_PATTERN } from './github.service';
 
 const ScanQuery = z.object({
 	repo: z.string().regex(REPO_PATTERN, 'owner/name'),
@@ -17,7 +17,7 @@ const ScanResponse = z.object({
 	sha: z.string(),
 	items: z.array(
 		z.object({
-			kind: z.enum(['skill', 'plugin', 'marketplace', 'instructions', 'mcp_server']),
+			kind: z.enum(IMPORT_KINDS),
 			path: z.string(),
 			name: z.string(),
 			truncated: z.boolean(),

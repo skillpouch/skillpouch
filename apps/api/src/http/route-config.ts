@@ -11,7 +11,8 @@ export type AuthMode = 'public' | 'session' | 'device' | 'any' | 'admin';
  * Token buckets. Public routes without an explicit bucket use `public`
  * (keyed by client IP).
  */
-export type RateLimitBucket = 'auth' | 'general' | 'operations' | 'blobs' | 'import' | 'public';
+export type RateLimitBucket =
+	'auth' | 'general' | 'operations' | 'blobs' | 'import' | 'marketplace' | 'public';
 
 export interface SkillpouchRouteConfig {
 	auth: AuthMode;

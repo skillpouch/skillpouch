@@ -16,6 +16,32 @@ Apply changes with `deploy/tunnel/update.sh --force` (or the plain
 | GitHub OAuth | org skillpouch → Settings → Developer settings → OAuth Apps → New   | Homepage `https://skillpouch.net` · Callback `https://skillpouch.net/v1/auth/callback/github`                                  | `GITHUB_CLIENT_ID` · `secrets/github_client_secret` |
 | Google OAuth | console.cloud.google.com → Google Auth Platform → Clients → Web app | JS origin `https://skillpouch.net` · Redirect `https://skillpouch.net/v1/auth/callback/google` · Scopes `openid email profile` | `GOOGLE_CLIENT_ID` · `secrets/google_client_secret` |
 
+## Marketplaces (private GitHub repositories)
+
+Optional. Without it, marketplaces still work for public repositories,
+skills.sh and the MCP Registry.
+
+Create it under org skillpouch → Settings → Developer settings → GitHub Apps → New:
+
+| Setting                                                | Value                                                                                                    |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Homepage URL                                           | `https://skillpouch.net`                                                                                 |
+| Callback URL                                           | `https://skillpouch.net/github/connected` (add `http://localhost:5173/github/connected` for development) |
+| Request user authorization (OAuth) during installation | on                                                                                                       |
+| Webhook                                                | off                                                                                                      |
+| Repository permissions                                 | Contents: read-only, Metadata: read-only                                                                 |
+| Organization permissions                               | Members: read-only (lets org admins connect their org)                                                   |
+| Where can this app be installed                        | Any account                                                                                              |
+
+Then generate a client secret and a private key (`.pem`). Credentials:
+`GITHUB_APP_ID`, `GITHUB_APP_SLUG` (the app's URL name), `GITHUB_APP_CLIENT_ID`
+in `api.env`; `secrets/github_app_client_secret` and
+`secrets/github_app_private_key` (the whole `.pem` file).
+
+Optional `secrets/github_public_token`: a fine-grained token with no
+permissions. Public repository reads then get 5000 instead of 60 requests per
+hour.
+
 ## Billing (Polar)
 
 | Where                                 | Setting                                                                                                                                                                                                      | Credentials                    |
