@@ -17,7 +17,6 @@ import { LoadingBlock } from '@/components/ui/spinner';
 import { cn } from '@/lib/cn';
 import { formatBytes, formatRelative, plural } from '@/lib/format';
 import type { PouchView } from '../../pouches/pouches';
-import { LANGUAGE_LABEL, languageOf } from '../content';
 import {
 	changedCount,
 	createDraft,
@@ -34,7 +33,7 @@ import { useIngredientFiles, type Ingredient } from '../ingredients';
 import { NAME_MAX, validateName, validatePath, type KindDefinition } from '../kinds';
 import { useCreateIngredient, useUpdateIngredient } from '../mutations';
 import { CodeEditor } from './code-editor';
-import { FileTree } from './file-tree';
+import { FileTree, MobileFilePicker } from './file-tree';
 
 export type SheetMode = 'show' | 'edit' | 'create';
 
@@ -61,6 +60,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 	// Applied synchronously so validation errors surface in the event handler that caused them.
 	const dispatch = (action: DraftAction) => setDraft(draftReducer(draft, action));
 	const [cursor, setCursor] = useState({ line: 1, column: 1 });
+	const [languageName, setLanguageName] = useState('Plain text');
 	const [prompt, setPrompt] = useState<{ kind: 'add' } | { kind: 'rename'; path: string } | null>(
 		null,
 	);
@@ -265,7 +265,8 @@ export function IngredientSheet(props: IngredientSheetProps) {
 							/>
 						</aside>
 						<MobileFilePicker
-							draft={draft}
+							entries={draft.entries}
+							active={draft.active}
 							onOpen={(path) => dispatch({ type: 'open', path })}
 						/>
 						<section className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -328,7 +329,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 									) : (
 										<CodeEditor
 											value={activeEntry.text}
-											language={languageOf(activeEntry.path)}
+											path={activeEntry.path}
 											readOnly={!editing}
 											label={`Contents of ${activeEntry.path}`}
 											onChange={(text) =>
@@ -339,6 +340,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 												})
 											}
 											onCursor={setCursor}
+											onLanguage={setLanguageName}
 										/>
 									)
 								) : (
@@ -350,7 +352,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 							<footer className="flex h-7 shrink-0 items-center justify-end gap-4 border-t border-border px-4 font-mono text-[11px] text-meta">
 								{activeEntry ? (
 									<>
-										<span>{LANGUAGE_LABEL[languageOf(activeEntry.path)]}</span>
+										<span>{languageName}</span>
 										<span>UTF-8 · LF</span>
 										<span>
 											Ln {cursor.line}, Col {cursor.column}
@@ -439,27 +441,6 @@ export function IngredientSheet(props: IngredientSheetProps) {
 }
 
 /** Phones: the file tree becomes a dropdown above the editor. */
-function MobileFilePicker({ draft, onOpen }: { draft: Draft; onOpen: (path: string) => void }) {
-	const live = draft.entries.filter((entry) => !entry.deleted);
-	if (live.length < 2) return null;
-	return (
-		<div className="border-b border-border p-2 md:hidden">
-			<select
-				aria-label="File"
-				value={draft.active ?? ''}
-				onChange={(event) => onOpen(event.target.value)}
-				className="h-10 w-full rounded-md border border-border-strong bg-surface px-2 font-mono text-[13px]"
-			>
-				{live.map((entry) => (
-					<option key={entry.path} value={entry.path}>
-						{entry.path}
-					</option>
-				))}
-			</select>
-		</div>
-	);
-}
-
 /** Runs a reducer action that may throw a validation error. */
 function run(action: () => void, report: (message: string | null) => void) {
 	try {

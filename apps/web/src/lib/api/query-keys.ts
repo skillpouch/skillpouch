@@ -22,4 +22,9 @@ export const queryKeys = {
 	securitySettings: ['security', 'settings'] as const,
 	passkeys: ['security', 'passkeys'] as const,
 	unlockParams: ['unlock', 'params'] as const,
+	linkedAccounts: ['auth', 'accounts'] as const,
+	marketplaces: ['marketplaces'] as const,
+	marketplaceItems: (id: string, query: string, kind: string, sort: string) =>
+		['marketplaces', id, 'items', query, kind, sort] as const,
+	githubRepositories: ['marketplaces', 'github', 'repositories'] as const,
 } as const;

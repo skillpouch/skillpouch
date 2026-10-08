@@ -55,23 +55,6 @@ export function describe(path: string, text: string | null): string {
 	return '';
 }
 
-export type FileLanguage = 'markdown' | 'json' | 'shell' | 'text';
-
-export function languageOf(path: string): FileLanguage {
-	const lower = path.toLowerCase();
-	if (lower.endsWith('.md') || lower.endsWith('.mdx')) return 'markdown';
-	if (lower.endsWith('.json') || lower.endsWith('.jsonc')) return 'json';
-	if (lower.endsWith('.sh') || lower.endsWith('.bash') || lower.endsWith('.zsh')) return 'shell';
-	return 'text';
-}
-
-export const LANGUAGE_LABEL: Record<FileLanguage, string> = {
-	markdown: 'Markdown',
-	json: 'JSON',
-	shell: 'Shell',
-	text: 'Plain text',
-};
-
 /**
  * Removes secret values (`env`, `headers`) from JSON files before sharing.
  * Returns the cleaned text and the dotted keys that were emptied so the

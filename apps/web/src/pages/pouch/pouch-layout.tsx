@@ -5,7 +5,7 @@
  * locked or deleted pouches.
  */
 import { Link, Outlet, useParams } from '@tanstack/react-router';
-import { LayoutGrid, PanelLeft, Settings, Share2, TerminalSquare } from 'lucide-react';
+import { LayoutGrid, PanelLeft, Settings, Share2, Store, TerminalSquare } from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Banner } from '@/components/layout/banner';
@@ -40,6 +40,12 @@ export function PouchLayout() {
 			id: 'overview',
 			items: [
 				{ to: '/app/p/$pouchId', params, label: 'Overview', icon: LayoutGrid, exact: true },
+				{
+					to: '/app/p/$pouchId/marketplaces',
+					params,
+					label: 'Marketplaces',
+					icon: Store,
+				},
 			],
 		},
 		{
@@ -49,7 +55,7 @@ export function PouchLayout() {
 				params: { pouchId, kind: kind.slug },
 				label: kind.label,
 				icon: kind.icon,
-				...(contents.data ? { count: counts[kind.kind] } : {}),
+				...(contents.data && !kind.single ? { count: counts[kind.kind] } : {}),
 			})),
 		},
 	];

@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import {
-	asText,
-	describe as describeFile,
-	fillSecrets,
-	languageOf,
-	stripSecrets,
-} from '../content';
+import { asText, describe as describeFile, fillSecrets, stripSecrets } from '../content';
 import { KINDS, kindBySlug, validateName, validatePath } from '../kinds';
 
 describe('asText', () => {
@@ -29,15 +23,6 @@ describe('describe', () => {
 		);
 		expect(describeFile('A.md', null)).toBe('');
 		expect(describeFile('A.md', 'x'.repeat(300))).toHaveLength(158);
-	});
-});
-
-describe('languageOf', () => {
-	it('maps extensions', () => {
-		expect(languageOf('README.MD')).toBe('markdown');
-		expect(languageOf('a.jsonc')).toBe('json');
-		expect(languageOf('run.sh')).toBe('shell');
-		expect(languageOf('Makefile')).toBe('text');
 	});
 });
 

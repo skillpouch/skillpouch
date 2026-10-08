@@ -45,17 +45,15 @@ export function Sidebar({
 	headerAside,
 }: SidebarProps) {
 	return (
-		<nav aria-label="Main" className="flex h-full flex-col gap-4 px-3 pb-4">
-			{/* Same height and inset as the top bar (h-14, 24 px), so the logo never shifts between pages. */}
-			{/* Collapsing only clips and fades the text; the icons keep their place. */}
-			<div
-				className={cn(
-					'flex h-14 shrink-0 items-center justify-between overflow-hidden border-b border-transparent whitespace-nowrap transition-[padding] duration-200',
-					collapsed ? 'px-2' : 'px-3',
-				)}
-			>
+		<nav aria-label="Main" className="flex h-full flex-col gap-4 px-[8px] pb-4">
+			{/*
+			 * One vertical line: icons (16 px) and the logo mark (20 px) share a
+			 * centre 26 px from the left, which is also the centre of the 52 px
+			 * collapsed column. Collapsing only clips and fades text, so nothing moves.
+			 */}
+			<div className="flex h-14 shrink-0 items-center justify-between overflow-hidden whitespace-nowrap px-[8px]">
 				<Link to="/app" onClick={onNavigate} aria-label="All pouches">
-					<Logo />
+					<Logo wordmarkClassName={fade(collapsed)} />
 				</Link>
 				{headerAside}
 			</div>
@@ -114,13 +112,13 @@ export function SidebarLink({
 			onClick={onNavigate}
 			aria-current={active ? 'page' : undefined}
 			className={cn(
-				'group relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] whitespace-nowrap transition-colors max-md:h-11',
+				'group relative flex h-8 items-center gap-2.5 rounded-md px-[11px] text-[13px] whitespace-nowrap transition-colors max-md:h-11',
 				active ? 'bg-hover/60 text-fg' : 'text-muted hover:bg-hover/40 hover:text-fg',
 			)}
 		>
 			{active ? (
 				<span
-					className="absolute top-1.5 bottom-1.5 -left-3 w-0.5 rounded-r bg-accent"
+					className="absolute top-1.5 bottom-1.5 -left-[8px] w-0.5 rounded-r bg-accent"
 					aria-hidden
 				/>
 			) : null}
@@ -158,10 +156,11 @@ export function SidebarButton({
 			onClick={onClick}
 			className={cn(
 				'flex h-9 w-full items-center gap-2.5 overflow-hidden rounded-md text-[13px] whitespace-nowrap transition-colors max-md:h-11',
-				// The border takes a pixel, so the icon lines up with the links above.
+				// Exact pixels: the root font is 14px, so rem spacing would put the icons
+				// off the collapsed column's centre. The border takes a pixel.
 				emphasis
-					? 'border border-border-strong bg-surface px-[9px] font-medium text-fg hover:bg-hover'
-					: 'px-2.5 text-muted hover:bg-hover/40 hover:text-fg',
+					? 'border border-border-strong bg-surface px-[10px] font-medium text-fg hover:bg-hover'
+					: 'px-[11px] text-muted hover:bg-hover/40 hover:text-fg',
 			)}
 		>
 			<Icon className="size-4 shrink-0" aria-hidden />

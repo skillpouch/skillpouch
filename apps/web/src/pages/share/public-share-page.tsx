@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Segmented } from '@/components/ui/segmented';
 import { LoadingBlock } from '@/components/ui/spinner';
 import { CodeEditor } from '@/features/ingredients/components/code-editor';
-import { asText, languageOf } from '@/features/ingredients/content';
+import { asText } from '@/features/ingredients/content';
 import { kindDefinition } from '@/features/ingredients/kinds';
 import { usePouches, type PouchView } from '@/features/pouches/pouches';
 import { useSession } from '@/features/session/session-store';
@@ -270,7 +270,7 @@ function BundlePreview({ bundle }: { bundle: ShareBundle }) {
 				{file && text !== null ? (
 					<CodeEditor
 						value={text}
-						language={languageOf(file.path)}
+						path={file.path}
 						readOnly
 						label={`Contents of ${file.path}`}
 					/>

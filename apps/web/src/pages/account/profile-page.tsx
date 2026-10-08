@@ -5,6 +5,10 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Avatar } from '@/features/account/avatar';
+import {
+	GithubRepositoryAccess,
+	SignInMethods,
+} from '@/features/account/components/connected-accounts';
 import { bootstrapSession } from '@/features/session/bootstrap';
 import { useUnlocked } from '@/features/session/session-store';
 import { api } from '@/lib/api/client';
@@ -31,6 +35,8 @@ export function ProfilePage() {
 				Your name, email and picture come from the account you signed in with (GitHub or
 				Google).
 			</p>
+			<SignInMethods />
+			<GithubRepositoryAccess />
 			<section
 				className="mt-10 rounded-lg border border-danger/30 p-5"
 				aria-label="Delete account"

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Phone layout (Pixel 7): no sideways scrolling, the menu drawer, full-screen editor. */
 import type { Page } from '@playwright/test';
-import { createAccount, expect, openFirstPouch, test } from './fixtures';
+import { addManually, createAccount, expect, openFirstPouch, test } from './fixtures';
 
 async function expectNoSidewaysScroll(page: Page): Promise<void> {
 	const overflow = await page.evaluate(
@@ -50,7 +50,7 @@ test.describe('phone @mobile', () => {
 			.getByRole('dialog')
 			.getByRole('link', { name: /^Skills/ })
 			.click();
-		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await addManually(page, 'skill');
 		const sheet = page.getByRole('dialog');
 		const box = await sheet.boundingBox();
 		expect(box!.width).toBeGreaterThanOrEqual(page.viewportSize()!.width - 1);

@@ -6,10 +6,12 @@ export function Logo({
 	withWordmark = true,
 	size = 20,
 	className,
+	wordmarkClassName,
 }: {
 	withWordmark?: boolean;
 	size?: number;
 	className?: string;
+	wordmarkClassName?: string;
 }) {
 	return (
 		<span className={cn('inline-flex items-center gap-2', className)}>
@@ -20,7 +22,14 @@ export function Logo({
 				height={size}
 			/>
 			{withWordmark ? (
-				<span className="text-[15px] font-semibold tracking-tight text-fg">SkillPouch</span>
+				<span
+					className={cn(
+						'text-[15px] font-semibold tracking-tight text-fg',
+						wordmarkClassName,
+					)}
+				>
+					SkillPouch
+				</span>
 			) : null}
 		</span>
 	);

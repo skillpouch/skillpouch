@@ -4,7 +4,7 @@
  * link fragment (never sent to the server), imported into another account.
  */
 import type { Browser, Page } from '@playwright/test';
-import { createAccount, expect, newBrowser, openFirstPouch, test } from './fixtures';
+import { addManually, createAccount, expect, newBrowser, openFirstPouch, test } from './fixtures';
 
 async function shareSkill(page: Page, name: string, options: { oneTime?: boolean } = {}) {
 	await openFirstPouch(page);
@@ -13,7 +13,7 @@ async function shareSkill(page: Page, name: string, options: { oneTime?: boolean
 		.getByRole('link', { name: /^Skills/ })
 		.first()
 		.click();
-	await page.getByRole('button', { name: 'Add skill' }).first().click();
+	await addManually(page, 'skill');
 	await page.getByRole('dialog').getByLabel('Item name').fill(name);
 	await page.getByRole('dialog').getByRole('button', { name: 'Add skill' }).click();
 	await expect(page.getByText('Skill added')).toBeVisible();

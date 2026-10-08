@@ -7,6 +7,7 @@
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +16,8 @@ import {
 	type PanelSearch,
 } from '@/features/ingredients/components/ingredient-list';
 import { kindBySlug } from '@/features/ingredients/kinds';
+import { AddIngredientDialog } from '@/features/marketplaces/components/add-ingredient-dialog';
+import { offering, useMarketplaces } from '@/features/marketplaces/marketplaces';
 import { usePouch } from '@/features/pouches/pouches';
 import { plural } from '@/lib/format';
 import { NotFoundPage } from '../not-found-page';
@@ -31,6 +34,8 @@ export function IngredientsPage() {
 	const kind = kindBySlug(slug);
 	const pouch = usePouch(pouchId).data;
 	const { items } = useKindIngredients(pouchId, kind);
+	const marketplaces = useMarketplaces();
+	const [choosing, setChoosing] = useState(false);
 
 	if (!kind) return <NotFoundPage />;
 	if (!pouch) return <PageSkeleton variant="list" />;
@@ -42,6 +47,10 @@ export function IngredientsPage() {
 			search: next,
 			replace: true,
 		});
+	// Nothing to pick from (hooks): straight to the editor.
+	const fromMarketplace =
+		!marketplaces.data || offering(marketplaces.data.marketplaces, kind.kind).length > 0;
+	const add = () => (fromMarketplace ? setChoosing(true) : setPanel({ new: true }));
 
 	return (
 		<>
@@ -54,13 +63,20 @@ export function IngredientsPage() {
 				}
 				actions={
 					readOnly || kind.single ? null : (
-						<Button variant="primary" onClick={() => setPanel({ new: true })}>
+						<Button variant="primary" onClick={add}>
 							<Plus /> Add {kind.singular.toLowerCase()}
 						</Button>
 					)
 				}
 			/>
 			<IngredientList pouch={pouch} kind={kind} search={search} onPanel={setPanel} />
+			<AddIngredientDialog
+				open={choosing}
+				onOpenChange={setChoosing}
+				pouch={pouch}
+				kind={kind}
+				onWrite={() => setPanel({ new: true })}
+			/>
 		</>
 	);
 }

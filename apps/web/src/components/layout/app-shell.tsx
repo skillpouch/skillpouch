@@ -55,17 +55,20 @@ function useCollapsed(): [boolean, () => void] {
 /** Every page shares one content width, so nothing shifts when you navigate. */
 const CONTENT_WIDTH = 'max-w-[1200px]';
 
+/** Only the content area scrolls; the top bar and sidebar stay put. */
+export const CONTENT_SCROLL_ID = 'app-content';
+
 export function AppShell({ sidebar, topBar, pouchId, banners, children }: AppShellProps) {
 	const [collapsed, toggleCollapsed] = useCollapsed();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [searching, setSearching] = useState(false);
 	return (
-		<div className="flex min-h-dvh">
+		<div className="flex h-dvh overflow-hidden">
 			{sidebar ? (
 				<aside
 					className={cn(
-						'sticky top-0 hidden h-dvh shrink-0 overflow-hidden border-r border-border bg-bg transition-[width] duration-200 md:block',
-						collapsed ? 'w-[60px]' : 'w-[240px]',
+						'hidden h-full shrink-0 overflow-hidden border-r border-border bg-bg transition-[width] duration-200 md:block',
+						collapsed ? 'w-[53px]' : 'w-[240px]',
 					)}
 				>
 					{sidebar({ collapsed, toggleCollapsed })}
@@ -96,7 +99,11 @@ export function AppShell({ sidebar, topBar, pouchId, banners, children }: AppShe
 					{...(sidebar ? { onOpenMenu: () => setDrawerOpen(true) } : {})}
 				/>
 				{banners}
-				<main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
+				<main
+					id={CONTENT_SCROLL_ID}
+					data-scroll-restoration-id={CONTENT_SCROLL_ID}
+					className="min-h-0 flex-1 overflow-y-auto px-4 py-6 [scrollbar-gutter:stable] sm:px-8 sm:py-8"
+				>
 					<div className={cn('mx-auto w-full', CONTENT_WIDTH)}>{children}</div>
 				</main>
 			</div>

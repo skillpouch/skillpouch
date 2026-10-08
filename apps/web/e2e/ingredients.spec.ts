@@ -5,7 +5,7 @@
  * so a reload proves the round trip.
  */
 import type { Locator, Page } from '@playwright/test';
-import { createAccount, expect, openFirstPouch, test } from './fixtures';
+import { addManually, createAccount, expect, openFirstPouch, test } from './fixtures';
 
 async function openKind(page: Page, label: string): Promise<void> {
 	await page
@@ -31,7 +31,7 @@ async function typeInEditor(
 }
 
 async function addSkill(page: Page, name: string, body?: string): Promise<void> {
-	await page.getByRole('button', { name: 'Add skill' }).first().click();
+	await addManually(page, 'skill');
 	const sheet = page.getByRole('dialog');
 	await sheet.getByLabel('Item name').fill(name);
 	if (body !== undefined) await typeInEditor(page, 'SKILL.md', body);
@@ -51,8 +51,8 @@ test.describe('ingredients', () => {
 
 	test('every kind has its own empty page', async ({ page }) => {
 		for (const label of [
-			'Skills',
 			'Instructions',
+			'Skills',
 			'Agents',
 			'Commands',
 			'MCP Servers',
@@ -97,12 +97,12 @@ test.describe('ingredients', () => {
 				.getByRole('navigation')
 				.getByRole('link', { name: /^Instructions/ })
 				.first(),
-		).toContainText('1');
+		).toHaveText('Instructions');
 	});
 
 	test('a new skill’s template follows its name, and it saves encrypted', async ({ page }) => {
 		await openKind(page, 'Skills');
-		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await addManually(page, 'skill');
 		const sheet = page.getByRole('dialog');
 		await sheet.getByLabel('Item name').fill('pdf-tools');
 		await expect(sheet.getByLabel('Contents of SKILL.md')).toContainText('name: pdf-tools');
@@ -123,7 +123,7 @@ test.describe('ingredients', () => {
 
 	test('rejects bad names and duplicate names', async ({ page }) => {
 		await openKind(page, 'Skills');
-		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await addManually(page, 'skill');
 		const sheet = page.getByRole('dialog');
 		await sheet.getByLabel('Item name').fill('bad name!');
 		await sheet.getByRole('button', { name: 'Add skill' }).click();
@@ -135,7 +135,7 @@ test.describe('ingredients', () => {
 			.click();
 
 		await addSkill(page, 'twin');
-		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await addManually(page, 'skill');
 		await page.getByRole('dialog').getByLabel('Item name').fill('TWIN');
 		await page.getByRole('dialog').getByRole('button', { name: 'Add skill' }).click();
 		await expect(page.getByRole('dialog').getByRole('alert')).toContainText('already exists');
@@ -221,7 +221,7 @@ test.describe('ingredients', () => {
 
 	test('MCP servers use their own main file', async ({ page }) => {
 		await openKind(page, 'MCP Servers');
-		await page.getByRole('button', { name: 'Add mcp server' }).first().click();
+		await addManually(page, 'mcp server');
 		const sheet = page.getByRole('dialog');
 		await sheet.getByLabel('Item name').fill('postgres');
 		await expect(sheet.getByLabel('Contents of server.json')).toBeVisible();
@@ -244,7 +244,7 @@ test.describe('ingredients', () => {
 
 	test('names stop at 64 characters', async ({ page }) => {
 		await openKind(page, 'Skills');
-		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await addManually(page, 'skill');
 		const name = page.getByRole('dialog').getByLabel('Item name');
 		await name.fill('a'.repeat(80));
 		await expect(name).toHaveValue('a'.repeat(64));

@@ -14,6 +14,7 @@ import {
 	Package,
 	Settings,
 	Share2,
+	Store,
 	Shield,
 	User,
 	type LucideIcon,
@@ -126,6 +127,14 @@ function pouchPages(pouchId: string): SearchResult[] {
 			icon: kind.icon,
 			href: `${base}/${kind.slug}`,
 		})),
+		{
+			id: 'page-marketplaces',
+			group: 'Pages',
+			label: 'Marketplaces',
+			hint: 'Skills, agents and MCP servers to add',
+			icon: Store,
+			href: `${base}/marketplaces`,
+		},
 		{
 			id: 'page-shared',
 			group: 'Pages',

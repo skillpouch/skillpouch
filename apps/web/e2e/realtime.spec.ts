@@ -5,11 +5,12 @@
  * revoked from the other is signed out on the spot.
  */
 import {
-	PASSWORD,
+	addManually,
 	createAccount,
 	expect,
 	newBrowser,
 	openFirstPouch,
+	PASSWORD,
 	signIn,
 	test,
 	unlock,
@@ -40,7 +41,7 @@ test.describe('live updates', () => {
 			.getByRole('link', { name: /^Skills/ })
 			.first()
 			.click();
-		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await addManually(page, 'skill');
 		await page.getByRole('dialog').getByLabel('Item name').fill('live-skill');
 		await page.getByRole('dialog').getByRole('button', { name: 'Add skill' }).click();
 		await expect(page.getByText('Skill added')).toBeVisible();

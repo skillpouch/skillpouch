@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatRelative } from '@/lib/format';
-import { asText, languageOf } from '../content';
+import { asText } from '../content';
 import { useIngredientFiles, type Ingredient } from '../ingredients';
 import type { KindDefinition } from '../kinds';
 import { CodeEditor } from './code-editor';
@@ -88,7 +88,7 @@ export function SingleIngredient({
 				) : text !== null ? (
 					<CodeEditor
 						value={text}
-						language={languageOf(kind.mainFile)}
+						path={kind.mainFile}
 						readOnly
 						label={`Contents of ${kind.mainFile}`}
 					/>

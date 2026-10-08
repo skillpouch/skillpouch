@@ -29,6 +29,40 @@ export async function startOAuth(provider: OAuthProvider, redirect: string): Pro
 	location.assign(body.url);
 }
 
+/** Links another provider to the signed-in user, so either one signs in. */
+export async function linkAccount(provider: OAuthProvider, redirect: string): Promise<void> {
+	const origin = location.origin;
+	const target = `${origin}${safeRedirect(redirect)}`;
+	const response = await authPost('link-social', {
+		provider,
+		callbackURL: target,
+		errorCallbackURL: `${target}${target.includes('?') ? '&' : '?'}link=failed`,
+		disableRedirect: true,
+	});
+	const body = (await response.json().catch(() => null)) as { url?: string } | null;
+	if (!response.ok || !body?.url) throw new Error('Linking isn’t available right now.');
+	location.assign(body.url);
+}
+
+export interface LinkedAccount {
+	providerId: string;
+	accountId: string;
+}
+
+export async function listLinkedAccounts(): Promise<LinkedAccount[]> {
+	const response = await fetch('/v1/auth/list-accounts', { credentials: 'same-origin' });
+	if (!response.ok) throw new Error('Couldn’t load your sign-in methods.');
+	return (await response.json()) as LinkedAccount[];
+}
+
+export async function unlinkAccount(provider: OAuthProvider): Promise<void> {
+	const response = await authPost('unlink-account', { providerId: provider });
+	if (!response.ok) {
+		const body = (await response.json().catch(() => null)) as { message?: string } | null;
+		throw new Error(body?.message ?? 'Couldn’t unlink this account.');
+	}
+}
+
 /** Development only: the API exposes `/v1/dev/login` when `DEV_LOGIN=true`. */
 export async function devSignIn(email: string): Promise<void> {
 	const response = await fetch('/v1/dev/login', {

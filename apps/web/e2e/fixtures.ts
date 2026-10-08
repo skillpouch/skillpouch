@@ -87,6 +87,15 @@ export async function newBrowser(browser: Browser): Promise<Page> {
 }
 
 /** Opens the first pouch from the pouches grid. */
+/** Opens the editor for a new item: "Add …", then "Write it yourself". */
+export async function addManually(page: Page, singular: string): Promise<void> {
+	await page
+		.getByRole('button', { name: `Add ${singular}` })
+		.first()
+		.click();
+	await page.getByRole('button', { name: /Write it yourself/ }).click();
+}
+
 export async function openFirstPouch(page: Page, name = 'Personal'): Promise<void> {
 	await page
 		.getByRole('link', { name: new RegExp(name) })

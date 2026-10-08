@@ -199,3 +199,33 @@ function IconAction({
 		</button>
 	);
 }
+
+/** Small screens hide the tree; a file menu takes its place. */
+export function MobileFilePicker({
+	entries,
+	active,
+	onOpen,
+}: {
+	entries: DraftEntry[];
+	active: string | null;
+	onOpen: (path: string) => void;
+}) {
+	const live = entries.filter((entry) => !entry.deleted);
+	if (live.length < 2) return null;
+	return (
+		<div className="border-b border-border p-2 md:hidden">
+			<select
+				aria-label="File"
+				value={active ?? ''}
+				onChange={(event) => onOpen(event.target.value)}
+				className="h-10 w-full rounded-md border border-border-strong bg-surface px-2 font-mono text-[13px]"
+			>
+				{live.map((entry) => (
+					<option key={entry.path} value={entry.path}>
+						{entry.path}
+					</option>
+				))}
+			</select>
+		</div>
+	);
+}

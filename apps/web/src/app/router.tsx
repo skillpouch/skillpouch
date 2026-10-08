@@ -10,7 +10,9 @@
  *   /app                     pouches
  *   /app/p/:pouchId          overview, /:kind lists, /shared, /settings
  *   /app/account             profile, /devices, /security, /billing
+ *   /app/p/:pouchId/marketplaces  skills.sh, MCP Registry, GitHub repositories
  *   /cli/authorize           approve a `skillpouch login`
+ *   /github/connected        return from installing the GitHub App
  *   /s/:shareId              public share link
  *   /terms, /privacy         legal pages
  *
@@ -25,6 +27,7 @@ import {
 	Outlet,
 } from '@tanstack/react-router';
 import { lazy, Suspense, type ReactNode } from 'react';
+import { CONTENT_SCROLL_ID } from '@/components/layout/app-shell';
 import { SessionGate, type GateRequirement } from '@/features/session/session-gate';
 import { NotFoundPage } from '@/pages/not-found-page';
 import type { IngredientsSearch } from '@/pages/pouch/ingredients-page';
@@ -103,6 +106,16 @@ const SharedLinksPage = lazyPage(
 	'SharedLinksPage',
 	list,
 );
+const MarketplacesPage = lazyPage(
+	() => import('@/pages/pouch/marketplaces-page'),
+	'MarketplacesPage',
+	list,
+);
+const GithubConnectedPage = lazyPage(
+	() => import('@/pages/github/github-connected-page'),
+	'GithubConnectedPage',
+	auth,
+);
 const PublicSharePage = lazyPage(
 	() => import('@/pages/share/public-share-page'),
 	'PublicSharePage',
@@ -176,6 +189,16 @@ const cliAuthorizeRoute = createRoute({
 	)),
 });
 
+const githubConnectedRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/github/connected',
+	validateSearch: (search: Record<string, unknown>) => ({
+		code: optionalString(search.code),
+		state: optionalString(search.state),
+	}),
+	component: gated('unlocked', () => <GithubConnectedPage />),
+});
+
 const shareRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/s/$shareId',
@@ -234,6 +257,16 @@ const pouchSettingsRoute = createRoute({
 	component: PouchSettingsPage,
 });
 
+const marketplacesRoute = createRoute({
+	getParentRoute: () => pouchRoute,
+	path: '/marketplaces',
+	validateSearch: (search: Record<string, unknown>) => {
+		const m = optionalString(search.m);
+		return m ? { m } : {};
+	},
+	component: MarketplacesPage,
+});
+
 const panelSearch = (search: Record<string, unknown>): IngredientsSearch => {
 	const item = optionalString(search.item);
 	return {
@@ -283,12 +316,19 @@ const routeTree = rootRoute.addChildren([
 	setupRoute,
 	unlockRoute,
 	cliAuthorizeRoute,
+	githubConnectedRoute,
 	shareRoute,
 	termsRoute,
 	privacyRoute,
 	appRoute.addChildren([
 		pouchesRoute,
-		pouchRoute.addChildren([overviewRoute, sharedRoute, pouchSettingsRoute, kindRoute]),
+		pouchRoute.addChildren([
+			overviewRoute,
+			sharedRoute,
+			pouchSettingsRoute,
+			marketplacesRoute,
+			kindRoute,
+		]),
 		accountRoute.addChildren([profileRoute, devicesRoute, securityRoute, billingRoute]),
 	]),
 ]);
@@ -297,4 +337,5 @@ export const router = createRouter({
 	routeTree,
 	defaultPreload: 'intent',
 	scrollRestoration: true,
+	scrollToTopSelectors: [`#${CONTENT_SCROLL_ID}`],
 });

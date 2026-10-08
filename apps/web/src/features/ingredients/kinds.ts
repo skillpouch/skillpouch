@@ -45,17 +45,6 @@ const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
 export const KINDS: readonly KindDefinition[] = [
 	{
-		kind: 'skill',
-		slug: 'skills',
-		label: 'Skills',
-		singular: 'Skill',
-		icon: Layers,
-		mainFile: 'SKILL.md',
-		blurb: 'Reusable know-how your assistants load when a task needs it.',
-		template: (name) =>
-			`---\nname: ${name}\ndescription: What this skill does and when to use it.\n---\n\n# ${name}\n\n`,
-	},
-	{
 		kind: 'instructions',
 		slug: 'instructions',
 		label: 'Instructions',
@@ -65,6 +54,17 @@ export const KINDS: readonly KindDefinition[] = [
 		blurb: 'Rules every assistant follows on all your computers. They are linked into AGENTS.md, CLAUDE.md, GEMINI.md and the rest, so editing any of them edits these.',
 		template: () => '# Instructions\n\n',
 		single: 'instructions',
+	},
+	{
+		kind: 'skill',
+		slug: 'skills',
+		label: 'Skills',
+		singular: 'Skill',
+		icon: Layers,
+		mainFile: 'SKILL.md',
+		blurb: 'Reusable know-how your assistants load when a task needs it.',
+		template: (name) =>
+			`---\nname: ${name}\ndescription: What this skill does and when to use it.\n---\n\n# ${name}\n\n`,
 	},
 	{
 		kind: 'agent',

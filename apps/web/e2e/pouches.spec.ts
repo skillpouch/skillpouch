@@ -124,6 +124,18 @@ test.describe('pouches', () => {
 		await page.waitForTimeout(300);
 		expect(await positions()).toEqual(expanded);
 
+		// Collapsed: the logo mark and every icon sit on one centred line, and the
+		// wordmark is hidden.
+		const centres = await sidebar.locator('a svg, button svg, a img').evaluateAll((nodes) =>
+			nodes.map((node) => {
+				const box = node.getBoundingClientRect();
+				return box.left + box.width / 2;
+			}),
+		);
+		const width = (await sidebar.boundingBox())?.width ?? 0;
+		for (const centre of centres) expect(Math.abs(centre - (width - 1) / 2)).toBeLessThan(1);
+		await expect(sidebar.getByText('SkillPouch', { exact: true })).toHaveCSS('opacity', '0');
+
 		await sidebar.getByRole('button', { name: 'Expand' }).click();
 		await page.waitForTimeout(80);
 		expect((await cli.boundingBox())?.height).toBe(cliHeight);

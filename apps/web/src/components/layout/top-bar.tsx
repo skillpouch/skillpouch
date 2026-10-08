@@ -25,7 +25,7 @@ export interface TopBarProps {
 
 export function TopBar({ onOpenMenu, showLogo = false, leading, onSearch }: TopBarProps) {
 	return (
-		<header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-bg/90 px-3 backdrop-blur sm:px-6">
+		<header className="z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-bg/90 px-3 backdrop-blur sm:px-6">
 			{onOpenMenu ? (
 				<button
 					type="button"
@@ -37,7 +37,8 @@ export function TopBar({ onOpenMenu, showLogo = false, leading, onSearch }: TopB
 				</button>
 			) : null}
 			{showLogo ? (
-				<Link to="/app" aria-label="All pouches" className="mr-2">
+				// sm:-ml-[5px] puts the logo where the sidebar shows it (16 px from the edge).
+				<Link to="/app" aria-label="All pouches" className="mr-2 sm:-ml-[5px]">
 					<Logo />
 				</Link>
 			) : onOpenMenu ? (
