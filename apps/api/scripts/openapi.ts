@@ -9,6 +9,7 @@
  * The server is built with development defaults and never connects to a
  * database; only the route schemas are read.
  */
+import { randomBytes } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
@@ -20,8 +21,15 @@ const OUTPUT = fileURLToPath(
 	new URL('../../../packages/contracts/generated/openapi.json', import.meta.url),
 );
 
+// Only builds the spec, never serves: throwaway secrets keep the boot check
+// (no development secrets on a public URL) satisfied.
+const throwaway = () => randomBytes(32).toString('base64url');
 const env = loadEnv({
 	NODE_ENV: 'development',
+	BETTER_AUTH_SECRET: throwaway(),
+	DPOP_NONCE_SECRET: throwaway(),
+	IP_HASH_SECRET: throwaway(),
+	PEPPER_KEY: throwaway(),
 	DATABASE_URL: 'postgres://openapi@127.0.0.1:1/openapi',
 	API_PUBLIC_URL: 'https://skillpouch.net',
 	WEB_ORIGIN: 'https://skillpouch.net',
