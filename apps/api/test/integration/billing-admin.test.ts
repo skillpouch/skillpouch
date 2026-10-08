@@ -36,19 +36,38 @@ describe('billing and admin', () => {
 			currency: 'usd',
 			customer_id: 'cus_1',
 			is_invoice_generated: true,
+			receipt_number: 'RCPT-0002',
 			product: { name: 'Supporter — monthly' },
 		},
 		{
 			id: 'ord_1',
 			created_at: '2026-09-06T10:00:00Z',
-			status: 'refunded',
+			status: 'paid',
 			total_amount: 500,
 			currency: 'usd',
 			customer_id: 'cus_1',
 			is_invoice_generated: false,
+			receipt_number: null,
+			product: { name: 'Supporter — monthly' },
+		},
+		{
+			id: 'ord_0',
+			created_at: '2026-08-06T10:00:00Z',
+			status: 'pending',
+			total_amount: 500,
+			currency: 'usd',
+			customer_id: 'cus_1',
+			is_invoice_generated: false,
+			receipt_number: null,
 			product: { name: 'Supporter — monthly' },
 		},
 	];
+	/** Orders whose checkout collected no billing address. */
+	const noBillingDetails = new Set<string>();
+	/** Receipts still rendering answer 202 this many more times. */
+	const receiptRenders = new Map<string, number>();
+	/** What Polar lists for `?external_customer_id=`. */
+	const remoteSubscriptions = new Map<string, Record<string, unknown>[]>();
 	const foreignOrder = { ...orders[0]!, id: 'ord_other', customer_id: 'cus_other' };
 	let remoteProducts: Record<string, unknown>[] = [];
 	const polarProduct = (
@@ -96,6 +115,9 @@ describe('billing and admin', () => {
 		}
 		if (url.endsWith('/v1/customer-sessions/'))
 			return json({ customer_portal_url: 'https://sandbox.polar.sh/portal/xyz' });
+		const listed = /\/v1\/subscriptions\/\?external_customer_id=([^&]+)/.exec(url);
+		if (listed)
+			return json({ items: remoteSubscriptions.get(decodeURIComponent(listed[1]!)) ?? [] });
 		if (url.includes('/v1/subscriptions/')) return json(remoteSubscription);
 		if (url.includes('/v1/customers/external/')) {
 			return url.endsWith(encodeURIComponent(alice.accountId))
@@ -103,13 +125,31 @@ describe('billing and admin', () => {
 				: new Response('{}', { status: 404 });
 		}
 		if (url.includes('/v1/orders/?customer_id=cus_1')) return json({ items: orders });
-		const order = /\/v1\/orders\/([^/?]+)(\/invoice)?$/.exec(url);
+		const order = /\/v1\/orders\/([^/?]+)(?:\/(invoice|receipt))?$/.exec(url);
 		if (order) {
 			const found = [...orders, foreignOrder].find((item) => item.id === order[1]);
 			if (!found) return new Response('{}', { status: 404 });
-			return order[2]
-				? json({ url: `https://polar.test/invoices/${found.id}.pdf` })
-				: json(found);
+			const status = (code: number) => new Response('{}', { status: code });
+			if (order[2] === 'invoice' && init?.method === 'POST') {
+				if (found.status === 'pending') return status(409);
+				if (noBillingDetails.has(found.id)) return status(422);
+				found.is_invoice_generated = true;
+				return status(202);
+			}
+			if (order[2] === 'invoice') {
+				return found.is_invoice_generated
+					? json({ url: `https://polar.test/invoices/${found.id}.pdf` })
+					: status(404);
+			}
+			if (order[2] === 'receipt') {
+				const renders = receiptRenders.get(found.id) ?? 0;
+				if (renders > 0) {
+					receiptRenders.set(found.id, renders - 1);
+					return status(202);
+				}
+				return json({ url: `https://polar.test/receipts/${found.id}.pdf` });
+			}
+			return json(found);
 		}
 		if (url.includes('/v1/products/?'))
 			return json({ items: remoteProducts, pagination: { max_page: 1 } });
@@ -169,6 +209,7 @@ describe('billing and admin', () => {
 						webhookSecret: WEBHOOK_SECRET,
 						server: 'sandbox',
 						fetch: fakePolar,
+						sleep: async () => {},
 					});
 				},
 			},
@@ -195,11 +236,17 @@ describe('billing and admin', () => {
 					currency: 'usd',
 					status: 'paid',
 					invoice_available: true,
+					receipt_available: true,
 				},
 				expect.objectContaining({
 					id: 'ord_1',
-					status: 'refunded',
+					invoice_available: true,
+					receipt_available: false,
+				}),
+				expect.objectContaining({
+					id: 'ord_0',
 					invoice_available: false,
+					receipt_available: false,
 				}),
 			]);
 		});
@@ -209,10 +256,9 @@ describe('billing and admin', () => {
 			expect(response.body.data.invoices).toEqual([]);
 		});
 
-		it('links only this account’s generated invoices', async () => {
+		it('links only this account’s invoices', async () => {
 			const pdf = await alice.browser.get('/v1/billing/invoices/ord_2/pdf');
 			expect(pdf.body.data.url).toBe('https://polar.test/invoices/ord_2.pdf');
-			expect((await alice.browser.get('/v1/billing/invoices/ord_1/pdf')).status).toBe(404);
 			expect((await alice.browser.get('/v1/billing/invoices/ord_other/pdf')).status).toBe(
 				404,
 			);
@@ -221,6 +267,42 @@ describe('billing and admin', () => {
 			);
 			expect((await alice.browser.get('/v1/billing/invoices/..%2Fx/pdf')).status).toBe(400);
 			expect((await admin.get('/v1/billing/invoices/ord_2/pdf')).status).toBe(404);
+		});
+
+		it('generates a missing invoice on first request', async () => {
+			const pdf = await alice.browser.get('/v1/billing/invoices/ord_1/pdf');
+			expect(pdf.body.data.url).toBe('https://polar.test/invoices/ord_1.pdf');
+			expect(calls).toContainEqual(
+				expect.objectContaining({
+					method: 'POST',
+					url: expect.stringMatching(/ord_1\/invoice$/),
+				}),
+			);
+			expect((await alice.browser.get('/v1/billing/invoices/ord_0/pdf')).status).toBe(404);
+		});
+
+		it('asks for billing details when Polar can’t invoice without them', async () => {
+			const order = orders.find((item) => item.id === 'ord_1')!;
+			order.is_invoice_generated = false;
+			noBillingDetails.add('ord_1');
+			const response = await alice.browser.get('/v1/billing/invoices/ord_1/pdf');
+			expect(response.status).toBe(409);
+			expect(response.body.error.code).toBe('invoice_details_missing');
+			noBillingDetails.delete('ord_1');
+		});
+
+		it('waits for a receipt that is still rendering', async () => {
+			receiptRenders.set('ord_2', 2);
+			const receipt = await alice.browser.get('/v1/billing/invoices/ord_2/receipt');
+			expect(receipt.body.data.url).toBe('https://polar.test/receipts/ord_2.pdf');
+			expect((await alice.browser.get('/v1/billing/invoices/ord_1/receipt')).status).toBe(
+				404,
+			);
+			receiptRenders.set('ord_2', 100);
+			const pending = await alice.browser.get('/v1/billing/invoices/ord_2/receipt');
+			expect(pending.status).toBe(503);
+			expect(pending.body.error.code).toBe('document_pending');
+			receiptRenders.delete('ord_2');
 		});
 	});
 
@@ -611,6 +693,46 @@ describe('billing and admin', () => {
 					before.rows[0].entitlements,
 				]);
 			}
+		});
+	});
+
+	describe('pulling subscriptions', () => {
+		it('applies a payment whose webhook never arrived, once', async () => {
+			const dave = await setupAccount(h, 'dave@skillpouch.test');
+			remoteSubscriptions.set(dave.accountId, [
+				subscriptionEvent('subscription.active', {
+					id: 'sub_pulled',
+					customer: { external_id: dave.accountId },
+					modified_at: '2026-10-08T03:44:24Z',
+				}).data,
+			]);
+			expect((await entitlements(dave.browser)).plan_slug).toBe('free');
+			const synced = await dave.browser.post('/v1/billing/sync');
+			expect(synced.body.data.changed).toBe(1);
+			expect((await entitlements(dave.browser)).plan_slug).toBe('supporter');
+			const billing = await dave.browser.get('/v1/billing');
+			expect(billing.body.data.subscriptions).toEqual([
+				expect.objectContaining({ status: 'active', plan_slug: 'supporter' }),
+			]);
+		});
+
+		it('ignores another account’s subscriptions and throttles repeat pulls', async () => {
+			const erin = await setupAccount(h, 'erin@skillpouch.test');
+			remoteSubscriptions.set(erin.accountId, [
+				subscriptionEvent('subscription.active', {
+					id: 'sub_foreign',
+					customer: { external_id: alice.accountId },
+				}).data,
+			]);
+			expect((await erin.browser.post('/v1/billing/sync')).body.data.changed).toBe(0);
+			remoteSubscriptions.set(erin.accountId, [
+				subscriptionEvent('subscription.active', {
+					id: 'sub_erin',
+					customer: { external_id: erin.accountId },
+				}).data,
+			]);
+			expect((await erin.browser.post('/v1/billing/sync')).body.data.changed).toBe(0);
+			expect((await entitlements(erin.browser)).plan_slug).toBe('free');
 		});
 	});
 });

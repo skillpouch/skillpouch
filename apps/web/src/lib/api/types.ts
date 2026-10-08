@@ -62,6 +62,7 @@ export interface Invoice {
 	currency: string;
 	status: 'paid' | 'refunded' | 'partially_refunded' | 'pending' | 'failed';
 	invoice_available: boolean;
+	receipt_available: boolean;
 }
 
 export interface Subscription {

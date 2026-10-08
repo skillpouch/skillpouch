@@ -3,7 +3,7 @@
  * Billing state machine: webhooks are verified,
  * stored once in `billing_events` (idempotency) and applied; a daily
  * reconcile pulls every non-terminal subscription from the provider to fix
- * missed webhooks. Entitlements are recomputed after every change; nothing
+ * missed webhooks, and the billing page pulls its own account's on open. Entitlements are recomputed after every change; nothing
  * is ever deleted on downgrade (extra pouches become read-only).
  */
 import { billingEvents, plans, subscriptions } from '@skillpouch/db';
@@ -174,4 +174,44 @@ export async function reconcileSubscriptions(deps: Deps): Promise<number> {
 		}
 	}
 	return fixed;
+}
+
+/** Last pull per account; the billing page asks on every open. */
+const lastAccountSync = new Map<string, number>();
+const ACCOUNT_SYNC_INTERVAL_MS = 10_000;
+
+/**
+ * Pulls one account's subscriptions from the provider and applies the ones
+ * that changed, so a payment shows up even when its webhook is late or never
+ * arrives. Returns how many changed.
+ */
+export async function syncAccountSubscriptions(
+	deps: Deps,
+	storageAccountId: string,
+): Promise<number> {
+	const provider = deps.billing;
+	if (!provider) return 0;
+	const now = deps.now().getTime();
+	if (now - (lastAccountSync.get(storageAccountId) ?? 0) < ACCOUNT_SYNC_INTERVAL_MS) return 0;
+	lastAccountSync.set(storageAccountId, now);
+
+	const remote = await provider.listSubscriptions(storageAccountId);
+	const stored = await withTenantTx(deps.db.app, storageAccountId, (tx) =>
+		tx.select().from(subscriptions),
+	);
+	let changed = 0;
+	for (const sub of remote) {
+		if (sub.storageAccountId !== storageAccountId) continue;
+		const known = stored.find(
+			(row) => row.externalSubscriptionId === sub.externalSubscriptionId,
+		);
+		const same =
+			known &&
+			known.status === sub.status &&
+			known.cancelAtPeriodEnd === sub.cancelAtPeriodEnd &&
+			known.currentPeriodEnd?.getTime() === sub.currentPeriodEnd?.getTime() &&
+			known.providerUpdatedAt?.getTime() === sub.providerUpdatedAt?.getTime();
+		if (!same && (await applySubscription(deps, provider.name, sub))) changed += 1;
+	}
+	return changed;
 }

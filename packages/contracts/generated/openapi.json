@@ -11668,6 +11668,9 @@
 															},
 															"invoice_available": {
 																"type": "boolean"
+															},
+															"receipt_available": {
+																"type": "boolean"
 															}
 														},
 														"required": [
@@ -11677,7 +11680,8 @@
 															"amount_cents",
 															"currency",
 															"status",
-															"invoice_available"
+															"invoice_available",
+															"receipt_available"
 														],
 														"additionalProperties": false
 													}
@@ -11722,7 +11726,7 @@
 		},
 		"/v1/billing/invoices/{invoiceId}/pdf": {
 			"get": {
-				"summary": "Link to the PDF of one of this account’s invoices",
+				"summary": "Link to the invoice PDF of one of this account’s charges (generated on first request)",
 				"tags": [
 					"billing"
 				],
@@ -11761,6 +11765,148 @@
 											},
 											"required": [
 												"url"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/billing/invoices/{invoiceId}/receipt": {
+			"get": {
+				"summary": "Link to the receipt PDF of one of this account’s charges",
+				"tags": [
+					"billing"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"pattern": "^[A-Za-z0-9_-]{1,64}$"
+						},
+						"in": "path",
+						"name": "invoiceId",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"url": {
+													"type": "string",
+													"format": "uri"
+												}
+											},
+											"required": [
+												"url"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/billing/sync": {
+			"post": {
+				"summary": "Pull this account’s subscriptions from the billing provider (for late webhooks)",
+				"tags": [
+					"billing"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"changed": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												}
+											},
+											"required": [
+												"changed"
 											],
 											"additionalProperties": false
 										},

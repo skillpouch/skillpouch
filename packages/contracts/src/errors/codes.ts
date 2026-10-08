@@ -189,6 +189,16 @@ export const ErrorCodes = {
 		retryable: false,
 		message: 'Billing is not configured.',
 	},
+	invoice_details_missing: {
+		status: 409,
+		retryable: false,
+		message: 'Add your billing name and address in the billing portal to get an invoice.',
+	},
+	document_pending: {
+		status: 503,
+		retryable: true,
+		message: 'The document is still being prepared; try again in a few seconds.',
+	},
 	upstream_unavailable: {
 		status: 502,
 		retryable: true,

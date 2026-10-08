@@ -30,9 +30,13 @@ export interface NormalizedInvoice {
 	amountCents: number;
 	currency: string;
 	status: 'paid' | 'refunded' | 'partially_refunded' | 'pending' | 'failed';
-	/** The provider has a PDF for it (generated from the customer portal). */
+	/** An invoice PDF exists or can be generated on request. */
 	invoiceAvailable: boolean;
+	/** The provider issued a receipt PDF for the payment. */
+	receiptAvailable: boolean;
 }
+
+export type BillingDocument = 'invoice' | 'receipt';
 
 export interface BillingEvent {
 	/** Provider event id — the idempotency key. */
@@ -81,10 +85,19 @@ export interface BillingProvider {
 	/** Throws `webhook_invalid` on a bad signature or stale timestamp. */
 	verifyWebhook(rawBody: Buffer, headers: IncomingHttpHeaders): Promise<BillingEvent>;
 	fetchSubscription(externalSubscriptionId: string): Promise<NormalizedSubscription | null>;
+	/** Every subscription of one account, straight from the provider. */
+	listSubscriptions(storageAccountId: string): Promise<NormalizedSubscription[]>;
 	/** Newest first; empty when the account never paid. */
 	listInvoices(storageAccountId: string, limit: number): Promise<NormalizedInvoice[]>;
-	/** PDF link of one of this account's invoices, or null when none exists (yet). */
-	invoiceUrl(storageAccountId: string, invoiceId: string): Promise<string | null>;
+	/**
+	 * PDF link for one of this account's charges, generated first if needed;
+	 * null when the charge isn't this account's or has no such document.
+	 */
+	documentUrl(
+		storageAccountId: string,
+		invoiceId: string,
+		document: BillingDocument,
+	): Promise<string | null>;
 	/** Creates or updates the provider product for a paid plan; returns its id. */
 	syncProduct(input: PlanProductInput): Promise<string>;
 	/** Every active recurring product tagged with a plan slug. */

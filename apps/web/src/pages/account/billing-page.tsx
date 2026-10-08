@@ -15,12 +15,14 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toast';
 import {
-	openInvoicePdf,
+	openBillingDocument,
 	useBilling,
+	useBillingSync,
 	useCheckout,
 	useInvoices,
 	usePlans,
 	usePortal,
+	type BillingDocument,
 } from '@/features/billing/billing';
 import { PlanName } from '@/features/billing/plan-badge';
 import { planStyle } from '@/features/billing/plan-styles';
@@ -44,6 +46,7 @@ export function BillingPage() {
 	const plans = usePlans();
 	const billing = useBilling();
 	const invoices = useInvoices(billing.data?.available === true);
+	useBillingSync(billing.data?.available === true);
 	const checkout = useCheckout();
 	const portal = usePortal();
 	const pouches = usePouches();
@@ -171,19 +174,20 @@ export function BillingPage() {
 									>
 										{INVOICE_STATUS[invoice.status].label}
 									</span>
-									{invoice.invoice_available ? (
-										<button
-											type="button"
-											className="text-xs text-muted underline hover:text-fg"
-											onClick={() =>
-												void openInvoicePdf(invoice.id).catch((error) =>
-													toast.error(describeError(error)),
-												)
-											}
-										>
-											PDF
-										</button>
-									) : null}
+									<span className="flex gap-3">
+										{invoice.receipt_available ? (
+											<DocumentButton
+												invoiceId={invoice.id}
+												document="receipt"
+											/>
+										) : null}
+										{invoice.invoice_available ? (
+											<DocumentButton
+												invoiceId={invoice.id}
+												document="invoice"
+											/>
+										) : null}
+									</span>
 								</li>
 							))}
 						</ul>
@@ -337,5 +341,25 @@ function PlanTile({
 				</Button>
 			) : null}
 		</article>
+	);
+}
+
+/** Opens a charge's receipt or invoice; the first invoice takes a few seconds to render. */
+function DocumentButton({ invoiceId, document }: { invoiceId: string; document: BillingDocument }) {
+	const [opening, setOpening] = useState(false);
+	return (
+		<button
+			type="button"
+			className="cursor-pointer text-xs text-muted underline hover:text-fg disabled:cursor-default disabled:no-underline"
+			disabled={opening}
+			onClick={() => {
+				setOpening(true);
+				openBillingDocument(invoiceId, document)
+					.catch((error) => toast.error(describeError(error)))
+					.finally(() => setOpening(false));
+			}}
+		>
+			{opening ? 'Preparing…' : document === 'invoice' ? 'Invoice' : 'Receipt'}
+		</button>
 	);
 }

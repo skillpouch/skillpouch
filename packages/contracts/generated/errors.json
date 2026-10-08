@@ -299,6 +299,18 @@
 		"message": "Billing is not configured.",
 		"docs_url": "https://docs.skillpouch.net/errors/billing_unavailable"
 	},
+	"invoice_details_missing": {
+		"status": 409,
+		"retryable": false,
+		"message": "Add your billing name and address in the billing portal to get an invoice.",
+		"docs_url": "https://docs.skillpouch.net/errors/invoice_details_missing"
+	},
+	"document_pending": {
+		"status": 503,
+		"retryable": true,
+		"message": "The document is still being prepared; try again in a few seconds.",
+		"docs_url": "https://docs.skillpouch.net/errors/document_pending"
+	},
 	"upstream_unavailable": {
 		"status": 502,
 		"retryable": true,

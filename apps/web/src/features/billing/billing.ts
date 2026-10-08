@@ -4,7 +4,8 @@
  * checkout and the customer portal are hosted pages; their URLs come from
  * the API and the browser simply navigates there.
  */
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { BillingOverview, Invoice, PlanRecord } from '@/lib/api/types';
@@ -72,7 +73,47 @@ export function usePortal() {
 	});
 }
 
-export async function openInvoicePdf(invoiceId: string): Promise<void> {
-	const { url } = await api.get<{ url: string }>(`/v1/billing/invoices/${invoiceId}/pdf`);
-	window.open(url, '_blank', 'noopener,noreferrer');
+export type BillingDocument = 'invoice' | 'receipt';
+
+/**
+ * Opens a charge's invoice or receipt PDF in a new tab. The tab opens right
+ * away (a tab opened after the request would be blocked as a popup) and
+ * follows the link once the provider has rendered the PDF.
+ */
+export async function openBillingDocument(
+	invoiceId: string,
+	document: BillingDocument,
+): Promise<void> {
+	const tab = window.open('about:blank', '_blank');
+	if (tab) tab.opener = null;
+	try {
+		const { url } = await api.get<{ url: string }>(
+			`/v1/billing/invoices/${invoiceId}/${document === 'invoice' ? 'pdf' : 'receipt'}`,
+		);
+		if (tab) tab.location.href = url;
+		else window.open(url, '_blank', 'noopener,noreferrer');
+	} catch (error) {
+		tab?.close();
+		throw error;
+	}
+}
+
+/**
+ * Pulls the account's subscriptions from the provider when the billing page
+ * opens, so a payment shows up even if its webhook is late.
+ */
+export function useBillingSync(enabled: boolean): void {
+	const client = useQueryClient();
+	useEffect(() => {
+		if (!enabled) return;
+		void api
+			.post<{ changed: number }>('/v1/billing/sync')
+			.then(({ changed }) => {
+				if (changed === 0) return;
+				void client.invalidateQueries({ queryKey: queryKeys.billing });
+				void client.invalidateQueries({ queryKey: queryKeys.me });
+				void client.invalidateQueries({ queryKey: queryKeys.storage });
+			})
+			.catch(() => {});
+	}, [client, enabled]);
 }

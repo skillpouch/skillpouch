@@ -11,6 +11,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders } from 'node:http';
 import { AppError } from '../../http/app-error';
 import type {
+	BillingDocument,
 	BillingEvent,
 	BillingProvider,
 	NormalizedInvoice,
@@ -27,7 +28,14 @@ export interface PolarOptions {
 	server: 'sandbox' | 'production';
 	fetch?: typeof fetch;
 	now?: () => Date;
+	sleep?: (ms: number) => Promise<void>;
 }
+
+/** Orders that had money change hands; only those get an invoice. */
+const INVOICEABLE = new Set(['paid', 'refunded', 'partially_refunded']);
+/** Polar renders PDFs in the background, usually within a few seconds. */
+const DOCUMENT_POLLS = 8;
+const DOCUMENT_POLL_MS = 1_000;
 
 function header(headers: IncomingHttpHeaders, name: string): string {
 	const value = headers[name];
@@ -121,7 +129,8 @@ export function normalizePolarOrder(data: Record<string, unknown>): NormalizedIn
 		amountCents: Number(data.total_amount ?? data.amount ?? 0),
 		currency: String(data.currency ?? 'usd'),
 		status: (ORDER_STATUSES.has(status) ? status : 'pending') as NormalizedInvoice['status'],
-		invoiceAvailable: Boolean(data.is_invoice_generated),
+		invoiceAvailable: Boolean(data.is_invoice_generated) || INVOICEABLE.has(status),
+		receiptAvailable: Boolean(data.receipt_number),
 	};
 }
 
@@ -165,6 +174,7 @@ export class PolarProvider implements BillingProvider {
 	private readonly base: string;
 	private readonly fetch: typeof fetch;
 	private readonly now: () => Date;
+	private readonly sleep: (ms: number) => Promise<void>;
 
 	constructor(private readonly options: PolarOptions) {
 		this.base =
@@ -173,12 +183,13 @@ export class PolarProvider implements BillingProvider {
 				: 'https://sandbox-api.polar.sh';
 		this.fetch = options.fetch ?? fetch;
 		this.now = options.now ?? (() => new Date());
+		this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 	}
 
 	private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
 		const response = await this.send(method, path, body);
 		if (!response.ok) {
-			throw new AppError('billing_unavailable', { status: response.status, path });
+			throw new AppError('upstream_unavailable', { status: response.status, path });
 		}
 		return (await response.json()) as T;
 	}
@@ -216,7 +227,7 @@ export class PolarProvider implements BillingProvider {
 		});
 		if (prefilled.ok) return { url: ((await prefilled.json()) as { url: string }).url };
 		if (prefilled.status !== 422 || !(await rejectsField(prefilled, 'customer_email'))) {
-			throw new AppError('billing_unavailable', {
+			throw new AppError('upstream_unavailable', {
 				status: prefilled.status,
 				path: '/v1/checkouts/',
 			});
@@ -280,23 +291,63 @@ export class PolarProvider implements BillingProvider {
 		return page.items.map(normalizePolarOrder);
 	}
 
-	async invoiceUrl(storageAccountId: string, invoiceId: string): Promise<string | null> {
+	/** One of this account's orders; another customer's order is "not found". */
+	private async ownOrder(
+		storageAccountId: string,
+		orderId: string,
+	): Promise<Record<string, unknown> | null> {
 		const customerId = await this.customerId(storageAccountId);
 		if (!customerId) return null;
 		const order = await this.call<Record<string, unknown>>(
 			'GET',
-			`/v1/orders/${encodeURIComponent(invoiceId)}`,
+			`/v1/orders/${encodeURIComponent(orderId)}`,
 		).catch((error: unknown) => {
 			if (error instanceof AppError && error.details?.status === 404) return null;
 			throw error;
 		});
-		// Another customer's order is "not found" for this account.
-		if (!order || order.customer_id !== customerId || !order.is_invoice_generated) return null;
-		const invoice = await this.call<{ url: string }>(
+		return order && order.customer_id === customerId ? order : null;
+	}
+
+	/** Asks Polar to render the invoice; false when the order can't have one. */
+	private async generateInvoice(orderId: string): Promise<boolean> {
+		const path = `/v1/orders/${encodeURIComponent(orderId)}/invoice`;
+		const response = await this.send('POST', path);
+		if (response.ok) return true;
+		if (response.status === 409) return false;
+		if (response.status === 422) throw new AppError('invoice_details_missing');
+		throw new AppError('upstream_unavailable', { status: response.status, path });
+	}
+
+	async documentUrl(
+		storageAccountId: string,
+		orderId: string,
+		document: BillingDocument,
+	): Promise<string | null> {
+		const order = await this.ownOrder(storageAccountId, orderId);
+		if (!order) return null;
+		if (document === 'receipt' && !order.receipt_number) return null;
+		if (document === 'invoice' && !order.is_invoice_generated) {
+			if (!INVOICEABLE.has(String(order.status))) return null;
+			if (!(await this.generateInvoice(orderId))) return null;
+		}
+		// While Polar renders the PDF, the invoice answers 404 and the receipt 202.
+		const path = `/v1/orders/${encodeURIComponent(orderId)}/${document}`;
+		for (let attempt = 1; ; attempt += 1) {
+			const response = await this.send('GET', path);
+			if (response.status === 200) return ((await response.json()) as { url: string }).url;
+			if (response.status !== 202 && response.status !== 404)
+				throw new AppError('upstream_unavailable', { status: response.status, path });
+			if (attempt === DOCUMENT_POLLS) throw new AppError('document_pending');
+			await this.sleep(DOCUMENT_POLL_MS);
+		}
+	}
+
+	async listSubscriptions(storageAccountId: string): Promise<NormalizedSubscription[]> {
+		const page = await this.call<{ items: Record<string, unknown>[] }>(
 			'GET',
-			`/v1/orders/${encodeURIComponent(invoiceId)}/invoice`,
+			`/v1/subscriptions/?external_customer_id=${encodeURIComponent(storageAccountId)}&limit=100`,
 		);
-		return invoice.url;
+		return page.items.map(normalizePolarSubscription);
 	}
 
 	async fetchSubscription(externalSubscriptionId: string) {

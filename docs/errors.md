@@ -57,6 +57,8 @@ Every API error uses the standard response envelope. Clients branch on `code`;
 | `envelope_invalid` | 422 | no | Encrypted payload is malformed. |
 | `snapshot_expired` | 410 | no | Snapshot lease expired; start again. |
 | `billing_unavailable` | 503 | no | Billing is not configured. |
+| `invoice_details_missing` | 409 | no | Add your billing name and address in the billing portal to get an invoice. |
+| `document_pending` | 503 | yes | The document is still being prepared; try again in a few seconds. |
 | `upstream_unavailable` | 502 | yes | An upstream service (e.g. GitHub) did not answer as expected. |
 | `webhook_invalid` | 401 | no | Webhook signature invalid. |
 | `last_admin` | 409 | no | The last admin cannot be demoted. |

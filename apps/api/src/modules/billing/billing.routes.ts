@@ -16,7 +16,9 @@ import {
 	markBillingEventProcessed,
 	recordBillingEvent,
 	requireBilling,
+	syncAccountSubscriptions,
 } from './billing.service';
+import type { BillingDocument } from './provider';
 
 const SubscriptionView = z.object({
 	status: z.string(),
@@ -35,6 +37,7 @@ const Invoice = z.object({
 	currency: z.string(),
 	status: z.enum(['paid', 'refunded', 'partially_refunded', 'pending', 'failed']),
 	invoice_available: z.boolean(),
+	receipt_available: z.boolean(),
 });
 
 const InvoiceList = z.object({ invoices: z.array(Invoice) });
@@ -138,30 +141,59 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 					currency: invoice.currency,
 					status: invoice.status,
 					invoice_available: invoice.invoiceAvailable,
+					receipt_available: invoice.receiptAvailable,
 				})),
 			};
 		},
 	);
 
-	app.get(
+	const documentRoute = (path: string, document: BillingDocument, summary: string) =>
+		app.get(
+			path,
+			{
+				config: { auth: 'session' },
+				schema: {
+					tags: ['billing'],
+					summary,
+					params: z.object({ invoiceId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }),
+					response: { 200: BillingUrl },
+				},
+			},
+			async (request) => {
+				const url = await requireBilling(deps).documentUrl(
+					sessionOf(request).storageAccountId,
+					request.params.invoiceId,
+					document,
+				);
+				if (!url) throw new AppError('not_found');
+				return { url };
+			},
+		);
+	documentRoute(
 		'/v1/billing/invoices/:invoiceId/pdf',
+		'invoice',
+		'Link to the invoice PDF of one of this account’s charges (generated on first request)',
+	);
+	documentRoute(
+		'/v1/billing/invoices/:invoiceId/receipt',
+		'receipt',
+		'Link to the receipt PDF of one of this account’s charges',
+	);
+
+	app.post(
+		'/v1/billing/sync',
 		{
 			config: { auth: 'session' },
 			schema: {
 				tags: ['billing'],
-				summary: 'Link to the PDF of one of this account’s invoices',
-				params: z.object({ invoiceId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }),
-				response: { 200: BillingUrl },
+				summary:
+					'Pull this account’s subscriptions from the billing provider (for late webhooks)',
+				response: { 200: z.object({ changed: z.number().int() }) },
 			},
 		},
-		async (request) => {
-			const url = await requireBilling(deps).invoiceUrl(
-				sessionOf(request).storageAccountId,
-				request.params.invoiceId,
-			);
-			if (!url) throw new AppError('not_found');
-			return { url };
-		},
+		async (request) => ({
+			changed: await syncAccountSubscriptions(deps, sessionOf(request).storageAccountId),
+		}),
 	);
 
 	app.post(
