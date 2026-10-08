@@ -121,7 +121,7 @@ Next steps
 1. Back up deploy/secrets/pepper_key and deploy/secrets/jwt_signing_key offline.
 
 2. Settings: edit $DEPLOY/env/api.env (ADMIN_EMAILS, GITHUB_CLIENT_ID, ...),
-   put OAuth secrets in $DEPLOY/secrets/, then: sudo chown 10001:10001 $DEPLOY/secrets/*
+   put OAuth secrets in $DEPLOY/secrets/, then: sudo chown 10001:docker $DEPLOY/secrets/*
 
 3. Cloudflare Tunnel: Zero Trust -> Networks -> Tunnels -> Create -> Cloudflared,
    run the 'sudo cloudflared service install <token>' command it shows here, and

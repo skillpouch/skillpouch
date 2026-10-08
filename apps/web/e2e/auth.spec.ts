@@ -37,6 +37,17 @@ test.describe('signed out', () => {
 		expect(new URL(page.url()).host).toBe(new URL(page.url()).host);
 	});
 
+	test('the Terms and Privacy Policy are public and linked from sign-in', async ({ page }) => {
+		await page.goto('/sign-in');
+		await page.getByRole('link', { name: 'Terms' }).click();
+		await expect(page).toHaveURL(/\/terms$/);
+		await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible();
+		await page.getByRole('link', { name: 'Privacy Policy' }).click();
+		await expect(page).toHaveURL(/\/privacy$/);
+		await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'What we cannot see' })).toBeVisible();
+	});
+
 	test('unknown pages show not found', async ({ page }) => {
 		await page.goto('/definitely/not/here');
 		await expect(page.getByRole('heading', { name: 'Nothing here' })).toBeVisible();

@@ -4,7 +4,7 @@
  * arrived from the terminal; `?error=cancelled` shows why they are back, and
  * a session notice (revoked browser, ended session) says why they were signed out.
  */
-import { useSearch } from '@tanstack/react-router';
+import { Link, useSearch } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { SignInBackground } from '@/components/brand/sign-in-background';
 import { AuthLayout } from '@/components/layout/auth-layout';
@@ -97,13 +97,13 @@ export function SignInPage() {
 				{import.meta.env.DEV ? <DevSignIn /> : null}
 				<p className="text-center text-xs text-meta">
 					By continuing you agree to the{' '}
-					<a className="underline hover:text-fg" href="https://skillpouch.net/terms">
+					<Link className="underline hover:text-fg" to="/terms">
 						Terms
-					</a>{' '}
+					</Link>{' '}
 					and{' '}
-					<a className="underline hover:text-fg" href="https://skillpouch.net/privacy">
+					<Link className="underline hover:text-fg" to="/privacy">
 						Privacy Policy
-					</a>
+					</Link>
 					.
 				</p>
 			</div>

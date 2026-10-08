@@ -23,10 +23,11 @@ worker (API_ROLE=worker, pg-boss) · postgres 16 · blobs on /srv/skillpouch/blo
 
 ## Secrets
 
-`deploy/secrets/` is tracked by git (`.gitkeep`) but its contents are
-ignored by git and by Docker builds. Compose mounts it read-only at
-`/run/secrets` in the API and worker containers (container user uid 10001;
-folder `700`, files `600`).
+`deploy/secrets/` is created by `init-secrets.sh` and ignored by git and by
+Docker builds. Compose mounts it read-only at `/run/secrets` in the API and
+worker containers. Owner is the container user (uid 10001) with group
+`docker`: folder `770` (the deploy user can manage it), files `600` (only the
+container can read them).
 
 One file per secret, named after the variable in lower case:
 

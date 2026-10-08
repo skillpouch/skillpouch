@@ -13,9 +13,8 @@ data/
 !.engram/graph.json
 !.engram/GRAPH_REPORT.md
 deploy/env/*.env
-# production secrets: the folder is tracked, its contents never are
-deploy/secrets/*
-!deploy/secrets/.gitkeep
+# production secrets (created by deploy/scripts/init-secrets.sh)
+deploy/secrets/
 deploy/caddy/.live-color
 deploy/caddy/.deployed
 test-results/

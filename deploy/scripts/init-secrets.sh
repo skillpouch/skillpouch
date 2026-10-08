@@ -50,8 +50,12 @@ create pepper_key "$(random_base64url 32)"
 create jwt_signing_key "$(ed25519_private_jwk)"
 
 # The API container runs as uid 10001 and must be able to read the files.
+# The docker group (the deploy user) may manage the folder, but not read the
+# files: git and the deploy scripts need to work inside it.
 if [[ "$(id -u)" == 0 ]]; then
-	chown -R "$CONTAINER_UID:$CONTAINER_UID" "$SECRETS_DIR"
+	group=$(getent group docker >/dev/null && echo docker || echo "$CONTAINER_UID")
+	chown -R "$CONTAINER_UID:$group" "$SECRETS_DIR"
+	chmod 770 "$SECRETS_DIR"
 else
 	echo "note: run 'sudo chown -R $CONTAINER_UID:$CONTAINER_UID $SECRETS_DIR' so the container can read them"
 fi
