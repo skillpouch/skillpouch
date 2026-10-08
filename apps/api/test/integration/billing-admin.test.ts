@@ -82,8 +82,18 @@ describe('billing and admin', () => {
 				status: 200,
 				headers: { 'content-type': 'application/json' },
 			});
-		if (url.endsWith('/v1/checkouts/'))
+		if (url.endsWith('/v1/checkouts/')) {
+			if (String(body?.customer_email).endsWith('@nomail.test')) {
+				return new Response(
+					JSON.stringify({
+						error: 'RequestValidationError',
+						detail: [{ loc: ['body', 'CheckoutProductsCreate', 'customer_email'] }],
+					}),
+					{ status: 422, headers: { 'content-type': 'application/json' } },
+				);
+			}
 			return json({ url: 'https://sandbox.polar.sh/checkout/abc' });
+		}
 		if (url.endsWith('/v1/customer-sessions/'))
 			return json({ customer_portal_url: 'https://sandbox.polar.sh/portal/xyz' });
 		if (url.includes('/v1/subscriptions/')) return json(remoteSubscription);
@@ -232,6 +242,18 @@ describe('billing and admin', () => {
 			expect(
 				(await alice.browser.post('/v1/billing/checkout', { plan_slug: 'free' })).status,
 			).toBe(404);
+		});
+
+		it('drops an email Polar refuses, so the checkout asks for one', async () => {
+			const carol = await setupAccount(h, 'carol@nomail.test');
+			const response = await carol.browser.post('/v1/billing/checkout', {
+				plan_slug: 'supporter',
+			});
+			expect(response.body.data.url).toBe('https://sandbox.polar.sh/checkout/abc');
+			const [refused, retried] = calls.slice(-2).map((call) => call.body);
+			expect(refused).toMatchObject({ customer_email: 'carol@nomail.test' });
+			expect(retried).not.toHaveProperty('customer_email');
+			expect(retried).toMatchObject({ external_customer_id: carol.accountId });
 		});
 
 		it('opens the customer portal', async () => {

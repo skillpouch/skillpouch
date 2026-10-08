@@ -176,7 +176,15 @@ export class PolarProvider implements BillingProvider {
 	}
 
 	private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
-		const response = await this.fetch(`${this.base}${path}`, {
+		const response = await this.send(method, path, body);
+		if (!response.ok) {
+			throw new AppError('billing_unavailable', { status: response.status, path });
+		}
+		return (await response.json()) as T;
+	}
+
+	private send(method: string, path: string, body?: unknown): Promise<Response> {
+		return this.fetch(`${this.base}${path}`, {
 			method,
 			headers: {
 				Authorization: `Bearer ${this.options.accessToken}`,
@@ -186,10 +194,6 @@ export class PolarProvider implements BillingProvider {
 			...(body === undefined ? {} : { body: JSON.stringify(body) }),
 			signal: AbortSignal.timeout(10_000),
 		});
-		if (!response.ok) {
-			throw new AppError('billing_unavailable', { status: response.status, path });
-		}
-		return (await response.json()) as T;
 	}
 
 	async createCheckout(input: {
@@ -198,13 +202,26 @@ export class PolarProvider implements BillingProvider {
 		productId: string;
 		successUrl: string;
 	}) {
-		const checkout = await this.call<{ url: string }>('POST', '/v1/checkouts/', {
+		const body = {
 			products: [input.productId],
 			external_customer_id: input.storageAccountId,
-			customer_email: input.email,
 			success_url: input.successUrl,
 			metadata: { storage_account_id: input.storageAccountId },
+		};
+		// Polar refuses emails whose domain takes no mail (GitHub noreply
+		// addresses, for one); without a prefill the checkout asks for one.
+		const prefilled = await this.send('POST', '/v1/checkouts/', {
+			...body,
+			customer_email: input.email,
 		});
+		if (prefilled.ok) return { url: ((await prefilled.json()) as { url: string }).url };
+		if (prefilled.status !== 422 || !(await rejectsField(prefilled, 'customer_email'))) {
+			throw new AppError('billing_unavailable', {
+				status: prefilled.status,
+				path: '/v1/checkouts/',
+			});
+		}
+		const checkout = await this.call<{ url: string }>('POST', '/v1/checkouts/', body);
 		return { url: checkout.url };
 	}
 
@@ -335,4 +352,12 @@ export class PolarProvider implements BillingProvider {
 			if (page >= result.pagination.max_page) return products;
 		}
 	}
+}
+
+/** Whether a Polar validation error names `field` in the request body. */
+async function rejectsField(response: Response, field: string): Promise<boolean> {
+	const error = (await response.json().catch(() => null)) as {
+		detail?: { loc?: unknown[] }[];
+	} | null;
+	return (error?.detail ?? []).some((item) => item.loc?.at(-1) === field);
 }
