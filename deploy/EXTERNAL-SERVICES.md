@@ -32,11 +32,10 @@ Local development uses the same webhook path on your tunnel URL
 
 ## Infrastructure
 
-| Service                  | Setting                                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| Cloudflare Tunnel        | Public hostname `skillpouch.net` → HTTP → `localhost:80`                                      |
-| Cloudflare Email Routing | `info@skillpouch.net` → personal inbox                                                        |
-| GitHub Actions runner    | repo → Settings → Actions → Runners → New; label `skillpouch-server` (see `tunnel/README.md`) |
+| Service               | Setting                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| Cloudflare Tunnel     | Public hostname `skillpouch.net` → HTTP → `localhost:80`                                      |
+| GitHub Actions runner | repo → Settings → Actions → Runners → New; label `skillpouch-server` (see `tunnel/README.md`) |
 
 ## Admin access
 
