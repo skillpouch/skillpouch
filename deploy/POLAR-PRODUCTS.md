@@ -24,14 +24,15 @@ doesn't silently change what paying users get.
 
 ## What syncs from Polar
 
-SkillPouch reads the tagged products when the API starts, every hour, and
-when a checkout finds no product for its plan. For each one it:
+SkillPouch reads the tagged products as soon as Polar sends a
+`product.created` or `product.updated` webhook, and also when the API starts,
+every hour, and when a checkout finds no product for its plan. For each one
+it:
 
 - links the product to the plan with the same slug;
 - copies the **name**, **description**, price and interval. The site always
   shows the name from Polar: rename a product there and the plan, the
-  billing page and the badge follow within the hour (restart the API to
-  apply it now);
+  billing page and the badge follow within seconds;
 - creates the plan when the slug is new, with the `pouch_limit` and
   `storage_bytes` metadata (both required for a new plan);
 - shows or hides the plan from `visible`.

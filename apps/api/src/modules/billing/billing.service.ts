@@ -13,6 +13,7 @@ import { AppError } from '../../http/app-error';
 import { appendAudit } from '../../security/audit';
 import { withTenantTx } from '../../security/tenant-tx';
 import { refreshEntitlementsInTx } from '../entitlements/entitlements.service';
+import { syncPlansFromProvider } from './plan-sync';
 import { normalizePolarSubscription } from './polar';
 import type { BillingEvent, BillingProvider, NormalizedSubscription } from './provider';
 
@@ -116,6 +117,22 @@ export async function applySubscription(
 	return true;
 }
 
+/** A product was created or edited in the provider: its plan follows right away. */
+export function isProductEvent(type: string): boolean {
+	return type.startsWith('product.');
+}
+
+/** Syncs plans for a product event; false (and a warning) when the provider is unreachable. */
+export async function syncPlansForEvent(deps: Deps): Promise<boolean> {
+	try {
+		await syncPlansFromProvider(deps);
+		return true;
+	} catch (error) {
+		deps.log.warn({ err: error }, 'plan sync after a product webhook failed');
+		return false;
+	}
+}
+
 /** `billing.apply`: processes stored events not processed yet (webhook path + retries). */
 export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 	if (!deps.billing) return 0;
@@ -126,9 +143,14 @@ export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 		.orderBy(asc(billingEvents.createdAt))
 		.limit(200);
 	let applied = 0;
+	// One sync covers every pending product event.
+	let plansSynced: boolean | null = null;
 	for (const row of pending) {
 		const payload = row.payload as { type?: string; data?: Record<string, unknown> };
-		if (row.type.startsWith('subscription.') && payload.data) {
+		if (isProductEvent(row.type)) {
+			plansSynced ??= await syncPlansForEvent(deps);
+			if (!plansSynced) continue;
+		} else if (row.type.startsWith('subscription.') && payload.data) {
 			if (
 				await applySubscription(
 					deps,

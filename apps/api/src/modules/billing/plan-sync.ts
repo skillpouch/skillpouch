@@ -10,8 +10,9 @@
  * Metadata `visible=0` hides the plan from the pricing and billing pages and
  * from checkout; an admin can still grant it.
  *
- * Runs when the API starts, hourly in the worker, from the admin dashboard,
- * and when a checkout finds no product for its plan.
+ * Runs when a `product.*` webhook arrives, when the API starts, hourly in the
+ * worker, from the admin dashboard, and when a checkout finds no product for
+ * its plan.
  */
 import { plans } from '@skillpouch/db';
 import { eq, sql } from 'drizzle-orm';

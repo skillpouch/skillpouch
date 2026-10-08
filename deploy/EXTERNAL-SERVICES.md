@@ -18,11 +18,11 @@ Apply changes with `deploy/tunnel/update.sh --force` (or the plain
 
 ## Billing (Polar)
 
-| Where                                 | Setting                                                                                                                                                                | Credentials                    |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Settings → Developers → Access tokens | Organization access token                                                                                                                                              | `secrets/polar_access_token`   |
-| Settings → Webhooks → Add endpoint    | URL `https://skillpouch.net/v1/billing/webhooks/polar` · format **Raw** · events `subscription.created`, `.updated`, `.active`, `.canceled`, `.uncanceled`, `.revoked` | `secrets/polar_webhook_secret` |
-| —                                     | `POLAR_SERVER=sandbox` while testing, `production` for real payments (sandbox and production have separate tokens and webhooks)                                        | `api.env`                      |
+| Where                                 | Setting                                                                                                                                                                                                      | Credentials                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| Settings → Developers → Access tokens | Organization access token                                                                                                                                                                                    | `secrets/polar_access_token`   |
+| Settings → Webhooks → Add endpoint    | URL `https://skillpouch.net/v1/billing/webhooks/polar` · format **Raw** · events `subscription.created`, `.updated`, `.active`, `.canceled`, `.uncanceled`, `.revoked`, `product.created`, `product.updated` | `secrets/polar_webhook_secret` |
+| —                                     | `POLAR_SERVER=sandbox` while testing, `production` for real payments (sandbox and production have separate tokens and webhooks)                                                                              | `api.env`                      |
 
 Products, their metadata and how they're linked to plans:
 [POLAR-PRODUCTS.md](POLAR-PRODUCTS.md).

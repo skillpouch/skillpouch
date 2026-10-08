@@ -6,6 +6,7 @@
  * signature verification is the real code.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { applyPendingBillingEvents } from '../../src/modules/billing/billing.service';
 import { PolarProvider, signStandardWebhook } from '../../src/modules/billing/polar';
 import { syncPlansFromProvider } from '../../src/modules/billing/plan-sync';
 import { signIn, type BrowserClient } from '../helpers/clients';
@@ -70,6 +71,8 @@ describe('billing and admin', () => {
 	const remoteSubscriptions = new Map<string, Record<string, unknown>[]>();
 	const foreignOrder = { ...orders[0]!, id: 'ord_other', customer_id: 'cus_other' };
 	let remoteProducts: Record<string, unknown>[] = [];
+	/** Polar's product list answers 503. */
+	let productsDown = false;
 	/** The account whose subscription changes plans. */
 	let changer: Account;
 	/** What Polar answers to the next plan change instead of success. */
@@ -171,8 +174,10 @@ describe('billing and admin', () => {
 			}
 			return json(found);
 		}
-		if (url.includes('/v1/products/?'))
+		if (url.includes('/v1/products/?')) {
+			if (productsDown) return new Response('{}', { status: 503 });
 			return json({ items: remoteProducts, pagination: { max_page: 1 } });
+		}
 		if (url.includes('/v1/products')) return json({ id: 'prod_new' });
 		return new Response('not found', { status: 404 });
 	};
@@ -712,6 +717,58 @@ describe('billing and admin', () => {
 					alice.accountId,
 					before.rows[0].entitlements,
 				]);
+			}
+		});
+
+		it('a product webhook updates its plan right away, and retries later if Polar is down', async () => {
+			const plan = await h.owner.query(
+				`SELECT name, description FROM plans WHERE slug = 'supporter'`,
+			);
+			const supporterName = async () =>
+				(
+					(await alice.browser.get('/v1/plans')).body.data.plans as {
+						slug: string;
+						name: string;
+					}[]
+				).find((item) => item.slug === 'supporter')?.name;
+			const pending = async (id: string) =>
+				(
+					await h.owner.query(
+						`SELECT processed_at FROM billing_events WHERE external_id = $1`,
+						[id],
+					)
+				).rows[0].processed_at;
+			try {
+				remoteProducts = [polarProduct(PRODUCT, 'Supporter Live', { plan: 'supporter' })];
+				const renamed = await webhook(
+					{ type: 'product.updated', data: { id: PRODUCT } },
+					{ id: 'evt_product_1' },
+				);
+				expect(renamed.statusCode).toBe(200);
+				expect(await supporterName()).toBe('Supporter Live');
+				expect(await pending('evt_product_1')).not.toBeNull();
+
+				productsDown = true;
+				remoteProducts = [polarProduct(PRODUCT, 'Supporter Later', { plan: 'supporter' })];
+				const failed = await webhook(
+					{ type: 'product.updated', data: { id: PRODUCT } },
+					{ id: 'evt_product_2' },
+				);
+				expect(failed.statusCode).toBe(200);
+				expect(await supporterName()).toBe('Supporter Live');
+				expect(await pending('evt_product_2')).toBeNull();
+
+				productsDown = false;
+				await applyPendingBillingEvents(h.deps);
+				expect(await supporterName()).toBe('Supporter Later');
+				expect(await pending('evt_product_2')).not.toBeNull();
+			} finally {
+				productsDown = false;
+				remoteProducts = [];
+				await h.owner.query(
+					`UPDATE plans SET name = $1, description = $2 WHERE slug = 'supporter'`,
+					[plan.rows[0].name, plan.rows[0].description],
+				);
 			}
 		});
 	});

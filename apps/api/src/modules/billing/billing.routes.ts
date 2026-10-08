@@ -13,10 +13,12 @@ import { withTenantTx } from '../../security/tenant-tx';
 import { assertCanPay, changePlan, findPaidPlan, openSubscription } from './plan-change';
 import {
 	applySubscription,
+	isProductEvent,
 	markBillingEventProcessed,
 	recordBillingEvent,
 	requireBilling,
 	syncAccountSubscriptions,
+	syncPlansForEvent,
 } from './billing.service';
 import type { BillingDocument } from './provider';
 
@@ -248,7 +250,10 @@ export async function billingRoutes(app: ZodApp, deps: Deps) {
 					throw new AppError('webhook_invalid', { reason: 'body' });
 				const event = await provider.verifyWebhook(request.body, request.headers);
 				const fresh = await recordBillingEvent(deps, provider.name, event);
-				if (fresh) {
+				// A failed plan sync leaves the event pending; `billing.apply` retries it.
+				const done =
+					!fresh || !isProductEvent(event.type) || (await syncPlansForEvent(deps));
+				if (fresh && done) {
 					if (event.subscription)
 						await applySubscription(deps, provider.name, event.subscription);
 					await markBillingEventProcessed(deps, provider.name, event.id);
