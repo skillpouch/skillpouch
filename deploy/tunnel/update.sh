@@ -59,5 +59,10 @@ cd deploy
 export COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml SMOKE_URL=http://127.0.0.1/readyz
 scripts/deploy.sh "skillpouch/api:$SHA"
 echo "$TARGET" > caddy/.deployed
-docker image prune -f --filter "until=168h" >/dev/null || true
+# Keep the 3 newest API images (live + the previous color for rollback + one
+# spare); older ones, dangling layers and stale build cache go.
+docker image ls skillpouch/api --format '{{.CreatedAt}}\t{{.Repository}}:{{.Tag}}' \
+	| sort -r | tail -n +4 | cut -f2 | xargs -r docker image rm >/dev/null 2>&1 || true
+docker image prune -f >/dev/null || true
+docker builder prune -f --filter "until=168h" >/dev/null || true
 echo "[update] live: $SHA"
