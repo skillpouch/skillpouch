@@ -8,6 +8,7 @@ import type pino from 'pino';
 import type { Env } from './config/env';
 import type { BlobStore } from './infra/blob-store/blob-store';
 import { FsBlobStore } from './infra/blob-store/fs-blob-store';
+import { S3BlobStore } from './infra/blob-store/s3-blob-store';
 import { createDatabases, type Databases } from './infra/db';
 import { ListenHub } from './infra/listen-hub';
 import { SettingsCache } from './infra/settings';
@@ -66,7 +67,7 @@ export async function createDeps(env: Env, log: pino.Logger, role: string): Prom
 		tokens: await AccessTokens.create(env.JWT_SIGNING_KEY, now),
 		nonces: new NonceService(env.DPOP_NONCE_SECRET, now),
 		pepper: new PepperBox(env.PEPPER_KEY, env.PEPPER_KEY_ID),
-		blobs: new FsBlobStore(env.BLOB_FS_ROOT),
+		blobs: createBlobStore(env),
 		hub,
 		deviceStatus: new DeviceStatusCache(db.app),
 		settings: new SettingsCache(db.app, env.MAINTENANCE_WRITE_PAUSE),
@@ -109,4 +110,16 @@ export async function createDeps(env: Env, log: pino.Logger, role: string): Prom
 export async function closeDeps(deps: Deps): Promise<void> {
 	await deps.hub.close();
 	await deps.db.close();
+}
+
+export function createBlobStore(env: Env): BlobStore {
+	if (env.BLOB_DRIVER === 'fs') return new FsBlobStore(env.BLOB_FS_ROOT);
+	return new S3BlobStore({
+		endpoint: env.S3_ENDPOINT!,
+		bucket: env.S3_BUCKET!,
+		region: env.S3_REGION,
+		accessKeyId: env.S3_ACCESS_KEY_ID!,
+		secretAccessKey: env.S3_SECRET_ACCESS_KEY!,
+		prefix: env.S3_PREFIX,
+	});
 }

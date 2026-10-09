@@ -5,6 +5,7 @@
  *   API_ROLE=api      serve HTTP (default)
  *   API_ROLE=migrate  apply pending migrations and exit (deploy step)
  *   API_ROLE=worker   see `worker.ts` (same image, different command)
+ *   API_ROLE=copy-blobs  copy BLOB_FS_ROOT into the S3 bucket and exit (moving to R2)
  *
  * Graceful shutdown on SIGTERM/SIGINT: `/readyz` turns 503 so the
  * proxy stops routing here, SSE clients get a jittered `reconnect`,
@@ -12,7 +13,8 @@
  */
 import { migrate } from '@skillpouch/db';
 import { loadEnv } from './config/env';
-import { closeDeps, createDeps } from './deps';
+import { closeDeps, createBlobStore, createDeps } from './deps';
+import { copyBlobs } from './infra/blob-store/copy-blobs';
 import { createLogger } from './infra/logger';
 import { Metrics } from './infra/metrics';
 import { syncPlansFromProvider } from './modules/billing/plan-sync';
@@ -29,6 +31,19 @@ if (env.API_ROLE === 'migrate') {
 		log: (message) => log.info(message),
 	});
 	log.info({ applied: applied.length }, 'migrations done');
+	process.exit(0);
+}
+
+if (env.API_ROLE === 'copy-blobs') {
+	const log = createLogger(env, 'copy-blobs');
+	if (env.BLOB_DRIVER !== 's3') {
+		log.error('API_ROLE=copy-blobs copies BLOB_FS_ROOT into S3: set BLOB_DRIVER=s3 and S3_*');
+		process.exit(1);
+	}
+	const report = await copyBlobs(env.BLOB_FS_ROOT, createBlobStore(env), (progress) =>
+		log.info(progress, 'copying blobs'),
+	);
+	log.info(report, 'blobs copied');
 	process.exit(0);
 }
 

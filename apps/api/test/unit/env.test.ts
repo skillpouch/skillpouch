@@ -124,3 +124,26 @@ describe('development defaults never reach a public host', () => {
 		).toBe('development');
 	});
 });
+
+describe('loadEnv blob storage', () => {
+	const base = { DATABASE_URL: 'postgres://x/y' };
+	const S3 = {
+		BLOB_DRIVER: 's3',
+		S3_ENDPOINT: 'https://acct.r2.cloudflarestorage.com',
+		S3_BUCKET: 'skillpouch-blobs',
+		S3_ACCESS_KEY_ID: 'id',
+	};
+
+	it('S3 needs an endpoint, bucket and both keys', () => {
+		expect(() => loadEnv({ ...base, ...S3 })).toThrow(/BLOB_DRIVER=s3 needs/);
+		const env = loadEnv({ ...base, ...S3, S3_SECRET_ACCESS_KEY: 'secret' });
+		expect(env.BLOB_DRIVER).toBe('s3');
+		expect(env.S3_REGION).toBe('auto');
+	});
+
+	it('reads the S3 secret key from the secrets directory in production', () => {
+		const dir = secretsDir({ ...VALUES, S3_SECRET_ACCESS_KEY: 'from-file' });
+		const env = loadEnv(production({ SECRETS_DIR: dir, ...S3 }));
+		expect(env.S3_SECRET_ACCESS_KEY).toBe('from-file');
+	});
+});

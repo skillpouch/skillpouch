@@ -63,6 +63,18 @@ Local development uses the same webhook path on your tunnel URL
 | Cloudflare Tunnel     | Public hostname `skillpouch.net` → HTTP → `localhost:80`                                      |
 | GitHub Actions runner | repo → Settings → Actions → Runners → New; label `skillpouch-server` (see `tunnel/README.md`) |
 
+## File storage (Cloudflare R2, optional)
+
+Only needed with `BLOB_DRIVER=s3`; the default keeps files on the server's
+disk. Files are encrypted before they reach the API, so the bucket only ever
+holds ciphertext.
+
+| Where                                             | Setting                                                                         | Credentials                                         |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Cloudflare → R2 → Create bucket                   | Name `skillpouch-blobs`, location automatic, no public access                   | `S3_BUCKET`                                         |
+| R2 → Overview → Account details                   | S3 API URL `https://<account id>.r2.cloudflarestorage.com` (without the bucket) | `S3_ENDPOINT`                                       |
+| R2 → Manage API tokens → Create Account API token | Permission **Object Read & Write**, only bucket `skillpouch-blobs`              | `S3_ACCESS_KEY_ID` · `secrets/s3_secret_access_key` |
+
 ## Admin access
 
 `ADMIN_EMAILS` in `api.env`: comma-separated emails that get the admin

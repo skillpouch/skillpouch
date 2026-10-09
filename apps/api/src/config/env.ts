@@ -34,10 +34,12 @@ const GITHUB_APP_KEYS = [
 	'GITHUB_APP_PRIVATE_KEY',
 ] as const;
 
+const S3_KEYS = ['S3_ENDPOINT', 'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
+
 const EnvSchema = z
 	.object({
 		NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-		API_ROLE: z.enum(['api', 'worker', 'migrate']).default('api'),
+		API_ROLE: z.enum(['api', 'worker', 'migrate', 'copy-blobs']).default('api'),
 		HOST: z.string().default('0.0.0.0'),
 		PORT: z.coerce.number().int().min(0).max(65535).default(8080),
 		LOG_LEVEL: z
@@ -102,8 +104,20 @@ const EnvSchema = z
 		WEBAUTHN_RP_ID: z.string().optional(),
 		WEBAUTHN_RP_NAME: z.string().default('SkillPouch'),
 
-		BLOB_DRIVER: z.enum(['fs']).default('fs'),
+		BLOB_DRIVER: z.enum(['fs', 's3']).default('fs'),
 		BLOB_FS_ROOT: z.string().default('./data/blobs'),
+		/** S3-compatible storage; for R2 `https://<account id>.r2.cloudflarestorage.com`. */
+		S3_ENDPOINT: z.url().optional(),
+		S3_BUCKET: z.string().min(1).optional(),
+		/** `auto` for R2. */
+		S3_REGION: z.string().min(1).default('auto'),
+		S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+		S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+		/** Key prefix inside the bucket, e.g. `blobs/`. */
+		S3_PREFIX: z
+			.string()
+			.regex(/^([a-z0-9-]+\/)*$/, 'lowercase folders ending in /')
+			.default(''),
 
 		/** Internal Prometheus port (never exposed by the proxy); 0 disables. */
 		METRICS_PORT: z.coerce.number().int().min(0).max(65535).default(9464),
@@ -155,6 +169,10 @@ const EnvSchema = z
 			path: ['GITHUB_APP_ID'],
 		},
 	)
+	.refine((env) => env.BLOB_DRIVER !== 's3' || S3_KEYS.every((key) => env[key]), {
+		message: `BLOB_DRIVER=s3 needs ${S3_KEYS.join(', ')}`,
+		path: ['BLOB_DRIVER'],
+	})
 	.transform((env) => ({
 		...env,
 		DB_SET_ROLE: env.DB_SET_ROLE ?? env.NODE_ENV !== 'production',
@@ -209,6 +227,7 @@ const SECRET_KEYS = [
 	'PEPPER_KEY',
 	'POLAR_ACCESS_TOKEN',
 	'POLAR_WEBHOOK_SECRET',
+	'S3_SECRET_ACCESS_KEY',
 ] as const;
 
 /** Secrets production cannot run without (the rest enable optional features). */

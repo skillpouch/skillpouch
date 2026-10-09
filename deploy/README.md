@@ -78,6 +78,25 @@ Migrations are SQL files with a `-- phase: expand|contract` header, applied
 under an advisory lock with `lock_timeout` + retries; destructive changes
 ship as a later `contract` migration.
 
+## Moving files to R2
+
+Files can live in any S3-compatible bucket instead of the blobs volume
+(set-up in `EXTERNAL-SERVICES.md`). To move a running server without
+downtime:
+
+1. Add `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` to `env/api.env` and the
+   secret to `secrets/s3_secret_access_key`, keep `BLOB_DRIVER=fs`, and
+   deploy, so the API container has the settings.
+2. Copy the files (the live API keeps using the volume meanwhile):
+   `docker exec -e API_ROLE=copy-blobs -e BLOB_DRIVER=s3 <live api container> node dist/main.mjs`
+   (`docker ps --filter name=api` shows it). It logs `blobs copied` with counts.
+3. Set `BLOB_DRIVER=s3` and deploy again.
+4. Run step 2 once more: it copies only what was uploaded in between and
+   skips the rest. Keep the volume until you've checked a few pouches.
+
+With R2, back up the bucket with R2's own tools or `rclone`; `backup.sh`
+covers only the volume.
+
 ## Backups and moving hosts
 
 `scripts/backup.sh` (nightly timer): `pg_dump` + immutable blob files to
