@@ -29,7 +29,7 @@ import {
 	type Draft,
 	type DraftAction,
 } from '../draft';
-import { useIngredientFiles, type Ingredient } from '../ingredients';
+import { nameTaken, useIngredientFiles, usePouchContents, type Ingredient } from '../ingredients';
 import { NAME_MAX, validateName, validatePath, type KindDefinition } from '../kinds';
 import { useCreateIngredient, useUpdateIngredient } from '../mutations';
 import { CodeEditor } from './code-editor';
@@ -66,6 +66,7 @@ export function IngredientSheet(props: IngredientSheetProps) {
 	);
 	const [confirmDiscard, setConfirmDiscard] = useState<null | (() => void)>(null);
 	const [problem, setProblem] = useState<string | null>(null);
+	const contents = usePouchContents(pouch.id);
 	const create = useCreateIngredient(pouch);
 	const update = useUpdateIngredient(pouch);
 	const saving = create.isPending || update.isPending;
@@ -122,6 +123,17 @@ export function IngredientSheet(props: IngredientSheetProps) {
 		setProblem(null);
 		const nameProblem = validateName(draft.name);
 		if (nameProblem) return setProblem(nameProblem);
+		const taken = nameTaken(
+			contents.data?.ingredients ?? [],
+			kind.kind,
+			draft.name,
+			mode === 'create' ? undefined : ingredient?.id,
+		);
+		if (taken) {
+			return setProblem(
+				`There is already a ${kind.singular.toLowerCase()} called “${taken.name}”. Pick another name.`,
+			);
+		}
 		const result = draftFiles(draft);
 		if ('problem' in result) return setProblem(result.problem);
 		try {

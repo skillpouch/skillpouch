@@ -237,6 +237,25 @@ export function inScope(ingredients: Ingredient[]): Ingredient[] {
 	);
 }
 
+/**
+ * The live item of `kind` already called `name` (names are unique per kind,
+ * case-insensitively), other than `except`.
+ */
+export function nameTaken(
+	ingredients: Ingredient[],
+	kind: string,
+	name: string,
+	except?: string,
+): Ingredient | undefined {
+	const folded = name.normalize('NFC').toLowerCase();
+	return inScope(ingredients).find(
+		(ingredient) =>
+			ingredient.kind === kind &&
+			ingredient.id !== except &&
+			ingredient.name.normalize('NFC').toLowerCase() === folded,
+	);
+}
+
 /** Live global ingredients per kind (sidebar counts, overview). */
 export function countByKind(ingredients: Ingredient[]): Record<IngredientKind, number> {
 	const counts = {

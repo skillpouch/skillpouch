@@ -104,6 +104,11 @@ export interface CommitInput {
 	previousEntries?: ManifestEntry[];
 	mergeParentId?: string | null;
 	conflictId?: string | null;
+	/**
+	 * A `resolve` that settles a name collision by dropping this item: it
+	 * stays deleted and doesn't claim its name.
+	 */
+	discard?: boolean;
 }
 
 /** Seals, uploads and commits one operation; returns the applied revision id. */
@@ -134,14 +139,15 @@ export async function commitIngredient(input: CommitInput): Promise<{ revisionId
 		kind: input.kind,
 		scope,
 		logical_key: input.name,
-		deleted: input.type === 'delete',
+		deleted: input.type === 'delete' || input.discard === true,
 		entries,
 		roster_head: input.keyring.roster.headHash,
 		author_member_id: input.keyring.member.id,
 		created_at: new Date().toISOString(),
 	};
 	const revision = await sealRevision(keys, input.keyring.member.keys, body);
-	const namesItself = ['create', 'rename', 'restore', 'resolve'].includes(input.type);
+	const namesItself =
+		['create', 'rename', 'restore', 'resolve'].includes(input.type) && !input.discard;
 	const operation = {
 		type: input.type,
 		artifact_id: input.artifactId,

@@ -481,9 +481,11 @@ async function applyOperation(
 		deletedAt === null &&
 		(op.type === 'rename' || op.type === 'restore' || op.type === 'resolve')
 	) {
-		if (await liveArtifactWithName(ctx, newNameIndex, artifact.id)) {
+		const collision = await liveArtifactWithName(ctx, newNameIndex, artifact.id);
+		if (collision) {
 			await insertRevision(ctx, op, envelope, blobIds, storedSize, { headOf: false });
-			return recordConflict(ctx, op, 'name_collision', artifact.id, artifact.headRevisionId);
+			// The other live item holding the name is the version to compare with.
+			return recordConflict(ctx, op, 'name_collision', artifact.id, collision.headRevisionId);
 		}
 	}
 
@@ -513,6 +515,17 @@ async function applyOperation(
 				resolvedAt: ctx.now,
 			})
 			.where(eq(conflicts.id, conflict.id));
+		// Other open conflicts of the same item are settled by this one too.
+		await ctx.tx
+			.update(conflicts)
+			.set({ state: 'superseded', resolvedBy: ctx.principal.userId, resolvedAt: ctx.now })
+			.where(
+				and(
+					eq(conflicts.artifactId, artifact.id),
+					eq(conflicts.state, 'open'),
+					ne(conflicts.id, conflict.id),
+				),
+			);
 		// Its pinned revisions now follow normal retention.
 		const retained = new Date(ctx.now.getTime() + Limits.revisionRetentionDays * 86400_000);
 		const pinned = [conflict.incomingRevisionId, conflict.serverRevisionId].filter(

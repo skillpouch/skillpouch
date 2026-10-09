@@ -13,6 +13,7 @@ import { ErrorMessage } from '@/components/ui/error-message';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toast';
 import {
+	latestPerItem,
 	useConflictVersions,
 	useResolveConflict,
 	type ConflictVersion,
@@ -30,7 +31,7 @@ export function ConflictsPage() {
 	const { pouchId } = useParams({ strict: false }) as { pouchId: string };
 	const pouch = usePouch(pouchId).data;
 	const conflicts = useOpenConflicts(pouchId);
-	const open = (conflicts.data ?? []).filter((conflict) => conflict.artifact_id);
+	const open = latestPerItem(conflicts.data ?? []);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -71,6 +72,7 @@ function ConflictCard({ pouch, conflict }: { pouch: PouchView; conflict: Conflic
 		devices.data?.devices.find((device) => device.id === conflict.device_id)?.name ??
 		'another computer';
 	const head = versions.data?.head;
+	const sameName = conflict.type === 'name_collision';
 	const kind = head ? kindDefinition(head.kind) : undefined;
 	const Icon = kind?.icon;
 
@@ -102,7 +104,8 @@ function ConflictCard({ pouch, conflict }: { pouch: PouchView; conflict: Conflic
 					</h2>
 					<p className="text-xs text-meta">
 						{kind ? `${kind.singular} · ` : ''}
-						changed on {from} {formatRelative(conflict.created_at)}
+						{sameName ? 'made with a name already taken' : 'changed'} on {from}{' '}
+						{formatRelative(conflict.created_at)}
 					</p>
 				</div>
 			</header>
@@ -110,7 +113,7 @@ function ConflictCard({ pouch, conflict }: { pouch: PouchView; conflict: Conflic
 			<div className="grid gap-4 xl:grid-cols-2">
 				<Side
 					title="In the pouch"
-					hint="What every computer has now"
+					hint={sameName ? 'The item that has this name' : 'What every computer has now'}
 					version={versions.data?.pouch}
 					loading={versions.isPending}
 					busy={resolve.isPending}
@@ -118,7 +121,11 @@ function ConflictCard({ pouch, conflict }: { pouch: PouchView; conflict: Conflic
 				/>
 				<Side
 					title={`From ${from}`}
-					hint="Changed there at the same time"
+					hint={
+						sameName
+							? 'A new item with the same name; keeping it replaces the other'
+							: 'Changed there at the same time'
+					}
 					version={versions.data?.incoming}
 					loading={versions.isPending}
 					busy={resolve.isPending}

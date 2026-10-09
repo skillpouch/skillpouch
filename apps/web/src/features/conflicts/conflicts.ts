@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Conflicts: an item changed in two places at once. The server keeps both
- * versions (the pouch's and the one that arrived on top of an older one)
- * until someone picks one here. Picking commits a signed `resolve` on top
- * of the item's current version, with the other one as its second parent.
+ * Conflicts: an item changed in two places at once, or two items made with
+ * the same name. The server keeps both versions until someone picks one.
+ *
+ *  - Changed in two places: picking commits a signed `resolve` on top of the
+ *    item's current version, with the other one as its second parent.
+ *  - Same name (`name_collision`): the new item waits, hidden, next to the
+ *    one that has the name. Keeping the existing one drops the new item;
+ *    keeping the new one writes its files into the existing item, then
+ *    drops the new one. Either way one item keeps the name.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
@@ -11,6 +16,8 @@ import { queryKeys } from '@/lib/api/query-keys';
 import type { PouchRecord, RevisionRecord } from '@/lib/api/types';
 import {
 	fetchIngredientFiles,
+	loadPouchContents,
+	nameTaken,
 	openHead,
 	type ConflictRecord,
 	type Ingredient,
@@ -25,15 +32,30 @@ export interface ConflictVersion {
 }
 
 export interface ConflictVersions {
-	/** The item as the pouch has it now. */
+	/** The conflicted item as the server has it now. */
 	head: Ingredient;
-	/** What the pouch had when the conflict opened. */
+	/** What the pouch has: its version of the item, or the item holding the name. */
 	pouch: ConflictVersion | null;
-	/** What arrived on top of an older version. */
+	/** What arrived at the same time. */
 	incoming: ConflictVersion | null;
+	/** For a name collision: the live item that holds the name. */
+	holder: Ingredient | null;
 }
 
 export type Keep = 'pouch' | 'incoming';
+
+/** One card per item: the newest open conflict of each. */
+export function latestPerItem(conflicts: ConflictRecord[]): ConflictRecord[] {
+	const latest = new Map<string, ConflictRecord>();
+	for (const conflict of conflicts) {
+		if (!conflict.artifact_id) continue;
+		const seen = latest.get(conflict.artifact_id);
+		if (!seen || seen.created_at < conflict.created_at) {
+			latest.set(conflict.artifact_id, conflict);
+		}
+	}
+	return [...latest.values()].sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
 
 async function fetchRevisions(pouchId: string, ids: string[]): Promise<RevisionRecord[]> {
 	if (ids.length === 0) return [];
@@ -61,8 +83,7 @@ export async function loadConflictVersions(
 		const record = id ? records.get(id) : undefined;
 		return record ? openHead(keyring, pouchId, record, record.created_at, false) : null;
 	};
-	const withFiles = async (id: string | null): Promise<ConflictVersion | null> => {
-		const revision = await open(id);
+	const withFiles = async (revision: Ingredient | null): Promise<ConflictVersion | null> => {
 		if (!revision) return null;
 		const files = revision.deleted
 			? new Map<string, Uint8Array>()
@@ -72,13 +93,24 @@ export async function loadConflictVersions(
 			files: [...files].map(([path, bytes]) => ({ path, bytes })),
 		};
 	};
-	const [head, pouch, incoming] = await Promise.all([
+	const [head, server, incoming] = await Promise.all([
 		open(conflict.head_revision_id),
-		withFiles(conflict.server_revision_id ?? conflict.head_revision_id),
-		withFiles(conflict.incoming_revision_id),
+		open(conflict.server_revision_id ?? conflict.head_revision_id),
+		open(conflict.incoming_revision_id),
 	]);
 	if (!head) throw new Error('The item is gone from the pouch.');
-	return { head, pouch, incoming };
+
+	let holder: Ingredient | null = null;
+	let pouch = server;
+	if (conflict.type === 'name_collision') {
+		// The item that holds the name now, found by name: the server's
+		// record may point at an older version of it.
+		const contents = await loadPouchContents(keyring, pouchId);
+		holder = nameTaken(contents.ingredients, head.kind, head.name, head.id) ?? null;
+		pouch = holder;
+	}
+	const [pouchSide, incomingSide] = await Promise.all([withFiles(pouch), withFiles(incoming)]);
+	return { head, pouch: pouchSide, incoming: incomingSide, holder };
 }
 
 export function useConflictVersions(pouchId: string, conflict: ConflictRecord) {
@@ -106,15 +138,51 @@ export function useResolveConflict(pouch: Pick<PouchRecord, 'id' | 'epoch'>) {
 			const { conflict, versions, keep } = input;
 			const version = chosen(versions, keep);
 			if (!version || !conflict.artifact_id) throw new Error('That version is gone.');
+			const kept = version.revision;
+			const { head } = versions;
+
+			// Nothing holds the name any more: keeping the new item just names it.
+			if (conflict.type === 'name_collision' && !(keep === 'incoming' && !versions.holder)) {
+				const holder = versions.holder;
+				if (keep === 'incoming' && holder) {
+					// The item with the name gets the new files.
+					await commitIngredient({
+						keyring,
+						pouch,
+						type: 'update',
+						artifactId: holder.id,
+						base: holder,
+						kind: holder.kind,
+						scope: holder.scope,
+						name: holder.name,
+						previousEntries: kept.files,
+					});
+				}
+				// The waiting item goes; nothing claims the name twice.
+				await commitIngredient({
+					keyring,
+					pouch,
+					type: 'resolve',
+					artifactId: conflict.artifact_id,
+					base: head,
+					kind: head.kind,
+					scope: head.scope,
+					name: head.name,
+					previousEntries: head.files,
+					conflictId: conflict.id,
+					discard: true,
+				});
+				return;
+			}
+
 			const other =
 				keep === 'pouch' ? conflict.incoming_revision_id : conflict.server_revision_id;
-			const kept = version.revision;
 			const { revisionId } = await commitIngredient({
 				keyring,
 				pouch,
 				type: 'resolve',
 				artifactId: conflict.artifact_id,
-				base: versions.head,
+				base: head,
 				kind: kept.kind,
 				scope: kept.scope,
 				name: kept.name,

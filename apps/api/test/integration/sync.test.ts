@@ -405,6 +405,53 @@ describe('sync protocol', () => {
 			).toHaveLength(1);
 		});
 
+		it('settles a name collision by dropping the new item, closing every conflict of it', async () => {
+			const name = nameIndex();
+			const holder = await commitOne(device, alice.pouchId, epoch, {
+				type: 'create',
+				artifactId: uuidv7(),
+				baseRevisionId: null,
+				nameIndex: name,
+			});
+			const twinId = uuidv7();
+			const twin = await commitOne(web, alice.pouchId, epoch, {
+				type: 'create',
+				artifactId: twinId,
+				baseRevisionId: null,
+				nameIndex: name,
+			});
+			// A second attempt to name it piles up another conflict on the same item.
+			const again = await commitOne(web, alice.pouchId, epoch, {
+				type: 'restore',
+				artifactId: twinId,
+				baseRevisionId: twin.revision_id,
+				nameIndex: name,
+			});
+			expect(again).toMatchObject({
+				status: 'conflict',
+				conflict_type: 'name_collision',
+				server_revision_id: holder.revision_id,
+			});
+
+			// Resolving without claiming the name ends both, with no new conflict.
+			const dropped = await commitOne(web, alice.pouchId, epoch, {
+				type: 'resolve',
+				artifactId: twinId,
+				baseRevisionId: twin.revision_id,
+				nameIndex: null,
+				conflictId: twin.conflict_id,
+			});
+			expect(dropped.status).toBe('applied');
+			const open = await alice.browser.get(
+				`/v1/pouches/${alice.pouchId}/conflicts?state=open`,
+			);
+			expect(
+				open.body.data.conflicts.filter(
+					(c: { artifact_id: string }) => c.artifact_id === twinId,
+				),
+			).toHaveLength(0);
+		});
+
 		it('serializes concurrent commits on one artifact: one applies, one conflicts', async () => {
 			const artifactId = uuidv7();
 			const created = await commitOne(device, alice.pouchId, epoch, {
