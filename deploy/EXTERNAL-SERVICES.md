@@ -44,11 +44,11 @@ hour.
 
 ## Billing (Polar)
 
-| Where                                 | Setting                                                                                                                                                                                                      | Credentials                    |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
-| Settings → Developers → Access tokens | Organization access token                                                                                                                                                                                    | `secrets/polar_access_token`   |
+| Where                                 | Setting                                                                                                                                                                                                                                                       | Credentials                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Settings → Developers → Access tokens | Organization access token                                                                                                                                                                                                                                     | `secrets/polar_access_token`   |
 | Settings → Webhooks → Add endpoint    | URL `https://skillpouch.net/v1/billing/webhooks/polar` · format **Raw** · events `subscription.created`, `.updated`, `.active`, `.canceled`, `.uncanceled`, `.revoked`, `product.created`, `product.updated`, `order.paid`, `order.updated`, `order.refunded` | `secrets/polar_webhook_secret` |
-| —                                     | `POLAR_SERVER=sandbox` while testing, `production` for real payments (sandbox and production have separate tokens and webhooks)                                                                              | `api.env`                      |
+| —                                     | `POLAR_SERVER=sandbox` while testing, `production` for real payments (sandbox and production have separate tokens and webhooks)                                                                                                                               | `api.env`                      |
 
 Products, their metadata and how they're linked to plans:
 [POLAR-PRODUCTS.md](POLAR-PRODUCTS.md).
@@ -69,11 +69,11 @@ Only needed with `BLOB_DRIVER=s3`; the default keeps files on the server's
 disk. Files are encrypted before they reach the API, so the bucket only ever
 holds ciphertext.
 
-| Where                                             | Setting                                                                         | Credentials                                         |
-| ------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Cloudflare → R2 → Create bucket                   | Name `skillpouch-blobs`, location automatic, no public access                   | `S3_BUCKET`                                         |
-| R2 → Overview → Account details                   | S3 API URL `https://<account id>.r2.cloudflarestorage.com` (without the bucket) | `S3_ENDPOINT`                                       |
-| R2 → Manage API tokens → Create Account API token | Permission **Object Read & Write**, only bucket `skillpouch-blobs`              | `S3_ACCESS_KEY_ID` · `secrets/s3_secret_access_key` |
+| Where                                             | Setting                                                                         | Credentials                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Cloudflare → R2 → Create bucket                   | Name `skillpouch-blobs`, location automatic, no public access                   | `S3_BUCKET`                                                                     |
+| R2 → Overview → Account details                   | S3 API URL `https://<account id>.r2.cloudflarestorage.com` (without the bucket) | `S3_ENDPOINT`                                                                   |
+| R2 → Manage API tokens → Create Account API token | Permission **Object Read & Write**, only bucket `skillpouch-blobs`              | `S3_ACCESS_KEY_ID` · `S3_SECRET_ACCESS_KEY` (or `secrets/s3_secret_access_key`) |
 
 ## Admin access
 

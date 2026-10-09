@@ -84,9 +84,10 @@ Files can live in any S3-compatible bucket instead of the blobs volume
 (set-up in `EXTERNAL-SERVICES.md`). To move a running server without
 downtime:
 
-1. Add `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` to `env/api.env` and the
-   secret to `secrets/s3_secret_access_key`, keep `BLOB_DRIVER=fs`, and
-   deploy, so the API container has the settings.
+1. Add `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` and
+   `S3_SECRET_ACCESS_KEY` to `env/api.env` (or the secret to
+   `secrets/s3_secret_access_key`), keep `BLOB_DRIVER=fs`, and deploy, so the
+   API container has the settings.
 2. Copy the files (the live API keeps using the volume meanwhile):
    `docker exec -e API_ROLE=copy-blobs -e BLOB_DRIVER=s3 <live api container> node dist/main.mjs`
    (`docker ps --filter name=api` shows it). It logs `blobs copied` with counts.
