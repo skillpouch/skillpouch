@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Avatar button with the account menu: account pages, this month's tokens and sign out. */
 import { useNavigate } from '@tanstack/react-router';
-import { Activity, CreditCard, LogOut, MonitorSmartphone, Shield, User } from 'lucide-react';
+import {
+	Activity,
+	CreditCard,
+	LayoutDashboard,
+	LogOut,
+	MonitorSmartphone,
+	Shield,
+	User,
+} from 'lucide-react';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,6 +18,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { isAdmin } from '@/features/admin/admin';
 import { signOut } from '@/features/session/bootstrap';
 import { getSession, useSession } from '@/features/session/session-store';
 import {
@@ -58,6 +67,14 @@ export function AccountMenu() {
 				<DropdownMenuItem onSelect={() => go('/app/account/billing')}>
 					<CreditCard /> Billing
 				</DropdownMenuItem>
+				{isAdmin(session.me) ? (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onSelect={() => go('/admin')}>
+							<LayoutDashboard /> Admin
+						</DropdownMenuItem>
+					</>
+				) : null}
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
 					onSelect={async () => {

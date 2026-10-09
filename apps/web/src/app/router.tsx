@@ -14,6 +14,7 @@
  *   /cli/authorize           approve a `skillpouch login`
  *   /github/connected        return from installing the GitHub App
  *   /s/:shareId              public share link
+ *   /admin                   admin dashboard (admins only; others see not found)
  *   /terms, /privacy         legal pages
  *
  * `/` belongs to the future landing page; for now it forwards to `/app`.
@@ -33,6 +34,7 @@ import { NotFoundPage } from '@/pages/not-found-page';
 import type { IngredientsSearch } from '@/pages/pouch/ingredients-page';
 import { AuthSkeleton, PageSkeleton } from '@/components/ui/page-skeleton';
 import { AccountLayout } from '@/pages/account/account-layout';
+import { AdminLayout } from '@/pages/admin/admin-layout';
 import { PouchLayout } from '@/pages/pouch/pouch-layout';
 import { PouchesPage } from '@/pages/pouches/pouches-page';
 import { RootLayout, UnlockedRoot } from './root';
@@ -126,6 +128,51 @@ const PublicSharePage = lazyPage(
 	() => import('@/pages/share/public-share-page'),
 	'PublicSharePage',
 	auth,
+);
+const AdminOverviewPage = lazyPage(
+	() => import('@/pages/admin/overview-page'),
+	'AdminOverviewPage',
+	<PageSkeleton variant="overview" />,
+);
+const AdminAnalyticsPage = lazyPage(
+	() => import('@/pages/admin/analytics-page'),
+	'AdminAnalyticsPage',
+	<PageSkeleton variant="overview" />,
+);
+const AdminUsersPage = lazyPage(
+	() => import('@/pages/admin/users-page'),
+	'AdminUsersPage',
+	<PageSkeleton variant="list" />,
+);
+const AdminUserPage = lazyPage(
+	() => import('@/pages/admin/user-page'),
+	'AdminUserPage',
+	<PageSkeleton variant="settings" />,
+);
+const AdminSubscriptionsPage = lazyPage(
+	() => import('@/pages/admin/billing-pages'),
+	'AdminSubscriptionsPage',
+	<PageSkeleton variant="list" />,
+);
+const AdminPaymentsPage = lazyPage(
+	() => import('@/pages/admin/billing-pages'),
+	'AdminPaymentsPage',
+	<PageSkeleton variant="list" />,
+);
+const AdminPlansPage = lazyPage(
+	() => import('@/pages/admin/plans-page'),
+	'AdminPlansPage',
+	<PageSkeleton variant="list" />,
+);
+const AdminAuditPage = lazyPage(
+	() => import('@/pages/admin/audit-page'),
+	'AdminAuditPage',
+	<PageSkeleton variant="list" />,
+);
+const AdminSystemPage = lazyPage(
+	() => import('@/pages/admin/system-page'),
+	'AdminSystemPage',
+	<PageSkeleton variant="overview" />,
 );
 const TermsPage = lazyPage(() => import('@/pages/legal/terms-page'), 'TermsPage', null);
 const PrivacyPage = lazyPage(() => import('@/pages/legal/privacy-page'), 'PrivacyPage', null);
@@ -328,6 +375,70 @@ const billingRoute = createRoute({
 	component: BillingPage,
 });
 
+const adminRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/admin',
+	component: gated('unlocked', () => (
+		<UnlockedRoot>
+			<AdminLayout />
+		</UnlockedRoot>
+	)),
+});
+
+const adminOverviewRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/',
+	component: AdminOverviewPage,
+});
+
+const adminAnalyticsRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/analytics',
+	component: AdminAnalyticsPage,
+});
+
+const adminUsersRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/users',
+	component: AdminUsersPage,
+});
+
+const adminUserRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/users/$userId',
+	component: AdminUserPage,
+});
+
+const adminSubscriptionsRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/subscriptions',
+	component: AdminSubscriptionsPage,
+});
+
+const adminPaymentsRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/payments',
+	component: AdminPaymentsPage,
+});
+
+const adminPlansRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/plans',
+	component: AdminPlansPage,
+});
+
+const adminAuditRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/audit',
+	component: AdminAuditPage,
+});
+
+const adminSystemRoute = createRoute({
+	getParentRoute: () => adminRoute,
+	path: '/system',
+	component: AdminSystemPage,
+});
+
 const routeTree = rootRoute.addChildren([
 	indexRoute,
 	signInRoute,
@@ -355,6 +466,17 @@ const routeTree = rootRoute.addChildren([
 			securityRoute,
 			billingRoute,
 		]),
+	]),
+	adminRoute.addChildren([
+		adminOverviewRoute,
+		adminAnalyticsRoute,
+		adminUsersRoute,
+		adminUserRoute,
+		adminSubscriptionsRoute,
+		adminPaymentsRoute,
+		adminPlansRoute,
+		adminAuditRoute,
+		adminSystemRoute,
 	]),
 ]);
 

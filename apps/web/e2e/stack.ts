@@ -45,7 +45,8 @@ const api = spawn(process.execPath, ['--import', 'tsx', 'src/main.ts'], {
 		METRICS_PORT: '0',
 		RATE_LIMIT_ENABLED: 'false',
 		LOG_LEVEL: process.env.E2E_API_LOG_LEVEL ?? 'warn',
-		ADMIN_EMAILS: '',
+		// Signing in as this address makes an admin (admin.spec.ts).
+		ADMIN_EMAILS: 'e2e-admin@skillpouch.test',
 	},
 });
 
