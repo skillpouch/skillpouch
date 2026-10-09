@@ -229,8 +229,11 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 	});
 
 	// Every response carries a fresh nonce so clients rarely hit dpop_nonce_required.
-	app.addHook('onSend', async (_request, reply) => {
+	app.addHook('onSend', async (request, reply) => {
 		reply.header('DPoP-Nonce', deps.nonces.current());
+		// Admin answers hold other people's details: never kept by a cache.
+		if (request.routeOptions.config?.auth === 'admin')
+			reply.header('Cache-Control', 'no-store');
 	});
 
 	app.addHook('onRequest', async (request) => {
@@ -282,7 +285,9 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 			if (!isStepUpFresh(principal, deps.now())) throw new AppError('step_up_required');
 		}
 
-		const bucket = config.rateLimit ?? (mode === 'public' ? 'public' : 'general');
+		const bucket =
+			config.rateLimit ??
+			(mode === 'public' ? 'public' : mode === 'admin' ? 'admin' : 'general');
 		if (deps.env.RATE_LIMIT_ENABLED && bucket) {
 			const subject = principal
 				? principal.kind === 'device'

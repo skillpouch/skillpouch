@@ -15,6 +15,7 @@ import type {
 	BillingEvent,
 	BillingProvider,
 	NormalizedInvoice,
+	NormalizedPayment,
 	NormalizedSubscription,
 	PlanProduct,
 	PlanProductInput,
@@ -132,6 +133,31 @@ export function normalizePolarOrder(data: Record<string, unknown>): NormalizedIn
 		status: (ORDER_STATUSES.has(status) ? status : 'pending') as NormalizedInvoice['status'],
 		invoiceAvailable: Boolean(data.is_invoice_generated) || INVOICEABLE.has(status),
 		receiptAvailable: Boolean(data.receipt_number),
+	};
+}
+
+export function normalizePolarPayment(data: Record<string, unknown>): NormalizedPayment {
+	const invoice = normalizePolarOrder(data);
+	const customer = (data.customer ?? {}) as Record<string, unknown>;
+	const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+	const cents = (value: unknown) => {
+		const number = Number(value ?? 0);
+		return Number.isFinite(number) ? Math.round(number) : 0;
+	};
+	const tax = cents(data.tax_amount);
+	const total = cents(data.total_amount ?? data.amount);
+	return {
+		id: invoice.id,
+		storageAccountId: (customer.external_id ?? metadata.storage_account_id ?? null) as
+			string | null,
+		productId: (data.product_id as string | undefined) ?? null,
+		status: invoice.status,
+		currency: invoice.currency.toLowerCase(),
+		amountCents: total,
+		netCents: data.net_amount === undefined ? total - tax : cents(data.net_amount),
+		taxCents: tax,
+		refundedCents: cents(data.refunded_amount),
+		createdAt: invoice.createdAt,
 	};
 }
 
@@ -416,6 +442,20 @@ export class PolarProvider implements BillingProvider {
 			metadata: { plan: input.slug },
 		});
 		return created.id;
+	}
+
+	async listPayments(since: Date | null): Promise<NormalizedPayment[]> {
+		const payments: NormalizedPayment[] = [];
+		for (let page = 1; ; page++) {
+			const result = await this.call<{
+				items: Record<string, unknown>[];
+				pagination: { max_page: number };
+			}>('GET', `/v1/orders/?sorting=-created_at&limit=100&page=${page}`);
+			const batch = result.items.map(normalizePolarPayment);
+			payments.push(...batch);
+			const reachedOld = since !== null && batch.some((payment) => payment.createdAt < since);
+			if (reachedOld || page >= result.pagination.max_page) return payments;
+		}
 	}
 
 	async listPlanProducts(): Promise<PlanProduct[]> {

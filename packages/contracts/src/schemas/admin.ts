@@ -102,3 +102,95 @@ export const AuditEntry = z.object({
 
 export const BillingCheckout = z.strictObject({ plan_slug: z.string().min(1).max(64) });
 export const BillingUrl = z.object({ url: z.url() });
+
+export const AdminAnalyticsQuery = z.object({
+	days: z.coerce.number().int().min(7).max(365).default(30),
+});
+
+const Count = z.object({ name: z.string(), count: z.number().int() });
+
+/**
+ * The dashboard's numbers over the last `days` UTC days (today included).
+ * Money is in `currency` (the one most charges use; others are left out of
+ * the sums) and counts what the business keeps: after discounts, tax and
+ * refunds.
+ */
+export const AdminAnalytics = z.object({
+	days: z.number().int(),
+	currency: z.string(),
+	series: z.array(
+		z.object({
+			day: z.string(),
+			signups: z.number().int(),
+			devices: z.number().int(),
+			earned_cents: z.number().int(),
+			payments: z.number().int(),
+			tokens: z.number(),
+		}),
+	),
+	revenue: z.object({
+		mrr_cents: z.number().int(),
+		earned_cents: z.number().int(),
+		previous_earned_cents: z.number().int(),
+		all_time_cents: z.number().int(),
+		refunded_cents: z.number().int(),
+		payments: z.number().int(),
+		paying_accounts: z.number().int(),
+		/** Charges in other currencies, not in the sums. */
+		other_currencies: z.array(z.string()),
+		synced_at: Timestamp.nullable(),
+	}),
+	users: z.object({
+		total: z.number().int(),
+		new: z.number().int(),
+		previous_new: z.number().int(),
+		/** Connected at least one computer. */
+		with_devices: z.number().int(),
+		suspended: z.number().int(),
+	}),
+	subscriptions: z.object({
+		by_status: z.array(Count),
+		cancel_scheduled: z.number().int(),
+	}),
+	plans: z.array(z.object({ slug: z.string(), name: z.string(), accounts: z.number().int() })),
+	devices: z.object({
+		active: z.number().int(),
+		seen_7d: z.number().int(),
+		seen_30d: z.number().int(),
+		os: z.array(Count),
+		cli_versions: z.array(Count),
+	}),
+	tokens: z.object({
+		total: z.number(),
+		previous_total: z.number(),
+		assistants: z.array(z.object({ name: z.string(), tokens: z.number() })),
+		models: z.array(z.object({ name: z.string(), tokens: z.number() })),
+	}),
+	storage: z.object({
+		used_bytes: z.number().int(),
+		quota_bytes: z.number().int(),
+		pouches: z.number().int(),
+		top_accounts: z.array(
+			z.object({ user_id: z.string(), email: z.string(), used_bytes: z.number().int() }),
+		),
+	}),
+});
+
+export const AdminPayment = z.object({
+	id: z.string(),
+	user_id: z.string().nullable(),
+	email: z.string().nullable(),
+	plan_slug: z.string().nullable(),
+	status: z.string(),
+	currency: z.string(),
+	amount_cents: z.number().int(),
+	net_cents: z.number().int(),
+	tax_cents: z.number().int(),
+	refunded_cents: z.number().int(),
+	created_at: Timestamp,
+});
+
+export const AdminPaymentQuery = z.object({
+	cursor: z.string().max(200).optional(),
+	limit: z.coerce.number().int().min(1).max(200).default(50),
+});

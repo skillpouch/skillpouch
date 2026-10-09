@@ -12,7 +12,7 @@ export type AuthMode = 'public' | 'session' | 'device' | 'any' | 'admin';
  * (keyed by client IP).
  */
 export type RateLimitBucket =
-	'auth' | 'general' | 'operations' | 'blobs' | 'import' | 'marketplace' | 'public';
+	'admin' | 'auth' | 'general' | 'operations' | 'blobs' | 'import' | 'marketplace' | 'public';
 
 export interface SkillpouchRouteConfig {
 	auth: AuthMode;

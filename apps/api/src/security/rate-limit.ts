@@ -23,6 +23,8 @@ export const BUCKETS: Record<RateLimitBucket, BucketPolicy> = {
 	import: { capacity: 10, perMinute: 10 },
 	/** Marketplace browsing: searches as you type, items read one at a time. */
 	marketplace: { capacity: 60, perMinute: 60 },
+	/** The admin dashboard: a handful of people, every request counted. */
+	admin: { capacity: 120, perMinute: 120 },
 	/** Unauthenticated routes (share links, request cancel), per IP. */
 	public: { capacity: 120, perMinute: 120 },
 };

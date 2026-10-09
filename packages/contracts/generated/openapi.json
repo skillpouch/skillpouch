@@ -12326,6 +12326,710 @@
 				}
 			}
 		},
+		"/v1/admin/analytics": {
+			"get": {
+				"summary": "Earnings, growth, devices, token usage and storage over the last N days",
+				"tags": [
+					"admin"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"default": 30,
+							"type": "integer",
+							"minimum": 7,
+							"maximum": 365
+						},
+						"in": "query",
+						"name": "days",
+						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"days": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												},
+												"currency": {
+													"type": "string"
+												},
+												"series": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"day": {
+																"type": "string"
+															},
+															"signups": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"devices": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"earned_cents": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"payments": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"tokens": {
+																"type": "number"
+															}
+														},
+														"required": [
+															"day",
+															"signups",
+															"devices",
+															"earned_cents",
+															"payments",
+															"tokens"
+														],
+														"additionalProperties": false
+													}
+												},
+												"revenue": {
+													"type": "object",
+													"properties": {
+														"mrr_cents": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"earned_cents": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"previous_earned_cents": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"all_time_cents": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"refunded_cents": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"payments": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"paying_accounts": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"other_currencies": {
+															"type": "array",
+															"items": {
+																"type": "string"
+															}
+														},
+														"synced_at": {
+															"anyOf": [
+																{
+																	"type": "string",
+																	"format": "date-time",
+																	"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"mrr_cents",
+														"earned_cents",
+														"previous_earned_cents",
+														"all_time_cents",
+														"refunded_cents",
+														"payments",
+														"paying_accounts",
+														"other_currencies",
+														"synced_at"
+													],
+													"additionalProperties": false
+												},
+												"users": {
+													"type": "object",
+													"properties": {
+														"total": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"new": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"previous_new": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"with_devices": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"suspended": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														}
+													},
+													"required": [
+														"total",
+														"new",
+														"previous_new",
+														"with_devices",
+														"suspended"
+													],
+													"additionalProperties": false
+												},
+												"subscriptions": {
+													"type": "object",
+													"properties": {
+														"by_status": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"name": {
+																		"type": "string"
+																	},
+																	"count": {
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	}
+																},
+																"required": [
+																	"name",
+																	"count"
+																],
+																"additionalProperties": false
+															}
+														},
+														"cancel_scheduled": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														}
+													},
+													"required": [
+														"by_status",
+														"cancel_scheduled"
+													],
+													"additionalProperties": false
+												},
+												"plans": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"slug": {
+																"type": "string"
+															},
+															"name": {
+																"type": "string"
+															},
+															"accounts": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															}
+														},
+														"required": [
+															"slug",
+															"name",
+															"accounts"
+														],
+														"additionalProperties": false
+													}
+												},
+												"devices": {
+													"type": "object",
+													"properties": {
+														"active": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"seen_7d": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"seen_30d": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"os": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"name": {
+																		"type": "string"
+																	},
+																	"count": {
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	}
+																},
+																"required": [
+																	"name",
+																	"count"
+																],
+																"additionalProperties": false
+															}
+														},
+														"cli_versions": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"name": {
+																		"type": "string"
+																	},
+																	"count": {
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	}
+																},
+																"required": [
+																	"name",
+																	"count"
+																],
+																"additionalProperties": false
+															}
+														}
+													},
+													"required": [
+														"active",
+														"seen_7d",
+														"seen_30d",
+														"os",
+														"cli_versions"
+													],
+													"additionalProperties": false
+												},
+												"tokens": {
+													"type": "object",
+													"properties": {
+														"total": {
+															"type": "number"
+														},
+														"previous_total": {
+															"type": "number"
+														},
+														"assistants": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"name": {
+																		"type": "string"
+																	},
+																	"tokens": {
+																		"type": "number"
+																	}
+																},
+																"required": [
+																	"name",
+																	"tokens"
+																],
+																"additionalProperties": false
+															}
+														},
+														"models": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"name": {
+																		"type": "string"
+																	},
+																	"tokens": {
+																		"type": "number"
+																	}
+																},
+																"required": [
+																	"name",
+																	"tokens"
+																],
+																"additionalProperties": false
+															}
+														}
+													},
+													"required": [
+														"total",
+														"previous_total",
+														"assistants",
+														"models"
+													],
+													"additionalProperties": false
+												},
+												"storage": {
+													"type": "object",
+													"properties": {
+														"used_bytes": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"quota_bytes": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"pouches": {
+															"type": "integer",
+															"minimum": -9007199254740991,
+															"maximum": 9007199254740991
+														},
+														"top_accounts": {
+															"type": "array",
+															"items": {
+																"type": "object",
+																"properties": {
+																	"user_id": {
+																		"type": "string"
+																	},
+																	"email": {
+																		"type": "string"
+																	},
+																	"used_bytes": {
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	}
+																},
+																"required": [
+																	"user_id",
+																	"email",
+																	"used_bytes"
+																],
+																"additionalProperties": false
+															}
+														}
+													},
+													"required": [
+														"used_bytes",
+														"quota_bytes",
+														"pouches",
+														"top_accounts"
+													],
+													"additionalProperties": false
+												}
+											},
+											"required": [
+												"days",
+												"currency",
+												"series",
+												"revenue",
+												"users",
+												"subscriptions",
+												"plans",
+												"devices",
+												"tokens",
+												"storage"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/admin/payments": {
+			"get": {
+				"summary": "Charges from the billing provider, newest first",
+				"tags": [
+					"admin"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"maxLength": 200
+						},
+						"in": "query",
+						"name": "cursor",
+						"required": false
+					},
+					{
+						"schema": {
+							"default": 50,
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 200
+						},
+						"in": "query",
+						"name": "limit",
+						"required": false
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"items": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"id": {
+																"type": "string"
+															},
+															"user_id": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"email": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"plan_slug": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"status": {
+																"type": "string"
+															},
+															"currency": {
+																"type": "string"
+															},
+															"amount_cents": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"net_cents": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"tax_cents": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"refunded_cents": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"created_at": {
+																"type": "string",
+																"format": "date-time",
+																"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+															}
+														},
+														"required": [
+															"id",
+															"user_id",
+															"email",
+															"plan_slug",
+															"status",
+															"currency",
+															"amount_cents",
+															"net_cents",
+															"tax_cents",
+															"refunded_cents",
+															"created_at"
+														],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": [
+												"items"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/admin/payments/sync": {
+			"post": {
+				"summary": "Pull charges from the billing provider now",
+				"tags": [
+					"admin"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"synced": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												}
+											},
+											"required": [
+												"synced"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/v1/admin/users": {
 			"get": {
 				"summary": "Search users (email, name, id)",

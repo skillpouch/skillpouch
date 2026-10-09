@@ -38,6 +38,22 @@ export interface NormalizedInvoice {
 
 export type BillingDocument = 'invoice' | 'receipt';
 
+/** A charge as the admin dashboard counts it: what was paid, kept and refunded. */
+export interface NormalizedPayment {
+	id: string;
+	storageAccountId: string | null;
+	productId: string | null;
+	status: NormalizedInvoice['status'];
+	currency: string;
+	/** What the customer paid, tax included. */
+	amountCents: number;
+	/** After discounts and before tax: what the business earns. */
+	netCents: number;
+	taxCents: number;
+	refundedCents: number;
+	createdAt: Date;
+}
+
 /**
  * How a plan change settles the price difference: `now` charges (or
  * credits) it right away, `next_invoice` adds it to the next renewal.
@@ -120,4 +136,9 @@ export interface BillingProvider {
 	syncProduct(input: PlanProductInput): Promise<string>;
 	/** Every active recurring product tagged with a plan slug. */
 	listPlanProducts(): Promise<PlanProduct[]>;
+	/**
+	 * Every charge of every customer, newest first. Stops after the first
+	 * page holding one created before `since` (older ones don't change).
+	 */
+	listPayments(since: Date | null): Promise<NormalizedPayment[]>;
 }

@@ -9,6 +9,7 @@ import {
 	applyPendingBillingEvents,
 	reconcileSubscriptions,
 } from '../modules/billing/billing.service';
+import { syncPaymentsFromProvider } from '../modules/billing/payment-sync';
 import { syncPlansFromProvider } from '../modules/billing/plan-sync';
 import { gcBlobs, gcPending } from './gc';
 import {
@@ -49,6 +50,7 @@ export const JOBS: JobDefinition[] = [
 	{ name: 'entitlements.refresh', cron: '0 2 * * *', run: refreshAllEntitlements },
 	{ name: 'billing.apply', cron: '*/5 * * * *', run: applyPendingBillingEvents },
 	{ name: 'billing.plans', cron: '3 * * * *', run: syncPlansFromProvider },
+	{ name: 'billing.payments', cron: '*/30 * * * *', run: syncPaymentsFromProvider },
 	{ name: 'billing.reconcile', cron: '45 2 * * *', run: reconcileSubscriptions },
 	{ name: 'devices.stale', cron: '50 2 * * *', run: flagStaleDevices },
 ];

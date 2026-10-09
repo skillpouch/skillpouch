@@ -13,6 +13,7 @@ import { AppError } from '../../http/app-error';
 import { appendAudit } from '../../security/audit';
 import { withTenantTx } from '../../security/tenant-tx';
 import { refreshEntitlementsInTx } from '../entitlements/entitlements.service';
+import { syncPaymentsFromProvider } from './payment-sync';
 import { syncPlansFromProvider } from './plan-sync';
 import { normalizePolarSubscription } from './polar';
 import type { BillingEvent, BillingProvider, NormalizedSubscription } from './provider';
@@ -133,6 +134,28 @@ export async function syncPlansForEvent(deps: Deps): Promise<boolean> {
 	}
 }
 
+export function isOrderEvent(type: string): boolean {
+	return type.startsWith('order.');
+}
+
+/** Syncs earnings for an order event; false (and a warning) when the provider is unreachable. */
+export async function syncPaymentsForEvent(deps: Deps): Promise<boolean> {
+	try {
+		await syncPaymentsFromProvider(deps);
+		return true;
+	} catch (error) {
+		deps.log.warn({ err: error }, 'payment sync after an order webhook failed');
+		return false;
+	}
+}
+
+/** Runs the sync a provider event calls for; false leaves the event pending. */
+export async function syncForEvent(deps: Deps, type: string): Promise<boolean> {
+	if (isProductEvent(type)) return syncPlansForEvent(deps);
+	if (isOrderEvent(type)) return syncPaymentsForEvent(deps);
+	return true;
+}
+
 /** `billing.apply`: processes stored events not processed yet (webhook path + retries). */
 export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 	if (!deps.billing) return 0;
@@ -143,13 +166,17 @@ export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 		.orderBy(asc(billingEvents.createdAt))
 		.limit(200);
 	let applied = 0;
-	// One sync covers every pending product event.
+	// One sync covers every pending product (or order) event.
 	let plansSynced: boolean | null = null;
+	let paymentsSynced: boolean | null = null;
 	for (const row of pending) {
 		const payload = row.payload as { type?: string; data?: Record<string, unknown> };
 		if (isProductEvent(row.type)) {
 			plansSynced ??= await syncPlansForEvent(deps);
 			if (!plansSynced) continue;
+		} else if (isOrderEvent(row.type)) {
+			paymentsSynced ??= await syncPaymentsForEvent(deps);
+			if (!paymentsSynced) continue;
 		} else if (row.type.startsWith('subscription.') && payload.data) {
 			if (
 				await applySubscription(

@@ -8,3 +8,4 @@ export * from './ops';
 export * from './marketplaces';
 export * from './mcp-registry';
 export * from './usage';
+export * from './payments';

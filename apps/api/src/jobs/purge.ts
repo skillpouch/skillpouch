@@ -216,6 +216,10 @@ export async function purgeDeletedAccounts(deps: Deps): Promise<number> {
 					sql`DELETE FROM ${sql.identifier(table)} WHERE storage_account_id = ${account.id}`,
 				);
 			}
+			// Earnings stay counted; they no longer point at anyone.
+			await tx.execute(
+				sql`UPDATE payments SET storage_account_id = NULL WHERE storage_account_id = ${account.id}`,
+			);
 			await tx.execute(sql`DELETE FROM storage_accounts WHERE id = ${account.id}`);
 			await tx.execute(
 				sql`UPDATE conflicts SET resolved_by = NULL WHERE resolved_by = ${account.owner_user_id}`,

@@ -5,8 +5,12 @@
  * (step-up, enforced by the authentication hook) and a `reason`.
  */
 import {
+	AdminAnalytics,
+	AdminAnalyticsQuery,
 	AdminGrantPlan,
 	AdminOverview,
+	AdminPayment,
+	AdminPaymentQuery,
 	AdminPlan,
 	AdminPlanInput,
 	AdminReason,
@@ -26,6 +30,7 @@ import { z } from 'zod';
 import type { Deps } from '../../deps';
 import { sessionOf } from '../../http/principal';
 import type { ZodApp } from '../../http/zod-app';
+import * as insights from './admin-analytics';
 import * as admin from './admin.service';
 
 const UserParam = z.object({ id: z.string().min(1).max(64) });
@@ -93,6 +98,47 @@ export async function adminRoutes(app: ZodApp, deps: Deps) {
 	);
 
 	app.get(
+		'/v1/admin/analytics',
+		{
+			config: { auth: 'admin' },
+			schema: {
+				tags,
+				summary: 'Earnings, growth, devices, token usage and storage over the last N days',
+				querystring: AdminAnalyticsQuery,
+				response: { 200: AdminAnalytics },
+			},
+		},
+		async (request) => insights.analytics(deps, request.query.days),
+	);
+
+	app.get(
+		'/v1/admin/payments',
+		{
+			config: { auth: 'admin' },
+			schema: {
+				tags,
+				summary: 'Charges from the billing provider, newest first',
+				querystring: AdminPaymentQuery,
+				response: { 200: z.object({ items: z.array(AdminPayment) }) },
+			},
+		},
+		async (request) => insights.listPayments(deps, request.query),
+	);
+
+	app.post(
+		'/v1/admin/payments/sync',
+		{
+			config: { auth: 'admin' },
+			schema: {
+				tags,
+				summary: 'Pull charges from the billing provider now',
+				response: { 200: z.object({ synced: z.number().int() }) },
+			},
+		},
+		async (request) => insights.syncPayments(deps, sessionOf(request)),
+	);
+
+	app.get(
 		'/v1/admin/users',
 		{
 			config: { auth: 'admin' },
@@ -117,7 +163,11 @@ export async function adminRoutes(app: ZodApp, deps: Deps) {
 				response: { 200: UserDetail },
 			},
 		},
-		async (request) => admin.userDetail(deps, request.params.id),
+		async (request) => {
+			const detail = await admin.userDetail(deps, request.params.id);
+			await insights.recordUserViewed(deps, sessionOf(request), request.params.id);
+			return detail;
+		},
 	);
 
 	app.post(
