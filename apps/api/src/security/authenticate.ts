@@ -241,7 +241,9 @@ export async function registerAuthentication(app: FastifyInstance, deps: Deps): 
 		const mode = config?.auth;
 		if (!mode) return;
 
-		if (UNSAFE_METHODS.has(request.method) && mode !== 'public') await waitForWritePause(deps);
+		// Admin changes touch only metadata, and one of them ends the pause.
+		if (UNSAFE_METHODS.has(request.method) && mode !== 'public' && mode !== 'admin')
+			await waitForWritePause(deps);
 
 		switch (mode) {
 			case 'public':

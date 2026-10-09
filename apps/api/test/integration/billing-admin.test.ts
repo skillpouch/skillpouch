@@ -633,10 +633,13 @@ describe('billing and admin', () => {
 				).body.data.write_pause,
 			).toBe(true);
 			expect((await admin.get('/v1/admin/system')).body.data.write_pause).toBe(true);
-			await h.owner.query(
-				`UPDATE system_settings SET value = '{"enabled": false}' WHERE key = 'maintenance_write_pause'`,
-			);
-			h.deps.settings.invalidate();
+			// Admins can still act while writes are held, so they can end it.
+			const resumed = await admin.put('/v1/admin/system/write-pause', {
+				enabled: false,
+				reason: 'switchover done',
+			});
+			expect(resumed.body.data.write_pause).toBe(false);
+			expect((await admin.get('/v1/admin/system')).body.data.write_pause).toBe(false);
 		});
 
 		it('records every admin action in the audit log', async () => {
