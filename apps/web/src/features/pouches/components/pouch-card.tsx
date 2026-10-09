@@ -11,7 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusDot } from '@/components/ui/status-dot';
 import { activeDevices, deviceSyncState, useDevices } from '@/features/devices/devices';
-import { countByKind, usePouchContents } from '@/features/ingredients/ingredients';
+import {
+	countByKind,
+	useOpenConflicts,
+	usePouchContents,
+} from '@/features/ingredients/ingredients';
 import { KINDS } from '@/features/ingredients/kinds';
 import { formatDate, formatTimeLeft, plural } from '@/lib/format';
 import { useNow } from '@/lib/use-now';
@@ -90,6 +94,7 @@ export function PouchCard({
 
 function PouchSummary({ pouch }: { pouch: PouchView }) {
 	const contents = usePouchContents(pouch.id);
+	const conflicts = useOpenConflicts(pouch.id);
 	const devices = useDevices();
 	if (contents.isPending) return <Skeleton className="h-4 w-48" />;
 	const counts = countByKind(contents.data?.ingredients ?? []);
@@ -108,7 +113,18 @@ function PouchSummary({ pouch }: { pouch: PouchView }) {
 			{pouch.state === 'active' ? (
 				<div className="flex items-center justify-between text-xs text-muted">
 					<span>{plural(computers.length, 'computer')}</span>
-					{computers.length === 0 ? (
+					{conflicts.data?.length ? (
+						<Link
+							to="/app/p/$pouchId/conflicts"
+							params={{ pouchId: pouch.id }}
+							className="relative z-10 hover:underline"
+						>
+							<StatusDot
+								tone="warn"
+								label={plural(conflicts.data.length, 'conflict')}
+							/>
+						</Link>
+					) : computers.length === 0 ? (
 						<StatusDot tone="idle" label="Not on a computer yet" />
 					) : behind.length > 0 ? (
 						<StatusDot tone="busy" label={`${behind.length} syncing`} />

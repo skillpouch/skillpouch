@@ -31,7 +31,7 @@ import {
 import { KINDS } from '@/features/ingredients/kinds';
 import { PouchSwitcher } from '@/features/pouches/components/pouch-switcher';
 import { usePouch, useRestorePouch } from '@/features/pouches/pouches';
-import { formatDate } from '@/lib/format';
+import { formatDate, plural } from '@/lib/format';
 import { NotFoundPage } from '../not-found-page';
 
 export function PouchLayout() {
@@ -92,6 +92,22 @@ export function PouchLayout() {
 			banners={
 				<>
 					<AccountBanners />
+					{conflicts.data?.length ? (
+						<Banner
+							tone="warn"
+							action={
+								<Button size="sm" asChild>
+									<Link to="/app/p/$pouchId/conflicts" params={params}>
+										Pick versions
+									</Link>
+								</Button>
+							}
+						>
+							{plural(conflicts.data.length, 'item was', 'items were')} changed in two
+							places at once. Every computer keeps the pouch's version until you pick
+							one.
+						</Banner>
+					) : null}
 					{state === 'locked' ? (
 						<Banner
 							tone="locked"

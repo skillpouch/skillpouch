@@ -2,28 +2,20 @@
 /** `/app/p/:pouchId` — a short summary of the pouch and the account. */
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { Link, useParams } from '@tanstack/react-router';
-import { TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlanCard } from '@/features/billing/plan-card';
 import { activeDevices, deviceSyncState, useDevices } from '@/features/devices/devices';
-import {
-	countByKind,
-	inScope,
-	useOpenConflicts,
-	usePouchContents,
-} from '@/features/ingredients/ingredients';
+import { countByKind, inScope, usePouchContents } from '@/features/ingredients/ingredients';
 import { KINDS, kindDefinition } from '@/features/ingredients/kinds';
 import { usePouch } from '@/features/pouches/pouches';
-import { formatRelative, plural } from '@/lib/format';
+import { formatRelative } from '@/lib/format';
 
 export function OverviewPage() {
 	const { pouchId } = useParams({ strict: false }) as { pouchId: string };
 	const pouch = usePouch(pouchId).data;
 	const contents = usePouchContents(pouchId);
-	const conflicts = useOpenConflicts(pouchId);
 	const devices = useDevices();
 	if (!pouch) return <PageSkeleton variant="overview" />;
 
@@ -39,7 +31,6 @@ export function OverviewPage() {
 	const recent = [...ingredients]
 		.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 		.slice(0, 5);
-	const openConflicts = conflicts.data ?? [];
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -83,26 +74,6 @@ export function OverviewPage() {
 					</Link>
 				))}
 			</p>
-			{openConflicts.length > 0 ? (
-				<section
-					className="rounded-lg border border-warn/30 bg-warn-tint p-4"
-					aria-label="Needs attention"
-				>
-					<p className="flex items-center gap-2 text-[13px] font-medium">
-						<TriangleAlert className="size-4 text-warn" aria-hidden />
-						Needs attention
-					</p>
-					<p className="mt-1 text-[13px] text-muted">
-						{plural(openConflicts.length, 'item was', 'items were')} changed in two
-						places at once. Both versions are kept until you pick one.
-					</p>
-					<Button className="mt-3" size="sm" variant="outline" asChild>
-						<Link to="/app/p/$pouchId/conflicts" params={{ pouchId }}>
-							Resolve conflicts
-						</Link>
-					</Button>
-				</section>
-			) : null}
 			<section aria-label="Recently added">
 				<h2 className="mb-3 text-sm font-medium">Recently added</h2>
 				{recent.length === 0 ? (
