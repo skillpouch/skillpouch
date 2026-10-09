@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * "Connect a computer": a one-time `npx skillpouch login <token>` command,
- * a 10-minute countdown, and live progress until the computer is connected.
+ * "Connect a computer": installing the CLI, then a one-time
+ * `skillpouch login <token>` command with a 10-minute countdown, and live
+ * progress until the computer is connected.
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { CircleCheck, TerminalSquare } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ErrorMessage } from '@/components/ui/error-message';
+import { Segmented } from '@/components/ui/segmented';
 import { Spinner } from '@/components/ui/spinner';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { CliAuthRequest, ConnectToken } from '@/lib/api/types';
@@ -120,7 +122,7 @@ export function ConnectCliDialog({
 		<Dialog open={open} onOpenChange={close}>
 			<DialogContent
 				title="Connect a computer"
-				description="Run this in a terminal on the computer you want to sync. It signs in and links it to your account."
+				description="Run these in a terminal on the computer you want to sync. It signs in, links it to your account and keeps syncing in the background."
 				busy={phase.kind === 'approving'}
 				footer={
 					phase.kind === 'connected' ? (
@@ -146,18 +148,14 @@ export function ConnectCliDialog({
 				) : null}
 				{phase.kind === 'waiting' || phase.kind === 'approving' ? (
 					<div className="flex flex-col gap-4">
-						<div className="flex items-center gap-2 rounded-lg border border-border bg-black p-3 font-mono text-[13px]">
-							<span className="text-meta select-none">$</span>
-							<code
-								className="min-w-0 flex-1 truncate"
-								data-testid="connect-command"
-								data-command={phase.token.command}
-								title={phase.token.command}
-							>
-								{shortenCommand(phase.token.command)}
-							</code>
-							<CopyButton value={phase.token.command} variant="ghost" />
-						</div>
+						<InstallStep />
+						<Step number={2} title="Connect this computer">
+							<CommandLine
+								command={phase.token.command}
+								shown={shortenCommand(phase.token.command)}
+								testId="connect-command"
+							/>
+						</Step>
 						<p className="flex justify-between text-xs text-meta">
 							<span>This token works once and expires in 10 minutes</span>
 							{phase.kind === 'waiting' ? (
@@ -201,6 +199,91 @@ export function ConnectCliDialog({
 				{phase.kind === 'failed' ? <ErrorMessage error={phase.error} /> : null}
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+type Manager = 'npm' | 'pnpm' | 'bun';
+
+/** How each package manager installs the CLI for good (not `npx`: the background sync needs a fixed program). */
+export const INSTALL_COMMANDS: Record<Manager, string> = {
+	npm: 'npm i -g skillpouch',
+	pnpm: 'pnpm add -g skillpouch',
+	bun: 'bun add -g skillpouch',
+};
+
+function InstallStep() {
+	const [manager, setManager] = useState<Manager>('npm');
+	return (
+		<Step
+			number={1}
+			title="Install SkillPouch"
+			aside={
+				<Segmented
+					label="Package manager"
+					value={manager}
+					onChange={setManager}
+					options={(Object.keys(INSTALL_COMMANDS) as Manager[]).map((value) => ({
+						value,
+						label: value,
+					}))}
+				/>
+			}
+		>
+			<CommandLine command={INSTALL_COMMANDS[manager]} testId="install-command" />
+			<p className="text-xs text-meta">Already installed? Skip this; it updates itself.</p>
+		</Step>
+	);
+}
+
+function Step({
+	number,
+	title,
+	aside,
+	children,
+}: {
+	number: number;
+	title: string;
+	aside?: ReactNode;
+	children: ReactNode;
+}) {
+	return (
+		<section className="flex flex-col gap-2" aria-label={title}>
+			<div className="flex min-h-7 items-center justify-between gap-3">
+				<h3 className="flex items-center gap-2 text-[13px] font-medium">
+					<span className="flex size-5 items-center justify-center rounded-full border border-border text-[11px] text-muted">
+						{number}
+					</span>
+					{title}
+				</h3>
+				{aside}
+			</div>
+			{children}
+		</section>
+	);
+}
+
+function CommandLine({
+	command,
+	shown = command,
+	testId,
+}: {
+	command: string;
+	shown?: string;
+	testId: string;
+}) {
+	return (
+		<div className="flex items-center gap-2 rounded-lg border border-border bg-black p-3 font-mono text-[13px]">
+			<span className="text-meta select-none">$</span>
+			<code
+				className="min-w-0 flex-1 truncate"
+				data-testid={testId}
+				data-command={command}
+				title={command}
+			>
+				{shown}
+			</code>
+			<CopyButton value={command} variant="ghost" />
+		</div>
 	);
 }
 

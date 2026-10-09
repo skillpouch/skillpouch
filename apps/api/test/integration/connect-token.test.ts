@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** "Connect a computer": one-time tokens for `npx skillpouch login <token>`. */
+/** "Connect a computer": one-time tokens for `skillpouch login <token>`. */
 import { createHash, randomBytes } from 'node:crypto';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -48,7 +48,7 @@ describe('connect tokens', () => {
 	it('issues a one-time token with a ready-to-paste command', async () => {
 		const token = await newToken();
 		expect(token.token).toMatch(/^sp_lt_[A-Za-z0-9_-]{32}$/);
-		expect(token.command).toBe(`npx skillpouch login ${token.token}`);
+		expect(token.command).toBe(`skillpouch login ${token.token}`);
 		const status = await alice.browser.get(`/v1/cli-auth/connect-tokens/${token.id}`);
 		expect(status.body.data).toMatchObject({ state: 'waiting', request_id: null });
 	});

@@ -2191,7 +2191,7 @@
 		},
 		"/v1/cli-auth/connect-tokens": {
 			"post": {
-				"summary": "Connect a computer: one-time token for `npx skillpouch login <token>`",
+				"summary": "Connect a computer: one-time token for `skillpouch login <token>`",
 				"tags": [
 					"cli-auth"
 				],

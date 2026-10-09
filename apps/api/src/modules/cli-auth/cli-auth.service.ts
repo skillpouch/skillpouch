@@ -13,7 +13,7 @@
  * CLI's private key.
  *
  * Shortcut — "Connect a computer": the unlocked browser creates a one-time
- * connect token, the user runs `npx skillpouch login <token>`, the CLI sends
+ * connect token, the user runs `skillpouch login <token>`, the CLI sends
  * it with step 1. The request is then bound to that account and the waiting
  * browser authorizes it without the user opening a link.
  */
@@ -416,7 +416,7 @@ export async function cancelCliAuthRequest(deps: Deps, id: string, proofJkt: str
 
 const CONNECT_TOKEN_PREFIX = 'sp_lt_';
 
-/** "Connect a computer": a one-time token the user pastes into `npx skillpouch login`. */
+/** "Connect a computer": a one-time token the user pastes into `skillpouch login`. */
 export async function createConnectToken(deps: Deps, principal: SessionPrincipal) {
 	if (!principal.memberId)
 		throw new AppError('member_inactive', { reason: 'unlock this browser first' });
@@ -445,7 +445,7 @@ export async function createConnectToken(deps: Deps, principal: SessionPrincipal
 	return {
 		id,
 		token,
-		command: `npx skillpouch login ${token}`,
+		command: `skillpouch login ${token}`,
 		expires_at: expiresAt.toISOString(),
 	};
 }

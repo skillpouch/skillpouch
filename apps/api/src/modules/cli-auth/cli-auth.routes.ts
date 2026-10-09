@@ -136,7 +136,7 @@ export async function cliAuthRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'session' },
 			schema: {
 				tags: ['cli-auth'],
-				summary: 'Connect a computer: one-time token for `npx skillpouch login <token>`',
+				summary: 'Connect a computer: one-time token for `skillpouch login <token>`',
 				response: { 200: ConnectTokenCreated },
 			},
 		},

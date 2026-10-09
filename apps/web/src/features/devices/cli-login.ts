@@ -2,7 +2,7 @@
 /**
  * Connecting a computer. Two ways in, one approval:
  *
- *  - "Connect CLI" here creates a one-time token for `npx skillpouch login
+ *  - "Connect CLI" here creates a one-time token for `skillpouch login
  *    <token>`; when the CLI uses it, this browser approves automatically.
  *  - `skillpouch login` without a token opens `/cli/authorize`, where the
  *    user compares the confirm code with the terminal and clicks Authorize.

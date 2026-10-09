@@ -11,8 +11,13 @@ import { createAccount, expect, test } from './fixtures';
 async function openConnectDialog(page: Page): Promise<string> {
 	await page.goto('/app/account/devices');
 	await page.getByRole('button', { name: 'Connect CLI' }).first().click();
+	const install = page.getByTestId('install-command');
+	await expect(install).toHaveText('npm i -g skillpouch');
+	await page.getByRole('radio', { name: 'pnpm' }).click();
+	await expect(install).toHaveText('pnpm add -g skillpouch');
 	const command = page.getByTestId('connect-command');
-	await expect(command).toContainText('npx skillpouch login sp_lt_');
+	await expect(command).toContainText('skillpouch login sp_lt_');
+	await expect(command).not.toContainText('npx');
 	const token = (await command.getAttribute('data-command'))!.match(
 		/sp_lt_[A-Za-z0-9_-]{32}/,
 	)?.[0];
