@@ -155,7 +155,9 @@ test.describe('ingredients', () => {
 		await addManually(page, 'skill');
 		await page.getByRole('dialog').getByLabel('Item name').fill('TWIN');
 		await page.getByRole('dialog').getByRole('button', { name: 'Add skill' }).click();
-		await expect(page.getByRole('dialog').getByRole('alert')).toContainText('already exists');
+		await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
+			'There is already a skill called “twin”',
+		);
 		await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
 		await page
 			.getByRole('dialog', { name: 'Discard changes?' })
