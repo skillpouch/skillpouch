@@ -123,6 +123,16 @@ export function useDeletePouch(pouchId: string) {
 	});
 }
 
+/** Deletes a pouch that is already in its undo window for good, right now. */
+export function usePurgePouch() {
+	const invalidate = useInvalidatePouches();
+	return useMutation({
+		mutationFn: (pouchId: string) =>
+			api.delete(`/v1/pouches/${pouchId}`, { query: { skip_undo: 'true' } }),
+		onSuccess: invalidate,
+	});
+}
+
 export function useRestorePouch() {
 	const invalidate = useInvalidatePouches();
 	return useMutation({

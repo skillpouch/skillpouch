@@ -11,10 +11,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
-import {
-	AddMarketplaceDialog,
-	type AddMarketplaceTab,
-} from '@/features/marketplaces/components/add-marketplace-dialog';
+import { AddMarketplaceDialog } from '@/features/marketplaces/components/add-marketplace-dialog';
 import { MarketplaceBrowser } from '@/features/marketplaces/components/marketplace-browser';
 import { useRemoveMarketplace, type Marketplace } from '@/features/marketplaces/marketplaces';
 import { usePouch } from '@/features/pouches/pouches';
@@ -29,7 +26,7 @@ export function MarketplacesPage() {
 	const navigate = useNavigate();
 	const pouch = usePouch(pouchId).data;
 	const remove = useRemoveMarketplace();
-	const [adding, setAdding] = useState<AddMarketplaceTab | null>(null);
+	const [adding, setAdding] = useState(false);
 	const [removing, setRemoving] = useState<Marketplace | null>(null);
 
 	if (!pouch) return <PageSkeleton variant="list" />;
@@ -47,7 +44,7 @@ export function MarketplacesPage() {
 				title="Marketplaces"
 				description="Find skills, agents and MCP servers and add them to this pouch"
 				actions={
-					<Button variant="primary" onClick={() => setAdding('public')}>
+					<Button variant="primary" onClick={() => setAdding(true)}>
 						<Plus /> Add marketplace
 					</Button>
 				}
@@ -56,7 +53,7 @@ export function MarketplacesPage() {
 				pouch={pouch}
 				marketplaceId={search.m}
 				onMarketplaceChange={select}
-				onAddMarketplace={(tab) => setAdding(tab ?? 'public')}
+				onAddMarketplace={() => setAdding(true)}
 				actions={(marketplace) => (
 					<>
 						<Button variant="ghost" size="sm" asChild>
@@ -78,10 +75,8 @@ export function MarketplacesPage() {
 				)}
 			/>
 			<AddMarketplaceDialog
-				open={adding !== null}
-				tab={adding ?? 'public'}
-				onTabChange={setAdding}
-				onOpenChange={(open) => !open && setAdding(null)}
+				open={adding}
+				onOpenChange={setAdding}
 				onAdded={(marketplace) => select(marketplace.id)}
 			/>
 			<ConfirmDialog

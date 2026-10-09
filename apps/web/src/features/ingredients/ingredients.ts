@@ -259,6 +259,7 @@ export interface ConflictRecord {
 	base_revision_id: string | null;
 	server_revision_id: string | null;
 	incoming_revision_id: string | null;
+	head_revision_id: string | null;
 	device_id: string | null;
 	state: 'open' | 'resolved' | 'superseded';
 	created_at: string;

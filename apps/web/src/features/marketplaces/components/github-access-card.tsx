@@ -13,11 +13,11 @@ import { startGithubConnect, type MarketplaceList } from '../marketplaces';
 
 export function GithubAccessCard({
 	github,
-	onAddPrivate,
+	onAddRepository,
 	className,
 }: {
 	github: MarketplaceList['github'];
-	onAddPrivate: () => void;
+	onAddRepository: () => void;
 	className?: string;
 }) {
 	const location = useLocation();
@@ -54,7 +54,7 @@ export function GithubAccessCard({
 						Connected to GitHub as <span className="text-fg">{accounts}</span>.
 					</p>
 					<div className="flex flex-col gap-1.5">
-						<Button size="sm" variant="outline" onClick={onAddPrivate}>
+						<Button size="sm" variant="outline" onClick={onAddRepository}>
 							Add a private repository
 						</Button>
 						<Button

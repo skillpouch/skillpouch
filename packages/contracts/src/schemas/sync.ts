@@ -219,6 +219,8 @@ export const Conflict = z.object({
 	base_revision_id: Uuid.nullable(),
 	server_revision_id: Uuid.nullable(),
 	incoming_revision_id: Uuid.nullable(),
+	/** The item's current version, which a resolution builds on. */
+	head_revision_id: Uuid.nullable(),
 	device_id: Uuid.nullable(),
 	state: z.enum(['open', 'resolved', 'superseded']),
 	resolution: z.string().nullable(),

@@ -27,6 +27,7 @@ export function PrivacyPage() {
 						'Devices: the name and operating system you give each connected computer, and a keyed hash of its IP address.',
 						'Encrypted data: the encrypted files themselves, their sizes and timestamps.',
 						'Security events: sign-ins, new devices, shares and similar account changes, with a keyed hash of the IP address.',
+						'Token usage: how many tokens each AI assistant on your connected computers used per day and model, read from the assistants’ logs by the SkillPouch CLI. Only the counts, never your prompts or replies.',
 						'Billing: your plan and subscription status. Payment details are handled by our payment provider; we never see card numbers.',
 					]}
 				/>

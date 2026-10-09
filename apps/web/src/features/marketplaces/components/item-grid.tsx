@@ -133,7 +133,8 @@ function ItemCard({
 }) {
 	const definition = kindDefinition(item.kind);
 	const Icon = definition?.icon;
-	const review = definition?.runsCommands === true;
+	// Items that run commands are only added from their preview, after a look.
+	const quickAdd = definition?.runsCommands !== true;
 
 	return (
 		<li className="group relative flex h-full flex-col gap-3 rounded-lg border border-border bg-surface/40 p-4 transition-colors hover:border-border-strong hover:bg-hover/40">
@@ -191,17 +192,17 @@ function ItemCard({
 						Remove
 					</Button>
 				) : null}
-				{canAdd && !installed ? (
+				{canAdd && !installed && quickAdd ? (
 					<Button
 						size="sm"
 						variant="outline"
 						className="relative z-10 ml-auto"
-						aria-label={`${review ? 'Review' : 'Add'} ${item.name}`}
+						aria-label={`Add ${item.name}`}
 						loading={busy}
 						disabled={disabled}
-						onClick={review ? onOpen : onAdd}
+						onClick={onAdd}
 					>
-						{review ? 'Review' : 'Add'}
+						Add
 					</Button>
 				) : null}
 			</div>

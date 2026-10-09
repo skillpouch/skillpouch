@@ -12,6 +12,7 @@ import { PouchMetaFields } from '@/features/pouches/components/pouch-meta-form';
 import {
 	useDeletePouch,
 	usePouch,
+	usePouches,
 	useRenamePouch,
 	validatePouchName,
 	type PouchMetaInput,
@@ -24,6 +25,10 @@ export function PouchSettingsPage() {
 	const pouch = usePouch(pouchId).data;
 	const rename = useRenamePouch(pouchId);
 	const remove = useDeletePouch(pouchId);
+	const others = (usePouches().data ?? []).filter(
+		(entry) => entry.id !== pouchId && entry.state !== 'deleted',
+	);
+	const onlyPouch = others.length === 0;
 	const [value, setValue] = useState<PouchMetaInput>({ name: '', description: '' });
 	const [submitted, setSubmitted] = useState(false);
 	const [confirming, setConfirming] = useState(false);
@@ -80,12 +85,14 @@ export function PouchSettingsPage() {
 			>
 				<h2 className="text-sm font-medium">Delete pouch</h2>
 				<p className="mt-1 text-[13px] text-muted">
-					Your computers stop syncing it and remove its items. You can restore it for 7
-					days.
+					{onlyPouch
+						? 'This is your only pouch. Create another one before you delete it.'
+						: 'Your computers stop syncing it and remove its items. You can restore it for 7 days.'}
 				</p>
 				<Button
 					className="mt-4"
 					variant="danger-outline"
+					disabled={onlyPouch}
 					onClick={() => setConfirming(true)}
 				>
 					Delete pouch

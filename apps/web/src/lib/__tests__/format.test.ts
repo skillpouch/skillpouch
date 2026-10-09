@@ -2,7 +2,14 @@
 import { describe, expect, it } from 'vitest';
 import { safeRedirect } from '../auth';
 import { createSseParser, type SseMessage } from '../api/sse';
-import { formatBytes, formatCountdown, formatMoney, formatRelative, plural } from '../format';
+import {
+	formatBytes,
+	formatCountdown,
+	formatMoney,
+	formatRelative,
+	formatTimeLeft,
+	plural,
+} from '../format';
 
 describe('format', () => {
 	it('formats bytes with binary steps', () => {
@@ -59,5 +66,22 @@ describe('createSseParser', () => {
 			{ event: 'account', data: '{"a":1}', id: '7' },
 			{ event: 'message', data: 'line1\nline2', id: '7' },
 		]);
+	});
+});
+
+describe('formatTimeLeft', () => {
+	const now = Date.parse('2026-10-09T00:00:00Z');
+	const at = (minutes: number) => new Date(now + minutes * 60_000);
+	it.each([
+		[7 * 1440, '7 days'],
+		[6 * 1440 + 3 * 60 + 59, '6 days 3 hours'],
+		[1440 + 30, '1 day'],
+		[5 * 60 + 20, '5 hours 20 min'],
+		[60, '1 hour'],
+		[12, '12 min'],
+		[0, 'less than a minute'],
+		[-30, 'less than a minute'],
+	])('%i min → %s', (minutes, expected) => {
+		expect(formatTimeLeft(at(minutes), now)).toBe(expected);
 	});
 });

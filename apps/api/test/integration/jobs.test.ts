@@ -279,6 +279,12 @@ describe('background jobs', () => {
 					blobIds: [blob!.id],
 				},
 			);
+			// The last pouch cannot be deleted; an archived one keeps Bob above zero.
+			await h.owner.query(
+				`INSERT INTO pouches (id, storage_account_id, created_seq, state, epoch)
+				 VALUES ($1, $2, 99, 'archived', gen_random_uuid())`,
+				[uuidv7(), bob.accountId],
+			);
 			expect((await bob.browser.delete(`/v1/pouches/${bob.pouchId}`)).status).toBe(200);
 			expect(await purgeDeletedPouches(h.deps)).toBe(0);
 			await h.owner.query(

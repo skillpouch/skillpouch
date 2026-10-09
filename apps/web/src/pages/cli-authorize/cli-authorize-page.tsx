@@ -12,7 +12,6 @@ import { useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { AuthHeading, AuthLayout } from '@/components/layout/auth-layout';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Field } from '@/components/ui/field';
@@ -24,9 +23,10 @@ import {
 	denyCliRequest,
 	fetchCliRequest,
 } from '@/features/devices/cli-login';
-import { assistantLabel, OS_LABEL } from '@/features/devices/devices';
+import { OS_LABEL } from '@/features/devices/devices';
 import type { CliAuthRequest } from '@/lib/api/types';
 import { formatRelative } from '@/lib/format';
+import { AssistantBadge } from '@/features/devices/components/assistant-badge';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -114,7 +114,7 @@ export function CliAuthorizePage() {
 							<dt className="text-meta">Assistants</dt>
 							<dd className="flex flex-wrap gap-1.5">
 								{data.assistants.map((assistant) => (
-									<Badge key={assistant}>{assistantLabel(assistant)}</Badge>
+									<AssistantBadge key={assistant} id={assistant} />
 								))}
 							</dd>
 						</>

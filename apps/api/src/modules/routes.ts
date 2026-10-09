@@ -24,6 +24,7 @@ import { sharesRoutes } from './shares/shares.routes';
 import { snapshotsRoutes } from './snapshots/snapshots.routes';
 import { storageRoutes } from './storage/storage.routes';
 import { unlockRoutes } from './unlock/unlock.routes';
+import { usageRoutes } from './usage/usage.routes';
 
 export async function registerModules(app: ZodApp, deps: Deps, health: HealthState): Promise<void> {
 	await healthRoutes(app, deps, health);
@@ -47,5 +48,6 @@ export async function registerModules(app: ZodApp, deps: Deps, health: HealthSta
 	await adminRoutes(app, deps);
 	await importRoutes(app, deps);
 	await marketplacesRoutes(app, deps);
+	await usageRoutes(app, deps);
 	await devRoutes(app, deps);
 }

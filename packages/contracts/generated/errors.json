@@ -215,6 +215,12 @@
 		"message": "This pouch is read-only.",
 		"docs_url": "https://docs.skillpouch.net/errors/pouch_read_only"
 	},
+	"last_pouch": {
+		"status": 409,
+		"retryable": false,
+		"message": "This is your only pouch; create another one before deleting it.",
+		"docs_url": "https://docs.skillpouch.net/errors/last_pouch"
+	},
 	"pouch_locked": {
 		"status": 409,
 		"retryable": false,

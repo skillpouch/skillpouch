@@ -1,29 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** One marketplace item before adding it: what it is, and every file it brings. */
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Download, ExternalLink, Plus, TriangleAlert } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Download, ExternalLink, Plus, TriangleAlert } from 'lucide-react';
+import { useMemo } from 'react';
+import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/ui/error-message';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CodeEditor } from '@/features/ingredients/components/code-editor';
-import { FileTree, MobileFilePicker } from '@/features/ingredients/components/file-tree';
-import { createDraft } from '@/features/ingredients/draft';
+import { FilesView, FilesViewSkeleton } from '@/features/ingredients/components/files-view';
 import type { Ingredient } from '@/features/ingredients/ingredients';
 import { kindDefinition } from '@/features/ingredients/kinds';
-import {
-	base64Bytes,
-	fetchMarketplaceItem,
-	type Marketplace,
-	type MarketplaceItem,
-	type MarketplaceItemContent,
-} from '../marketplaces';
+import { base64Bytes, type MarketplaceItem, type MarketplaceItemContent } from '../marketplaces';
 import { InstalledMark } from './item-grid';
 
 const compact = new Intl.NumberFormat('en', { notation: 'compact' });
 
 export function ItemPreview({
-	marketplace,
+	source,
 	item,
 	canAdd,
 	installed,
@@ -33,7 +25,8 @@ export function ItemPreview({
 	onRemove,
 	onBack,
 }: {
-	marketplace: Marketplace;
+	/** Where the item comes from: names the back button and loads its files. */
+	source: { id: string; name: string; load: (key: string) => Promise<MarketplaceItemContent> };
 	item: MarketplaceItem;
 	canAdd: boolean;
 	/** The pouch already has this item. */
@@ -42,11 +35,11 @@ export function ItemPreview({
 	disabled: boolean;
 	onAdd: (content: MarketplaceItemContent) => void;
 	onRemove: (ingredient: Ingredient) => void;
-	onBack: () => void;
+	onBack?: () => void;
 }) {
 	const content = useQuery({
-		queryKey: ['marketplaces', marketplace.id, 'item', item.key],
-		queryFn: () => fetchMarketplaceItem(marketplace.id, item.key),
+		queryKey: ['marketplaces', source.id, 'item', item.key],
+		queryFn: () => source.load(item.key),
 		staleTime: 5 * 60_000,
 	});
 	const definition = kindDefinition(item.kind);
@@ -55,9 +48,11 @@ export function ItemPreview({
 
 	return (
 		<div className="flex min-h-0 flex-col gap-5">
-			<Button variant="link" size="sm" className="self-start text-muted" onClick={onBack}>
-				<ArrowLeft /> {marketplace.name}
-			</Button>
+			{onBack ? (
+				<BackButton onClick={onBack} className="-my-2 bg-bg py-2">
+					{source.name}
+				</BackButton>
+			) : null}
 
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div className="flex min-w-0 items-start gap-3">
@@ -127,7 +122,7 @@ export function ItemPreview({
 			) : null}
 
 			{content.error ? <ErrorMessage error={content.error} /> : null}
-			{content.isPending ? <FilesPreviewSkeleton /> : null}
+			{content.isPending ? <FilesViewSkeleton /> : null}
 			{content.data ? (
 				<FilesPreview
 					name={content.data.name}
@@ -139,27 +134,6 @@ export function ItemPreview({
 	);
 }
 
-const FRAME =
-	'flex h-[min(60dvh,520px)] min-h-0 flex-col overflow-hidden rounded-lg border border-border md:flex-row';
-
-function FilesPreviewSkeleton() {
-	return (
-		<div className={FRAME} aria-label="Loading files" role="status">
-			<div className="hidden w-56 shrink-0 flex-col gap-2.5 border-r border-border p-3 md:flex">
-				{['w-3/5', 'w-2/5', 'w-4/5', 'w-1/2'].map((width) => (
-					<Skeleton key={width} className={`h-3 ${width}`} />
-				))}
-			</div>
-			<div className="flex flex-1 flex-col gap-2.5 p-4">
-				{['w-2/5', 'w-11/12', 'w-3/4', 'w-5/6', 'w-3/5', 'w-4/5', 'w-1/3'].map((width) => (
-					<Skeleton key={width} className={`h-3 ${width}`} />
-				))}
-			</div>
-		</div>
-	);
-}
-
-/** The item's files as the pouch editor shows them: folder tree, then the open file. */
 function FilesPreview({
 	name,
 	files,
@@ -169,57 +143,13 @@ function FilesPreview({
 	files: MarketplaceItemContent['files'];
 	truncated: boolean;
 }) {
-	const entries = useMemo(
-		() =>
-			createDraft(
-				name,
-				files.map((file) => ({ path: file.path, bytes: base64Bytes(file.content_b64) })),
-			).entries,
-		[name, files],
+	const decoded = useMemo(
+		() => files.map((file) => ({ path: file.path, bytes: base64Bytes(file.content_b64) })),
+		[files],
 	);
-	const [active, setActive] = useState<string | null>(null);
-	const shown = entries.find((entry) => entry.path === active) ?? entries[0];
-
 	return (
 		<div className="flex flex-col gap-2">
-			<div className={FRAME}>
-				<aside className="hidden w-56 shrink-0 overflow-y-auto border-r border-border md:block">
-					<FileTree
-						entries={entries}
-						active={shown?.path ?? null}
-						editable={false}
-						onOpen={setActive}
-					/>
-				</aside>
-				<MobileFilePicker
-					entries={entries}
-					active={shown?.path ?? null}
-					onOpen={setActive}
-				/>
-				<section className="flex min-h-0 min-w-0 flex-1 flex-col">
-					<div className="flex h-9 shrink-0 items-center border-b border-border px-3 font-mono text-[13px] text-fg">
-						<span className="truncate">{shown?.path ?? ''}</span>
-					</div>
-					<div className="min-h-0 flex-1">
-						{!shown ? (
-							<div className="flex h-full items-center justify-center text-[13px] text-meta">
-								No files
-							</div>
-						) : shown.text === null ? (
-							<div className="flex h-full items-center justify-center text-[13px] text-muted">
-								Preview not available for this file type.
-							</div>
-						) : (
-							<CodeEditor
-								value={shown.text}
-								path={shown.path}
-								readOnly
-								label={`Contents of ${shown.path}`}
-							/>
-						)}
-					</div>
-				</section>
-			</div>
+			<FilesView name={name} files={decoded} />
 			{truncated ? (
 				<p className="text-xs text-warn">Some files were too large to include.</p>
 			) : null}

@@ -98,6 +98,12 @@ export function rememberProvider(provider: OAuthProvider | `dev:${string}`): voi
 	localStorage.setItem(PROVIDER_KEY, provider);
 }
 
+/** The email of the last development sign-in, so the dev form offers the same account. */
+export function lastDevEmail(): string | null {
+	const last = localStorage.getItem(PROVIDER_KEY);
+	return last?.startsWith('dev:') ? last.slice(4) : null;
+}
+
 /** Only same-app paths; never an absolute URL (open-redirect protection). */
 export function safeRedirect(value: string | null | undefined): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {

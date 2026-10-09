@@ -43,6 +43,7 @@ Every API error uses the standard response envelope. Clients branch on `code`;
 | `not_found` | 404 | no | Not found. |
 | `pouch_limit_reached` | 403 | no | Pouch limit reached for your plan. |
 | `pouch_read_only` | 409 | no | This pouch is read-only. |
+| `last_pouch` | 409 | no | This is your only pouch; create another one before deleting it. |
 | `pouch_locked` | 409 | no | This pouch is locked because your plan includes fewer pouches. Choose the active pouch or upgrade on skillpouch.net. |
 | `artifact_not_deleted` | 409 | no | Delete the item first, then free its space. |
 | `share_unavailable` | 410 | no | This link expired, was revoked or was already used. |

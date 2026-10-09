@@ -18,6 +18,7 @@ export const queryKeys = {
 	billing: ['billing'] as const,
 	invoices: ['billing', 'invoices'] as const,
 	plans: ['plans'] as const,
+	usage: ['usage'] as const,
 	securityEvents: ['security', 'events'] as const,
 	securitySettings: ['security', 'settings'] as const,
 	passkeys: ['security', 'passkeys'] as const,
@@ -27,4 +28,5 @@ export const queryKeys = {
 	marketplaceItems: (id: string, query: string, kind: string, sort: string) =>
 		['marketplaces', id, 'items', query, kind, sort] as const,
 	githubRepositories: ['marketplaces', 'github', 'repositories'] as const,
+	githubRepository: (repo: string) => ['marketplaces', 'github', 'repository', repo] as const,
 } as const;

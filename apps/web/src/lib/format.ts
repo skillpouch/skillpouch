@@ -64,3 +64,16 @@ export function formatCountdown(ms: number): string {
 	const total = Math.max(0, Math.ceil(ms / 1000));
 	return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
+
+/** `6 days 3 hours`, `5 hours 20 min`, `12 min`: the two largest units left until `until`. */
+export function formatTimeLeft(until: Date | string, now = Date.now()): string {
+	const end = typeof until === 'string' ? new Date(until) : until;
+	const minutes = Math.max(0, Math.floor((end.getTime() - now) / 60_000));
+	const days = Math.floor(minutes / 1440);
+	const hours = Math.floor((minutes % 1440) / 60);
+	if (days > 0)
+		return hours > 0 ? `${plural(days, 'day')} ${plural(hours, 'hour')}` : plural(days, 'day');
+	const rest = minutes % 60;
+	if (hours > 0) return rest > 0 ? `${plural(hours, 'hour')} ${rest} min` : plural(hours, 'hour');
+	return minutes > 0 ? `${minutes} min` : 'less than a minute';
+}

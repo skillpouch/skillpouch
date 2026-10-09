@@ -13,7 +13,8 @@ import { StatusDot } from '@/components/ui/status-dot';
 import { activeDevices, deviceSyncState, useDevices } from '@/features/devices/devices';
 import { countByKind, usePouchContents } from '@/features/ingredients/ingredients';
 import { KINDS } from '@/features/ingredients/kinds';
-import { formatDate, plural } from '@/lib/format';
+import { formatDate, formatTimeLeft, plural } from '@/lib/format';
+import { useNow } from '@/lib/use-now';
 import type { PouchView } from '../pouches';
 import { PouchMonogram } from './pouch-monogram';
 
@@ -23,10 +24,18 @@ export interface PouchCardProps {
 	showActiveBadge: boolean;
 	onMakeActive: (pouch: PouchView) => void;
 	onRestore: (pouch: PouchView) => void;
+	onPurge: (pouch: PouchView) => void;
 }
 
-export function PouchCard({ pouch, showActiveBadge, onMakeActive, onRestore }: PouchCardProps) {
-	if (pouch.state === 'deleted') return <DeletedPouchCard pouch={pouch} onRestore={onRestore} />;
+export function PouchCard({
+	pouch,
+	showActiveBadge,
+	onMakeActive,
+	onRestore,
+	onPurge,
+}: PouchCardProps) {
+	if (pouch.state === 'deleted')
+		return <DeletedPouchCard pouch={pouch} onRestore={onRestore} onPurge={onPurge} />;
 	const locked = pouch.state === 'locked';
 	return (
 		<article
@@ -115,22 +124,38 @@ function PouchSummary({ pouch }: { pouch: PouchView }) {
 function DeletedPouchCard({
 	pouch,
 	onRestore,
+	onPurge,
 }: {
 	pouch: PouchView;
 	onRestore: (pouch: PouchView) => void;
+	onPurge: (pouch: PouchView) => void;
 }) {
+	const now = useNow(60_000);
 	return (
 		<article
 			className="flex min-h-[168px] flex-col gap-3 rounded-lg border border-dashed border-border p-5"
 			aria-label={`${pouch.name} (deleted)`}
 		>
 			<p className="text-sm font-medium text-muted line-through">{pouch.name}</p>
-			<p className="text-[13px] text-meta">
-				Deleted. Permanently removed on {formatDate(pouch.delete_after)}.
-			</p>
-			<div className="mt-auto">
+			{pouch.delete_after ? (
+				<div className="flex flex-col gap-1 text-[13px]">
+					<p className="text-fg">
+						Deleted for good in{' '}
+						<span className="tabular-nums">
+							{formatTimeLeft(pouch.delete_after, now)}
+						</span>
+					</p>
+					<p className="text-meta">
+						On {formatDate(pouch.delete_after)}. Restore it until then.
+					</p>
+				</div>
+			) : null}
+			<div className="mt-auto flex flex-wrap gap-2">
 				<Button size="sm" onClick={() => onRestore(pouch)}>
 					Restore
+				</Button>
+				<Button size="sm" variant="danger-outline" onClick={() => onPurge(pouch)}>
+					Delete permanently
 				</Button>
 			</div>
 		</article>

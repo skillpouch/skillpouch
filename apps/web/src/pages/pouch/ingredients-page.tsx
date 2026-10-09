@@ -17,7 +17,6 @@ import {
 } from '@/features/ingredients/components/ingredient-list';
 import { kindBySlug } from '@/features/ingredients/kinds';
 import { AddIngredientDialog } from '@/features/marketplaces/components/add-ingredient-dialog';
-import { offering, useMarketplaces } from '@/features/marketplaces/marketplaces';
 import { usePouch } from '@/features/pouches/pouches';
 import { plural } from '@/lib/format';
 import { NotFoundPage } from '../not-found-page';
@@ -34,7 +33,6 @@ export function IngredientsPage() {
 	const kind = kindBySlug(slug);
 	const pouch = usePouch(pouchId).data;
 	const { items } = useKindIngredients(pouchId, kind);
-	const marketplaces = useMarketplaces();
 	const [choosing, setChoosing] = useState(false);
 
 	if (!kind) return <NotFoundPage />;
@@ -47,10 +45,6 @@ export function IngredientsPage() {
 			search: next,
 			replace: true,
 		});
-	// Nothing to pick from (hooks): straight to the editor.
-	const fromMarketplace =
-		!marketplaces.data || offering(marketplaces.data.marketplaces, kind.kind).length > 0;
-	const add = () => (fromMarketplace ? setChoosing(true) : setPanel({ new: true }));
 
 	return (
 		<>
@@ -63,7 +57,7 @@ export function IngredientsPage() {
 				}
 				actions={
 					readOnly || kind.single ? null : (
-						<Button variant="primary" onClick={add}>
+						<Button variant="primary" onClick={() => setChoosing(true)}>
 							<Plus /> Add {kind.singular.toLowerCase()}
 						</Button>
 					)

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
 	devSignIn,
+	lastDevEmail,
 	rememberProvider,
 	safeRedirect,
 	startOAuth,
@@ -113,7 +114,7 @@ export function SignInPage() {
 
 /** Local development only (never bundled into a production build). */
 function DevSignIn() {
-	const [email, setEmail] = useState('dev@skillpouch.test');
+	const [email, setEmail] = useState(() => lastDevEmail() ?? 'dev@skillpouch.test');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const submit = async (event: FormEvent) => {

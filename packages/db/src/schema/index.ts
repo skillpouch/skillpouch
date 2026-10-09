@@ -7,3 +7,4 @@ export * from './sync';
 export * from './ops';
 export * from './marketplaces';
 export * from './mcp-registry';
+export * from './usage';

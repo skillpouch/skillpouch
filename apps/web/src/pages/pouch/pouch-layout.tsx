@@ -5,7 +5,15 @@
  * locked or deleted pouches.
  */
 import { Link, Outlet, useParams } from '@tanstack/react-router';
-import { LayoutGrid, PanelLeft, Settings, Share2, Store, TerminalSquare } from 'lucide-react';
+import {
+	GitMerge,
+	LayoutGrid,
+	PanelLeft,
+	Settings,
+	Share2,
+	Store,
+	TerminalSquare,
+} from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { Banner } from '@/components/layout/banner';
@@ -15,7 +23,11 @@ import { Shortcut } from '@/components/ui/kbd';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { AccountBanners } from '@/features/account/account-banners';
 import { ConnectCliDialog } from '@/features/devices/components/connect-cli-dialog';
-import { countByKind, usePouchContents } from '@/features/ingredients/ingredients';
+import {
+	countByKind,
+	useOpenConflicts,
+	usePouchContents,
+} from '@/features/ingredients/ingredients';
 import { KINDS } from '@/features/ingredients/kinds';
 import { PouchSwitcher } from '@/features/pouches/components/pouch-switcher';
 import { usePouch, useRestorePouch } from '@/features/pouches/pouches';
@@ -26,6 +38,7 @@ export function PouchLayout() {
 	const { pouchId } = useParams({ strict: false }) as { pouchId: string };
 	const pouch = usePouch(pouchId);
 	const contents = usePouchContents(pouchId);
+	const conflicts = useOpenConflicts(pouchId);
 	const restore = useRestorePouch();
 	const [connecting, setConnecting] = useState(false);
 
@@ -46,6 +59,18 @@ export function PouchLayout() {
 					label: 'Marketplaces',
 					icon: Store,
 				},
+				// Only while something waits to be resolved.
+				...(conflicts.data?.length
+					? [
+							{
+								to: '/app/p/$pouchId/conflicts',
+								params,
+								label: 'Conflicts',
+								icon: GitMerge,
+								count: conflicts.data.length,
+							},
+						]
+					: []),
 			],
 		},
 		{

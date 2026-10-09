@@ -4,9 +4,7 @@
  * share / delete dialogs. The open panel lives in the URL (`?item=<id>&mode=edit`,
  * `?new=1`), so the page passes the search and how to change it.
  */
-import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorMessage } from '@/components/ui/error-message';
@@ -129,13 +127,6 @@ export function IngredientList({
 					icon={kind.icon}
 					title={`No ${kind.label.toLowerCase()} yet`}
 					description={kind.blurb}
-					action={
-						readOnly ? null : (
-							<Button onClick={() => onPanel({ new: true })}>
-								<Plus /> Add {kind.singular.toLowerCase()}
-							</Button>
-						)
-					}
 				/>
 			) : (
 				<>

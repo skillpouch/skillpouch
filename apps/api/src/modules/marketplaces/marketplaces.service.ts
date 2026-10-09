@@ -190,6 +190,102 @@ export async function listMarketplaces(deps: Deps, principal: Principal) {
 	};
 }
 
+interface OpenedRepo {
+	snapshot: RepoSnapshot;
+	auth: GithubAuth | undefined;
+	/** Set when only the account's GitHub connection can read it. */
+	installationId: number | null;
+}
+
+/** Reads `repo` through the account's GitHub connection, or as a public repository. */
+async function openRepo(
+	deps: Deps,
+	installations: { installationId: number }[],
+	repo: string,
+): Promise<OpenedRepo> {
+	for (const installation of installations) {
+		try {
+			const auth = await installationAuth(deps, installation.installationId);
+			const snapshot = await deps.github.snapshot(repo, undefined, auth);
+			return snapshot.private
+				? { snapshot, auth, installationId: installation.installationId }
+				: { snapshot, auth: undefined, installationId: null };
+		} catch (error) {
+			// This installation cannot read it (or GitHub refused); try the next one.
+			if (!(error instanceof AppError)) throw error;
+		}
+	}
+	const snapshot = await deps.github.snapshot(repo).catch((error: unknown) => {
+		if (error instanceof AppError && error.code === 'not_found') {
+			throw new AppError('not_found', {
+				reason: deps.githubApp
+					? 'repository not found — for a private repository, connect GitHub and give SkillPouch access to it'
+					: 'repository not found (public repositories only)',
+			});
+		}
+		throw error;
+	});
+	return { snapshot, auth: undefined, installationId: null };
+}
+
+async function openAccountRepo(deps: Deps, principal: Principal, input: string) {
+	const repo = normalizeRepo(input);
+	const { rows, installations } = await withTenantTx(
+		deps.db.app,
+		principal.storageAccountId,
+		async (tx) => ({
+			rows: await tx.select().from(marketplaces),
+			installations: await tx.select().from(githubInstallations),
+		}),
+	);
+	return { opened: await openRepo(deps, installations, repo), rows };
+}
+
+export interface RepositoryView {
+	repo: string;
+	private: boolean;
+	url: string;
+	/** The marketplace this repository already is, built in or added. */
+	marketplace_id: string | null;
+	/** It ships a marketplace manifest (`.claude-plugin/marketplace.json`). */
+	has_manifest: boolean;
+	items: MarketplaceItem[];
+}
+
+/** What a repository holds, without adding it as a marketplace. */
+export async function inspectRepository(
+	deps: Deps,
+	principal: Principal,
+	input: string,
+): Promise<RepositoryView> {
+	const { opened, rows } = await openAccountRepo(deps, principal, input);
+	const { snapshot, auth } = opened;
+	const same = (repo: string | null) => repo?.toLowerCase() === snapshot.repo.toLowerCase();
+	const marketplace =
+		BUILTIN_MARKETPLACES.find((entry) => same(entry.repo)) ??
+		rows.find((row) => same(row.repo));
+	const items = await describeRepo(deps, snapshot, auth);
+	return {
+		repo: snapshot.repo,
+		private: snapshot.private,
+		url: `https://github.com/${snapshot.repo}`,
+		marketplace_id: marketplace?.id ?? null,
+		has_manifest: snapshot.items.some((item) => item.kind === 'marketplace'),
+		items: items.map(publicItem),
+	};
+}
+
+/** One item of a repository, by the key `inspectRepository` listed. */
+export async function readRepositoryItem(
+	deps: Deps,
+	principal: Principal,
+	input: string,
+	key: string,
+): Promise<MarketplaceItemContent> {
+	const { opened } = await openAccountRepo(deps, principal, input);
+	return readRepoItem(deps, opened.snapshot, key, opened.auth);
+}
+
 export async function addMarketplace(
 	deps: Deps,
 	principal: Principal,
@@ -217,32 +313,7 @@ export async function addMarketplace(
 		});
 	}
 
-	let installationId: number | null = null;
-	let snapshot: RepoSnapshot | null = null;
-	for (const installation of installations) {
-		try {
-			const auth = await installationAuth(deps, installation.installationId);
-			snapshot = await deps.github.snapshot(repo, undefined, auth);
-			if (snapshot.private) installationId = installation.installationId;
-			break;
-		} catch (error) {
-			// This installation cannot read it (or GitHub refused); try the next one.
-			if (!(error instanceof AppError)) throw error;
-		}
-	}
-	if (!snapshot) {
-		snapshot = await deps.github.snapshot(repo).catch((error: unknown) => {
-			if (error instanceof AppError && error.code === 'not_found') {
-				throw new AppError('not_found', {
-					reason: deps.githubApp
-						? 'repository not found — for a private repository, connect GitHub and give SkillPouch access to it'
-						: 'repository not found (public repositories only)',
-				});
-			}
-			throw error;
-		});
-	}
-
+	const { snapshot, installationId } = await openRepo(deps, installations, repo);
 	const row: MarketplaceRow = {
 		id: uuidv7(),
 		storageAccountId: principal.storageAccountId,

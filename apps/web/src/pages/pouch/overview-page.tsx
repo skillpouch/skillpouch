@@ -4,6 +4,7 @@ import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { Link, useParams } from '@tanstack/react-router';
 import { TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/layout/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PlanCard } from '@/features/billing/plan-card';
@@ -93,8 +94,13 @@ export function OverviewPage() {
 					</p>
 					<p className="mt-1 text-[13px] text-muted">
 						{plural(openConflicts.length, 'item was', 'items were')} changed in two
-						places at once. Both versions are kept — open the item to pick one.
+						places at once. Both versions are kept until you pick one.
 					</p>
+					<Button className="mt-3" size="sm" variant="outline" asChild>
+						<Link to="/app/p/$pouchId/conflicts" params={{ pouchId }}>
+							Resolve conflicts
+						</Link>
+					</Button>
 				</section>
 			) : null}
 			<section aria-label="Recently added">

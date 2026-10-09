@@ -8,8 +8,8 @@
  *   /setup                   first-time onboarding (master password, Recovery Key)
  *   /unlock                  new or lapsed browser
  *   /app                     pouches
- *   /app/p/:pouchId          overview, /:kind lists, /shared, /settings
- *   /app/account             profile, /devices, /security, /billing
+ *   /app/p/:pouchId          overview, /:kind lists, /shared, /conflicts, /settings
+ *   /app/account             profile, /devices, /usage, /security, /billing
  *   /app/p/:pouchId/marketplaces  skills.sh, MCP Registry, GitHub repositories
  *   /cli/authorize           approve a `skillpouch login`
  *   /github/connected        return from installing the GitHub App
@@ -76,6 +76,11 @@ const ProfilePage = lazyPage(
 	'ProfilePage',
 	<PageSkeleton variant="profile" />,
 );
+const UsagePage = lazyPage(
+	() => import('@/pages/account/usage-page'),
+	'UsagePage',
+	<PageSkeleton variant="usage" />,
+);
 const SecurityPage = lazyPage(
 	() => import('@/pages/account/security-page'),
 	'SecurityPage',
@@ -101,6 +106,7 @@ const PouchSettingsPage = lazyPage(
 	'PouchSettingsPage',
 	<PageSkeleton variant="form" />,
 );
+const ConflictsPage = lazyPage(() => import('@/pages/pouch/conflicts-page'), 'ConflictsPage', list);
 const SharedLinksPage = lazyPage(
 	() => import('@/pages/pouch/shared-links-page'),
 	'SharedLinksPage',
@@ -251,6 +257,12 @@ const sharedRoute = createRoute({
 	component: SharedLinksPage,
 });
 
+const conflictsRoute = createRoute({
+	getParentRoute: () => pouchRoute,
+	path: '/conflicts',
+	component: ConflictsPage,
+});
+
 const pouchSettingsRoute = createRoute({
 	getParentRoute: () => pouchRoute,
 	path: '/settings',
@@ -299,6 +311,12 @@ const devicesRoute = createRoute({
 	path: '/devices',
 	component: DevicesPage,
 });
+const usageRoute = createRoute({
+	getParentRoute: () => accountRoute,
+	path: '/usage',
+	component: UsagePage,
+});
+
 const securityRoute = createRoute({
 	getParentRoute: () => accountRoute,
 	path: '/security',
@@ -325,11 +343,18 @@ const routeTree = rootRoute.addChildren([
 		pouchRoute.addChildren([
 			overviewRoute,
 			sharedRoute,
+			conflictsRoute,
 			pouchSettingsRoute,
 			marketplacesRoute,
 			kindRoute,
 		]),
-		accountRoute.addChildren([profileRoute, devicesRoute, securityRoute, billingRoute]),
+		accountRoute.addChildren([
+			profileRoute,
+			devicesRoute,
+			usageRoute,
+			securityRoute,
+			billingRoute,
+		]),
 	]),
 ]);
 

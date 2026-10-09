@@ -622,7 +622,7 @@
 		},
 		"/v1/cli/latest": {
 			"get": {
-				"summary": "Latest CLI version and minimum supported version",
+				"summary": "Latest CLI version (from npm) and minimum supported version",
 				"tags": [
 					"devices"
 				],
@@ -2135,6 +2135,11 @@
 														"welcome": {
 															"type": "string",
 															"pattern": "^[A-Za-z0-9_-]*$"
+														},
+														"member_id": {
+															"type": "string",
+															"format": "uuid",
+															"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
 														}
 													},
 													"required": [
@@ -2145,7 +2150,8 @@
 														"device_id",
 														"storage_account_id",
 														"status",
-														"welcome"
+														"welcome",
+														"member_id"
 													],
 													"additionalProperties": false
 												}
@@ -7036,7 +7042,7 @@
 				}
 			},
 			"delete": {
-				"summary": "Delete a pouch (7-day undo window, then purged; `skip_undo=true` purges now to free space)",
+				"summary": "Delete a pouch (7-day undo window, then purged; `skip_undo=true` purges now to free space, also for a pouch already deleted). The last pouch cannot be deleted",
 				"tags": [
 					"pouches"
 				],
@@ -9607,6 +9613,18 @@
 																	}
 																]
 															},
+															"head_revision_id": {
+																"anyOf": [
+																	{
+																		"type": "string",
+																		"format": "uuid",
+																		"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															},
 															"device_id": {
 																"anyOf": [
 																	{
@@ -9658,6 +9676,7 @@
 															"base_revision_id",
 															"server_revision_id",
 															"incoming_revision_id",
+															"head_revision_id",
 															"device_id",
 															"state",
 															"resolution",
@@ -9812,6 +9831,18 @@
 														}
 													]
 												},
+												"head_revision_id": {
+													"anyOf": [
+														{
+															"type": "string",
+															"format": "uuid",
+															"pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
 												"device_id": {
 													"anyOf": [
 														{
@@ -9863,6 +9894,7 @@
 												"base_revision_id",
 												"server_revision_id",
 												"incoming_revision_id",
+												"head_revision_id",
 												"device_id",
 												"state",
 												"resolution",
@@ -15808,6 +15840,300 @@
 				}
 			}
 		},
+		"/v1/github/repository": {
+			"get": {
+				"summary": "What one GitHub repository holds, without adding it as a marketplace",
+				"tags": [
+					"marketplaces"
+				],
+				"description": "Public repositories, or private ones the connected GitHub App installations can read.",
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"minLength": 3,
+							"maxLength": 300
+						},
+						"in": "query",
+						"name": "repo",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"repo": {
+													"type": "string"
+												},
+												"private": {
+													"type": "boolean"
+												},
+												"url": {
+													"type": "string"
+												},
+												"marketplace_id": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"has_manifest": {
+													"type": "boolean"
+												},
+												"items": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"key": {
+																"type": "string"
+															},
+															"kind": {
+																"type": "string",
+																"enum": [
+																	"skill",
+																	"agent",
+																	"command",
+																	"instructions",
+																	"mcp_server",
+																	"plugin"
+																]
+															},
+															"name": {
+																"type": "string"
+															},
+															"description": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"repo": {
+																"type": [
+																	"string",
+																	"null"
+																]
+															},
+															"installs": {
+																"anyOf": [
+																	{
+																		"type": "integer",
+																		"minimum": -9007199254740991,
+																		"maximum": 9007199254740991
+																	},
+																	{
+																		"type": "null"
+																	}
+																]
+															}
+														},
+														"required": [
+															"key",
+															"kind",
+															"name",
+															"description",
+															"repo",
+															"installs"
+														],
+														"additionalProperties": false
+													}
+												}
+											},
+											"required": [
+												"repo",
+												"private",
+												"url",
+												"marketplace_id",
+												"has_manifest",
+												"items"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/github/repository/item": {
+			"get": {
+				"summary": "One item's files from a GitHub repository, ready to encrypt and save",
+				"tags": [
+					"marketplaces"
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"minLength": 3,
+							"maxLength": 300
+						},
+						"in": "query",
+						"name": "repo",
+						"required": true
+					},
+					{
+						"schema": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 500
+						},
+						"in": "query",
+						"name": "key",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"kind": {
+													"type": "string",
+													"enum": [
+														"skill",
+														"agent",
+														"command",
+														"instructions",
+														"mcp_server",
+														"plugin"
+													]
+												},
+												"name": {
+													"type": "string"
+												},
+												"description": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"files": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"path": {
+																"type": "string"
+															},
+															"size": {
+																"type": "integer",
+																"minimum": -9007199254740991,
+																"maximum": 9007199254740991
+															},
+															"content_b64": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"path",
+															"size",
+															"content_b64"
+														],
+														"additionalProperties": false
+													}
+												},
+												"truncated": {
+													"type": "boolean"
+												},
+												"url": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"kind",
+												"name",
+												"description",
+												"files",
+												"truncated",
+												"url"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/v1/github/repositories": {
 			"get": {
 				"summary": "Repositories the connected GitHub App installations can read",
@@ -16076,6 +16402,302 @@
 					}
 				}
 			}
+		},
+		"/v1/usage/sources/{sourceId}": {
+			"put": {
+				"summary": "Report the tokens this computer’s assistants used, per UTC day",
+				"tags": [
+					"usage"
+				],
+				"description": "`sourceId` names the logs the counts come from and stays the same across logins. Rows are never added up: each keeps the larger of its stored and reported total, so sending the same logs again changes nothing.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"rows": {
+										"maxItems": 2000,
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"input": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"output": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"cache_read": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"cache_write": {
+													"type": "integer",
+													"minimum": 0,
+													"maximum": 9007199254740991
+												},
+												"day": {
+													"type": "string",
+													"pattern": "^20\\d\\d-\\d\\d-\\d\\d$"
+												},
+												"assistant": {
+													"type": "string",
+													"pattern": "^[a-z0-9-]{1,32}$"
+												},
+												"model": {
+													"type": "string",
+													"minLength": 1,
+													"maxLength": 120
+												}
+											},
+											"required": [
+												"input",
+												"output",
+												"cache_read",
+												"cache_write",
+												"day",
+												"assistant",
+												"model"
+											]
+										}
+									}
+								},
+								"required": [
+									"rows"
+								]
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"pattern": "^[0-9a-f]{32}$"
+						},
+						"in": "path",
+						"name": "sourceId",
+						"required": true
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"stored": {
+													"type": "integer",
+													"minimum": -9007199254740991,
+													"maximum": 9007199254740991
+												}
+											},
+											"required": [
+												"stored"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/v1/usage": {
+			"get": {
+				"summary": "Tokens used by the account’s assistants, summed over its computers",
+				"tags": [
+					"usage"
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"ok": {
+											"type": "boolean",
+											"enum": [
+												true
+											]
+										},
+										"data": {
+											"type": "object",
+											"properties": {
+												"days": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"input": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"output": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"cache_read": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"cache_write": {
+																"type": "integer",
+																"minimum": 0,
+																"maximum": 9007199254740991
+															},
+															"day": {
+																"type": "string",
+																"pattern": "^20\\d\\d-\\d\\d-\\d\\d$"
+															},
+															"assistant": {
+																"type": "string",
+																"pattern": "^[a-z0-9-]{1,32}$"
+															},
+															"model": {
+																"type": "string",
+																"minLength": 1,
+																"maxLength": 120
+															}
+														},
+														"required": [
+															"input",
+															"output",
+															"cache_read",
+															"cache_write",
+															"day",
+															"assistant",
+															"model"
+														],
+														"additionalProperties": false
+													}
+												},
+												"all_time": {
+													"type": "object",
+													"properties": {
+														"input": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"output": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"cache_read": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														},
+														"cache_write": {
+															"type": "integer",
+															"minimum": 0,
+															"maximum": 9007199254740991
+														}
+													},
+													"required": [
+														"input",
+														"output",
+														"cache_read",
+														"cache_write"
+													],
+													"additionalProperties": false
+												},
+												"updated_at": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"days",
+												"all_time",
+												"updated_at"
+											],
+											"additionalProperties": false
+										},
+										"meta": {
+											"type": "object",
+											"properties": {
+												"request_id": {
+													"type": "string"
+												},
+												"next_cursor": {
+													"type": [
+														"string",
+														"null"
+													]
+												}
+											},
+											"required": [
+												"request_id"
+											],
+											"additionalProperties": false
+										}
+									},
+									"required": [
+										"ok",
+										"data",
+										"meta"
+									],
+									"additionalProperties": false
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"servers": [
@@ -16132,6 +16754,10 @@
 		{
 			"name": "marketplaces",
 			"description": "Marketplaces and the GitHub connection"
+		},
+		{
+			"name": "usage",
+			"description": "Tokens the account’s assistants used"
 		}
 	]
 }

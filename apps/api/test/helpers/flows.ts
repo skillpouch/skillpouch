@@ -161,6 +161,9 @@ export async function authorizeCli(
 	cli.refreshToken = token.body.data.refresh_token;
 	cli.deviceId = token.body.data.device_id;
 	cli.storageAccountId = token.body.data.storage_account_id;
+	if (token.body.data.member_id !== deviceMember.id) {
+		throw new Error(`token names member ${token.body.data.member_id}, not ${deviceMember.id}`);
+	}
 	cli.memberId = deviceMember.id;
 	account.members.push(deviceMember);
 	return cli;

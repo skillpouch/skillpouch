@@ -276,6 +276,23 @@ describe('marketplaces', () => {
 			});
 		});
 
+		it('is found when the same repository is read on its own', async () => {
+			const response = await alice.browser.get(
+				`/v1/github/repository?repo=${encodeURIComponent('https://github.com/acme/skills')}`,
+			);
+			expect(response.status).toBe(200);
+			expect(response.body.data).toMatchObject({
+				repo: 'acme/skills',
+				private: false,
+				marketplace_id: id,
+				has_manifest: false,
+			});
+			expect(
+				(await bob.browser.get('/v1/github/repository?repo=acme/skills')).body.data
+					.marketplace_id,
+			).toBeNull();
+		});
+
 		it('belongs to its account', async () => {
 			expect((await bob.browser.get(`/v1/marketplaces/${id}/items`)).status).toBe(404);
 			expect((await bob.browser.delete(`/v1/marketplaces/${id}`)).status).toBe(404);
@@ -381,10 +398,52 @@ describe('marketplaces', () => {
 		expect(stillRemote.body.data.items).toHaveLength(1);
 	});
 
+	describe('a repository read without adding it', () => {
+		it('lists what it holds and returns one item', async () => {
+			const response = await bob.browser.get('/v1/github/repository?repo=acme/skills');
+			expect(response.status).toBe(200);
+			expect(
+				response.body.data.items.map((item: { kind: string; key: string }) => [
+					item.kind,
+					item.key,
+				]),
+			).toEqual([
+				['agent', 'agents/reviewer.md'],
+				['skill', 'pdf'],
+				['mcp_server', 'tools/.mcp.json#github'],
+			]);
+			const skill = await bob.browser.get(
+				'/v1/github/repository/item?repo=acme/skills&key=pdf',
+			);
+			expect(skill.status).toBe(200);
+			expect(skill.body.data).toMatchObject({ kind: 'skill', name: 'pdf' });
+			expect(skill.body.data.files.map((file: { path: string }) => file.path)).toEqual([
+				'SKILL.md',
+				'scripts/fill.py',
+			]);
+			const marketplaces = await bob.browser.get('/v1/marketplaces');
+			expect(marketplaces.body.data.marketplaces).toHaveLength(4);
+		});
+
+		it('is not found when missing, and refuses what is not a repository', async () => {
+			expect((await bob.browser.get('/v1/github/repository?repo=acme/nothing')).status).toBe(
+				404,
+			);
+			expect((await bob.browser.get('/v1/github/repository?repo=nope')).status).toBe(400);
+			expect(
+				(await bob.browser.get('/v1/github/repository/item?repo=acme/skills&key=missing'))
+					.status,
+			).toBe(404);
+		});
+	});
+
 	describe('private repositories', () => {
 		it('are not found before GitHub is connected', async () => {
 			const response = await alice.browser.post('/v1/marketplaces', { repo: 'alice/secret' });
 			expect(response.status).toBe(404);
+			expect(
+				(await alice.browser.get('/v1/github/repository?repo=alice/secret')).status,
+			).toBe(404);
 		});
 
 		it('connecting keeps only the user’s own installations and orgs they administer', async () => {
@@ -408,6 +467,15 @@ describe('marketplaces', () => {
 				`/v1/marketplaces/${added.body.data.id}/item?key=mine`,
 			);
 			expect(decode(item.body.data.files[0])).toBe(SKILL_MD);
+			const read = await alice.browser.get('/v1/github/repository?repo=alice/secret');
+			expect(read.body.data).toMatchObject({
+				private: true,
+				marketplace_id: added.body.data.id,
+			});
+			const direct = await alice.browser.get(
+				'/v1/github/repository/item?repo=alice/secret&key=mine',
+			);
+			expect(decode(direct.body.data.files[0])).toBe(SKILL_MD);
 			expect(
 				(await bob.browser.get(`/v1/marketplaces/${added.body.data.id}/items`)).status,
 			).toBe(404);
@@ -416,6 +484,10 @@ describe('marketplaces', () => {
 		it('another account cannot use them without its own connection', async () => {
 			expect(
 				(await bob.browser.post('/v1/marketplaces', { repo: 'alice/secret' })).status,
+			).toBe(404);
+			expect(
+				(await bob.browser.get('/v1/github/repository/item?repo=alice/secret&key=mine'))
+					.status,
 			).toBe(404);
 		});
 

@@ -12,7 +12,8 @@ import { StatusDot } from '@/components/ui/status-dot';
 import type { BrowserRecord, DeviceRecord, PouchRecord } from '@/lib/api/types';
 import { formatDate, formatRelative } from '@/lib/format';
 import { browserLabel } from '@/lib/platform';
-import { assistantLabel, deviceSyncState, OS_LABEL } from '../devices';
+import { deviceSyncState, OS_LABEL } from '../devices';
+import { AssistantBadge } from './assistant-badge';
 
 const OS_ICON = { linux: Monitor, macos: Laptop, windows: Monitor } as const;
 
@@ -46,7 +47,7 @@ export function ComputerRow({
 				{device.assistants.length > 0 ? (
 					<p className="mt-1.5 flex flex-wrap gap-1.5">
 						{device.assistants.map((assistant) => (
-							<Badge key={assistant}>{assistantLabel(assistant)}</Badge>
+							<AssistantBadge key={assistant} id={assistant} />
 						))}
 					</p>
 				) : null}

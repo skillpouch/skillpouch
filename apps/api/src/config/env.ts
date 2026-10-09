@@ -131,7 +131,6 @@ const EnvSchema = z
 		POLAR_WEBHOOK_SECRET: z.string().optional(),
 		POLAR_SERVER: z.enum(['sandbox', 'production']).default('sandbox'),
 
-		CLI_LATEST_VERSION: z.string().default('0.1.0'),
 		CLI_MIN_VERSION: z.string().default('0.1.0'),
 	})
 	.refine((env) => !(env.DEV_LOGIN && env.NODE_ENV === 'production'), {

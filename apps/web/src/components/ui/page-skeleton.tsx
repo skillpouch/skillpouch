@@ -8,7 +8,15 @@ import { cn } from '@/lib/cn';
 import { Skeleton } from './skeleton';
 
 export type PageSkeletonVariant =
-	'list' | 'cards' | 'settings' | 'overview' | 'form' | 'billing' | 'devices' | 'profile';
+	| 'list'
+	| 'cards'
+	| 'settings'
+	| 'overview'
+	| 'form'
+	| 'billing'
+	| 'devices'
+	| 'profile'
+	| 'usage';
 
 function HeaderSkeleton({ actions = false }: { actions?: boolean }) {
 	return (
@@ -112,6 +120,7 @@ export function PageSkeleton({ variant = 'list' }: { variant?: PageSkeletonVaria
 					<Skeleton className="mt-10 h-32 rounded-lg" />
 				</>
 			) : null}
+			{variant === 'usage' ? <UsageSkeleton /> : null}
 			{variant === 'form' ? (
 				<div className="flex max-w-xl flex-col gap-4">
 					<Skeleton className="h-4 w-20" />
@@ -121,6 +130,24 @@ export function PageSkeleton({ variant = 'list' }: { variant?: PageSkeletonVaria
 					<Skeleton className="h-8 w-20" />
 				</div>
 			) : null}
+		</div>
+	);
+}
+
+/** Four totals, the year of days, and the two breakdowns. */
+export function UsageSkeleton() {
+	return (
+		<div className="flex flex-col gap-4" aria-busy>
+			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+				{Array.from({ length: 4 }, (_, index) => (
+					<Skeleton key={index} className="h-[86px] rounded-lg" />
+				))}
+			</div>
+			<Skeleton className="h-[188px] rounded-lg" />
+			<div className="grid gap-4 md:grid-cols-2">
+				<Skeleton className="h-48 rounded-lg" />
+				<Skeleton className="h-48 rounded-lg" />
+			</div>
 		</div>
 	);
 }

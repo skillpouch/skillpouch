@@ -27,7 +27,13 @@ import {
 	assertEnvelopeCoverage,
 	insertKeyEnvelopes,
 } from '../roster/roster.service';
-import { assertPouchAllowance, findPouch, markPouchDeleted, pouchView } from './pouches.service';
+import {
+	assertNotLastPouch,
+	assertPouchAllowance,
+	findPouch,
+	markPouchDeleted,
+	pouchView,
+} from './pouches.service';
 
 export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 	app.get(
@@ -142,7 +148,7 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 			schema: {
 				tags: ['pouches'],
 				summary:
-					'Delete a pouch (7-day undo window, then purged; `skip_undo=true` purges now to free space)',
+					'Delete a pouch (7-day undo window, then purged; `skip_undo=true` purges now to free space, also for a pouch already deleted). The last pouch cannot be deleted',
 				params: PouchParam,
 				querystring: PouchDeleteQuery,
 				response: { 200: Pouch },
@@ -152,7 +158,13 @@ export async function pouchesRoutes(app: ZodApp, deps: Deps) {
 			const principal = principalOf(request);
 			const skipUndo = request.query.skip_undo === 'true';
 			const view = await withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
-				const pouch = await findPouch(tx, request.params.pouchId, { lock: true });
+				const pouch = await findPouch(tx, request.params.pouchId, {
+					lock: true,
+					includeDeleted: skipUndo,
+				});
+				// Already in its undo window: only "delete permanently" is left to do.
+				if (pouch.state === 'deleted') return pouchView(pouch);
+				await assertNotLastPouch(tx, pouch);
 				const deleted = await markPouchDeleted(tx, pouch, deps.now());
 				await refreshEntitlementsInTx(tx, principal.storageAccountId, deps.now());
 				await notifyAccount(tx, principal.storageAccountId, 'pouch.state_changed', {

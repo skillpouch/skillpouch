@@ -30,7 +30,7 @@ import { appendEvent } from '../events/events.repo';
 import { findPouch } from '../pouches/pouches.service';
 import { loadMembers } from '../roster/roster.service';
 
-function conflictView(row: typeof conflicts.$inferSelect) {
+function conflictView(row: typeof conflicts.$inferSelect, headRevisionId: string | null) {
 	return {
 		id: row.id,
 		artifact_id: row.artifactId,
@@ -38,6 +38,7 @@ function conflictView(row: typeof conflicts.$inferSelect) {
 		base_revision_id: row.baseRevisionId,
 		server_revision_id: row.serverRevisionId,
 		incoming_revision_id: row.incomingRevisionId,
+		head_revision_id: headRevisionId,
 		device_id: row.deviceId,
 		state: row.state,
 		resolution: row.resolution,
@@ -65,12 +66,13 @@ export async function conflictsRoutes(app: ZodApp, deps: Deps) {
 				const conditions = [eq(conflicts.pouchId, request.params.pouchId)];
 				if (request.query.state) conditions.push(eq(conflicts.state, request.query.state));
 				const rows = await tx
-					.select()
+					.select({ conflict: conflicts, head: artifacts.headRevisionId })
 					.from(conflicts)
+					.leftJoin(artifacts, eq(artifacts.id, conflicts.artifactId))
 					.where(and(...conditions))
 					.orderBy(desc(conflicts.createdAt))
 					.limit(500);
-				return { conflicts: rows.map(conflictView) };
+				return { conflicts: rows.map((row) => conflictView(row.conflict, row.head)) };
 			});
 		},
 	);
@@ -89,8 +91,9 @@ export async function conflictsRoutes(app: ZodApp, deps: Deps) {
 			const principal = principalOf(request);
 			return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 				const [row] = await tx
-					.select()
+					.select({ conflict: conflicts, head: artifacts.headRevisionId })
 					.from(conflicts)
+					.leftJoin(artifacts, eq(artifacts.id, conflicts.artifactId))
 					.where(
 						and(
 							eq(conflicts.id, request.params.conflictId),
@@ -98,7 +101,7 @@ export async function conflictsRoutes(app: ZodApp, deps: Deps) {
 						),
 					);
 				if (!row) throw new AppError('not_found');
-				return conflictView(row);
+				return conflictView(row.conflict, row.head);
 			});
 		},
 	);

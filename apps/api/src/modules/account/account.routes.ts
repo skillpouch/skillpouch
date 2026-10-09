@@ -128,12 +128,12 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 			config: { auth: 'public' },
 			schema: {
 				tags: ['devices'],
-				summary: 'Latest CLI version and minimum supported version',
+				summary: 'Latest CLI version (from npm) and minimum supported version',
 				response: { 200: CliLatest },
 			},
 		},
 		async () => ({
-			version: deps.env.CLI_LATEST_VERSION,
+			version: (await deps.cliReleases.latest()) ?? deps.env.CLI_MIN_VERSION,
 			min_supported: deps.env.CLI_MIN_VERSION,
 		}),
 	);

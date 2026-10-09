@@ -57,18 +57,12 @@ test.describe('marketplaces', () => {
 		await expect(dialog.getByText('github.com/acme/agent-tools')).toBeVisible();
 		await expect(add).toBeEnabled();
 
-		await dialog.getByRole('radio', { name: 'Private repository' }).click();
-		await expect(dialog.getByText('Link your GitHub account first')).toBeVisible();
-		await expect(
-			dialog.getByRole('link', { name: 'Link GitHub on your profile' }),
-		).toBeVisible();
+		await expect(dialog.getByRole('radio')).toHaveCount(0);
 		await dialog.getByRole('button', { name: 'Close' }).click();
 		await expect(dialog).toBeHidden();
 	});
 
-	test('Add on an item list offers writing it or picking from a marketplace', async ({
-		page,
-	}) => {
+	test('Add on an item list offers writing it, a marketplace or GitHub', async ({ page }) => {
 		await page
 			.getByRole('navigation')
 			.getByRole('link', { name: /^Skills/ })
@@ -82,10 +76,22 @@ test.describe('marketplaces', () => {
 
 		const browse = page.getByRole('dialog', { name: 'Add skill from a marketplace' });
 		await expect(browse.getByRole('button', { name: 'Choose marketplace' })).toBeVisible();
+		await expect(browse.getByRole('button', { name: 'All ways to add' })).toHaveCount(1);
+		await expect(browse.getByRole('button', { name: /^Review / })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 		await expect(browse).toBeHidden();
 
 		await page.getByRole('button', { name: 'Add skill' }).first().click();
+		await page
+			.getByRole('dialog', { name: 'Add skill' })
+			.getByRole('button', { name: /From GitHub/ })
+			.click();
+		const github = page.getByRole('dialog', { name: 'Add skill from GitHub' });
+		const find = github.getByRole('button', { name: 'Find' });
+		await expect(find).toBeDisabled();
+		await github.getByLabel('Repository', { exact: true }).fill('acme/pdf-skill');
+		await expect(find).toBeEnabled();
+		await github.getByRole('button', { name: 'All ways to add' }).click();
 		await expect(page.getByRole('dialog', { name: 'Add skill' })).toBeVisible();
 	});
 });

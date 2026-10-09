@@ -25,7 +25,7 @@ export interface TopBarProps {
 
 export function TopBar({ onOpenMenu, showLogo = false, leading, onSearch }: TopBarProps) {
 	return (
-		<header className="z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-bg/90 px-3 backdrop-blur sm:px-6">
+		<header className="z-30 flex h-14 shrink-0 items-center gap-2 bg-bg/90 shadow-[inset_0_-1px_0_var(--color-border)] px-3 backdrop-blur sm:px-6">
 			{onOpenMenu ? (
 				<button
 					type="button"

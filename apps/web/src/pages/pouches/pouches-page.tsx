@@ -6,13 +6,19 @@ import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AccountBanners } from '@/features/account/account-banners';
 import { activeDevices, useDevices } from '@/features/devices/devices';
 import { MakeActiveDialog } from '@/features/pouches/components/make-active-dialog';
 import { NewPouchDialog } from '@/features/pouches/components/new-pouch-dialog';
 import { PouchCard } from '@/features/pouches/components/pouch-card';
-import { usePouches, useRestorePouch, type PouchView } from '@/features/pouches/pouches';
+import {
+	usePouches,
+	usePurgePouch,
+	useRestorePouch,
+	type PouchView,
+} from '@/features/pouches/pouches';
 import { useUnlocked } from '@/features/session/session-store';
 import { toast } from '@/components/ui/toast';
 import { describeError } from '@/lib/api/errors';
@@ -23,7 +29,9 @@ export function PouchesPage() {
 	const pouches = usePouches();
 	const devices = useDevices();
 	const restore = useRestorePouch();
+	const purge = usePurgePouch();
 	const [creating, setCreating] = useState(false);
+	const [purging, setPurging] = useState<PouchView | null>(null);
 	const [activating, setActivating] = useState<PouchView | null>(null);
 
 	const all = pouches.data ?? [];
@@ -72,6 +80,7 @@ export function PouchesPage() {
 								showActiveBadge={locked.length > 0}
 								onMakeActive={setActivating}
 								onRestore={onRestore}
+								onPurge={setPurging}
 							/>
 						))}
 				{pouches.isPending ? null : atLimit ? (
@@ -106,6 +115,20 @@ export function PouchesPage() {
 				</p>
 			) : null}
 			<NewPouchDialog open={creating} onOpenChange={setCreating} />
+			<ConfirmDialog
+				open={purging !== null}
+				onOpenChange={(open) => {
+					if (!open) setPurging(null);
+				}}
+				title={`Delete “${purging?.name ?? ''}” permanently?`}
+				description="Its items and their history are deleted now and can’t be restored."
+				confirmLabel="Delete permanently"
+				onConfirm={async () => {
+					if (!purging) return;
+					await purge.mutateAsync(purging.id);
+					toast.success(`“${purging.name}” deleted permanently`);
+				}}
+			/>
 			<MakeActiveDialog
 				pouch={activating}
 				pouches={live}

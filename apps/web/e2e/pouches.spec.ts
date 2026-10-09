@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Pouches: plan limits, create, rename, delete and restore, downgrade locking. */
+/** Pouches: plan limits, create, rename, delete, restore and purge, downgrade locking, sidebar. */
 import { createAccount, expect, setPlan, test } from './fixtures';
 
 test.describe('pouches', () => {
@@ -10,6 +10,18 @@ test.describe('pouches', () => {
 		await expect(page.getByRole('button', { name: 'New pouch' })).toHaveCount(0);
 	});
 
+	test('"New pouch" from the switcher says when the plan is full', async ({ page }) => {
+		await createAccount(page);
+		await page.getByRole('link', { name: 'Personal' }).first().click();
+		await page.getByRole('button', { name: 'Personal' }).first().click();
+		await page.getByRole('menuitem', { name: 'New pouch' }).click();
+		const dialog = page.getByRole('dialog', { name: 'New pouch' });
+		await expect(dialog.getByText(/Free includes 1 pouch/)).toBeVisible();
+		await expect(dialog.getByLabel('Name')).toHaveCount(0);
+		await dialog.getByRole('link', { name: 'See plans' }).click();
+		await expect(page).toHaveURL(/\/app\/account\/billing$/);
+	});
+
 	test('Supporter creates a pouch with a validated, encrypted name', async ({ page }) => {
 		await createAccount(page);
 		await setPlan(page, 'supporter');
@@ -17,10 +29,14 @@ test.describe('pouches', () => {
 
 		await page.getByRole('button', { name: 'New pouch' }).click();
 		const dialog = page.getByRole('dialog', { name: 'New pouch' });
+		const preview = dialog.getByTestId('new-pouch-preview');
+		await expect(preview).toContainText('Untitled pouch');
+		await expect(preview).toContainText('2 of 3');
 		await dialog.getByRole('button', { name: 'Create pouch' }).click();
 		await expect(dialog.getByRole('alert').or(dialog.getByText(/name/i)).first()).toBeVisible();
 		await dialog.getByLabel('Name').fill('Work');
 		await dialog.getByLabel('Description').fill('Things for the day job');
+		await expect(preview).toContainText('WorkThings for the day job');
 		await dialog.getByRole('button', { name: 'Create pouch' }).click();
 		await expect(page).toHaveURL(/\/app\/p\/[0-9a-f-]+\/?$/);
 
@@ -50,18 +66,45 @@ test.describe('pouches', () => {
 		await expect(page.getByRole('article', { name: 'Home setup' })).toBeVisible();
 	});
 
-	test('deletes a pouch and restores it within the undo window', async ({ page }) => {
+	test('the only pouch cannot be deleted', async ({ page }) => {
 		await createAccount(page);
 		await page.getByRole('link', { name: 'Personal' }).click();
 		await page.getByRole('link', { name: 'Pouch settings' }).click();
-		await page.getByRole('button', { name: 'Delete pouch' }).click();
-		await page.getByRole('dialog').getByRole('button', { name: 'Delete pouch' }).click();
-		await expect(page).toHaveURL(/\/app\/?$/);
+		await expect(page.getByText('This is your only pouch.')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Delete pouch' })).toBeDisabled();
+	});
+
+	test('a deleted pouch counts down, restores, or is deleted permanently', async ({ page }) => {
+		await createAccount(page);
+		await setPlan(page, 'supporter');
+		await page.getByRole('button', { name: 'New pouch' }).click();
+		const dialog = page.getByRole('dialog', { name: 'New pouch' });
+		await dialog.getByLabel('Name').fill('Work');
+		await dialog.getByRole('button', { name: 'Create pouch' }).click();
+		await expect(page).toHaveURL(/\/app\/p\/[0-9a-f-]+\/?$/);
+
+		const remove = async () => {
+			await page.goto('/app');
+			await page.getByRole('link', { name: 'Personal' }).click();
+			await page.getByRole('link', { name: 'Pouch settings' }).click();
+			await page.getByRole('button', { name: 'Delete pouch' }).click();
+			await page.getByRole('dialog').getByRole('button', { name: 'Delete pouch' }).click();
+			await expect(page).toHaveURL(/\/app\/?$/);
+		};
+		await remove();
 		const deleted = page.getByRole('article', { name: 'Personal (deleted)' });
-		await expect(deleted).toBeVisible();
+		await expect(deleted).toContainText(/Deleted for good in 6 days 23 hours/);
 		await deleted.getByRole('button', { name: 'Restore' }).click();
 		await expect(page.getByRole('article', { name: 'Personal' })).toBeVisible();
 		await expect(deleted).toHaveCount(0);
+
+		await remove();
+		await deleted.getByRole('button', { name: 'Delete permanently' }).click();
+		const confirm = page.getByRole('dialog', { name: 'Delete “Personal” permanently?' });
+		await confirm.getByRole('button', { name: 'Delete permanently' }).click();
+		await expect(page.getByText('“Personal” deleted permanently')).toBeVisible();
+		await expect(deleted).toHaveCount(0);
+		await expect(page.getByRole('article', { name: 'Work' })).toBeVisible();
 	});
 
 	test('a downgrade locks the extra pouch; "Make active" swaps which one syncs', async ({
@@ -140,5 +183,27 @@ test.describe('pouches', () => {
 		await page.waitForTimeout(80);
 		expect((await cli.boundingBox())?.height).toBe(cliHeight);
 		expect(await positions()).toEqual(expanded);
+	});
+
+	test('the logo sits at the same spot in the top bar and in the sidebar', async ({ page }) => {
+		await createAccount(page);
+		const boxes = async (scope: 'banner' | 'complementary') => {
+			const area = page.getByRole(scope).first();
+			const mark = await area.locator('a img').first().boundingBox();
+			const word = await area.getByText('SkillPouch', { exact: true }).boundingBox();
+			return { mark, word };
+		};
+		const topBar = await boxes('banner');
+		await page.getByRole('link', { name: 'Personal' }).click();
+		await expect(page.getByRole('complementary')).toBeVisible();
+		const sidebar = await boxes('complementary');
+		expect(sidebar).toEqual(topBar);
+	});
+
+	test('the account sidebar offers Connect CLI', async ({ page }) => {
+		await createAccount(page);
+		await page.goto('/app/account');
+		await page.getByRole('complementary').getByRole('button', { name: 'Connect CLI' }).click();
+		await expect(page.getByRole('dialog')).toBeVisible();
 	});
 });

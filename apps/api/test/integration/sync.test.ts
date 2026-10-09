@@ -328,9 +328,15 @@ describe('sync protocol', () => {
 			const open = await alice.browser.get(
 				`/v1/pouches/${alice.pouchId}/conflicts?state=open`,
 			);
-			expect(
-				open.body.data.conflicts.some((c: { id: string }) => c.id === cliEdit.conflict_id),
-			).toBe(true);
+			const listed = open.body.data.conflicts.find(
+				(c: { id: string }) => c.id === cliEdit.conflict_id,
+			);
+			// Everything the web app needs to show both versions and build on the head.
+			expect(listed).toMatchObject({
+				server_revision_id: webEdit.revision_id,
+				incoming_revision_id: cliEdit.revision_id,
+				head_revision_id: webEdit.revision_id,
+			});
 
 			const resolved = await commitOne(device, alice.pouchId, epoch, {
 				type: 'resolve',

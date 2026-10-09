@@ -5,6 +5,7 @@
  * query never leaves the browser.
  */
 import {
+	Activity,
 	CreditCard,
 	FileText,
 	Globe,
@@ -87,6 +88,15 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		icon: MonitorSmartphone,
 		href: '/app/account/devices',
 		keywords: 'computers browsers cli sessions revoke',
+	},
+	{
+		id: 'page-usage',
+		group: 'Pages',
+		label: 'Usage',
+		hint: 'Account',
+		icon: Activity,
+		href: '/app/account/usage',
+		keywords: 'tokens usage claude codex opencode models stats',
 	},
 	{
 		id: 'page-security',

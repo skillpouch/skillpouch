@@ -6,12 +6,12 @@
  *  - `compact`: a marketplace dropdown above the results ("Add …" dialogs,
  *    filtered to one kind).
  *
- * Items that run commands (MCP servers) always open the preview first. Items
+ * Clicking an item opens its preview. Items that run commands (MCP servers)
+ * are only added from there. Items
  * the pouch already has show as installed, with Remove instead of Add.
  */
 import { Search, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,9 @@ import { Segmented } from '@/components/ui/segmented';
 import { Skeleton } from '@/components/ui/skeleton';
 import { kindDefinition, type KindDefinition } from '@/features/ingredients/kinds';
 import type { Ingredient } from '@/features/ingredients/ingredients';
-import { useDeleteIngredient, useInvalidateContents } from '@/features/ingredients/mutations';
 import type { PouchView } from '@/features/pouches/pouches';
-import { describeError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
 import {
-	addItemToPouch,
 	fetchMarketplaceItem,
 	hasLeaderboard,
 	offering,
@@ -35,13 +32,13 @@ import {
 	type ItemSort,
 	type Marketplace,
 	type MarketplaceItem,
-	type MarketplaceItemContent,
 } from '../marketplaces';
 import { GithubAccessCard } from './github-access-card';
 import { ItemGrid } from './item-grid';
 import { ItemPreview } from './item-preview';
 import { MarketplaceIcon } from './marketplace-icon';
 import { MarketplacePicker, MarketplaceRail } from './marketplace-rail';
+import { useItemActions, type ItemAdded } from './use-item-actions';
 
 const SORTS: { value: ItemSort; label: string }[] = [
 	{ value: 'popular', label: 'Most installed' },
@@ -58,11 +55,17 @@ export interface MarketplaceBrowserProps {
 	/** Controlled selection (the page keeps it in the URL). */
 	marketplaceId?: string | undefined;
 	onMarketplaceChange?: (id: string) => void;
-	/** Opens "Add marketplace", on its private-repository tab when asked. */
-	onAddMarketplace?: (tab?: 'public' | 'private') => void;
+	/** Opens "Add marketplace". */
+	onAddMarketplace?: () => void;
+	/**
+	 * Controlled preview: the caller shows its own back button (the "Add …"
+	 * dialog has one already), so the preview doesn't get a second one.
+	 */
+	preview?: MarketplaceItem | null;
+	onPreviewChange?: (item: MarketplaceItem | null) => void;
 	/** Buttons beside the selected marketplace's name (open, remove). */
 	actions?: (marketplace: Marketplace) => ReactNode;
-	onAdded?: (result: { name: string; kind: KindDefinition }) => void;
+	onAdded?: ItemAdded;
 }
 
 export function MarketplaceBrowser({
@@ -72,6 +75,8 @@ export function MarketplaceBrowser({
 	marketplaceId,
 	onMarketplaceChange,
 	onAddMarketplace,
+	preview: controlledPreview,
+	onPreviewChange,
 	actions,
 	onAdded,
 }: MarketplaceBrowserProps) {
@@ -85,7 +90,10 @@ export function MarketplaceBrowser({
 	const marketplace = available?.find((entry) => entry.id === selectedId) ?? available?.[0];
 	const [query, setQuery] = useState('');
 	const [sort, setSort] = useState<ItemSort>('popular');
-	const [preview, setPreview] = useState<MarketplaceItem | null>(null);
+	const [ownPreview, setOwnPreview] = useState<MarketplaceItem | null>(null);
+	const controlled = onPreviewChange !== undefined;
+	const preview = controlled ? (controlledPreview ?? null) : ownPreview;
+	const setPreview = onPreviewChange ?? setOwnPreview;
 	const installed = useInstalled(pouch.id);
 	const adding = useItemActions(pouch, onAdded);
 	const canAdd = pouch.state === 'active';
@@ -104,7 +112,7 @@ export function MarketplaceBrowser({
 			marketplaces={available}
 			selected={marketplace}
 			onSelect={select}
-			onAdd={onAddMarketplace ? () => onAddMarketplace() : undefined}
+			onAdd={onAddMarketplace}
 			className={layout === 'page' ? 'w-full md:hidden' : 'w-full sm:w-60 sm:shrink-0'}
 		/>
 	) : (
@@ -119,15 +127,19 @@ export function MarketplaceBrowser({
 		</p>
 	) : preview ? (
 		<ItemPreview
-			marketplace={marketplace}
+			source={{
+				id: marketplace.id,
+				name: marketplace.name,
+				load: (key) => fetchMarketplaceItem(marketplace.id, key),
+			}}
 			item={preview}
 			canAdd={canAdd}
 			installed={installed(preview)}
 			busy={adding.busyKey === preview.key}
 			disabled={adding.busyKey !== null}
-			onAdd={(content) => void adding.add(marketplace, preview.key, content)}
+			onAdd={(content) => void adding.add(preview.key, async () => content)}
 			onRemove={(ingredient) => void adding.remove(preview.key, ingredient)}
-			onBack={() => setPreview(null)}
+			{...(controlled ? {} : { onBack: () => setPreview(null) })}
 		/>
 	) : (
 		<Results
@@ -145,7 +157,9 @@ export function MarketplaceBrowser({
 			busyKey={adding.busyKey}
 			installed={installed}
 			onOpen={setPreview}
-			onAdd={(item) => void adding.add(marketplace, item.key)}
+			onAdd={(item) =>
+				void adding.add(item.key, () => fetchMarketplaceItem(marketplace.id, item.key))
+			}
 			onRemove={(item, ingredient) => void adding.remove(item.key, ingredient)}
 		/>
 	);
@@ -164,7 +178,7 @@ export function MarketplaceBrowser({
 					list.data ? (
 						<GithubAccessCard
 							github={list.data.github}
-							onAddPrivate={() => onAddMarketplace?.('private')}
+							onAddRepository={() => onAddMarketplace?.()}
 							className="mt-2"
 						/>
 					) : null
@@ -324,49 +338,6 @@ function BodySkeleton() {
 			<Skeleton className="h-10 w-full" />
 		</div>
 	);
-}
-
-/** Adds or removes one item at a time; remembers which one is in flight. */
-function useItemActions(pouch: PouchView, onAdded: MarketplaceBrowserProps['onAdded']) {
-	const invalidate = useInvalidateContents(pouch.id);
-	const deletion = useDeleteIngredient(pouch);
-	const [busyKey, setBusyKey] = useState<string | null>(null);
-	const add = async (marketplace: Marketplace, key: string, content?: MarketplaceItemContent) => {
-		setBusyKey(key);
-		try {
-			const item = content ?? (await fetchMarketplaceItem(marketplace.id, key));
-			const definition = kindDefinition(item.kind);
-			if (!definition) throw new Error('This item type can’t be added to a pouch.');
-			const { name } = await addItemToPouch({
-				pouch,
-				item,
-				duplicate: definition.single ? 'append' : 'keep_both',
-			});
-			await invalidate();
-			toast.success(
-				definition.single
-					? `Added to ${definition.label}`
-					: `Added ${name} to ${definition.label}`,
-			);
-			onAdded?.({ name, kind: definition });
-		} catch (error) {
-			toast.error(describeError(error));
-		} finally {
-			setBusyKey(null);
-		}
-	};
-	const remove = async (key: string, ingredient: Ingredient) => {
-		setBusyKey(key);
-		try {
-			await deletion.mutateAsync(ingredient);
-			toast.success(`Removed ${ingredient.name}`);
-		} catch (error) {
-			toast.error(describeError(error));
-		} finally {
-			setBusyKey(null);
-		}
-	};
-	return { busyKey, add, remove };
 }
 
 function useDebounced(value: string, delay: number): string {

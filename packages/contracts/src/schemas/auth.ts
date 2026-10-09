@@ -119,7 +119,7 @@ export const CliAuthTokenRequest = z.strictObject({
 
 export const CliAuthTokenResponse = z.discriminatedUnion('status', [
 	z.object({ status: z.literal('pending'), interval: z.number().int() }),
-	DeviceTokens.extend({ status: z.literal('approved'), welcome: B64Url }),
+	DeviceTokens.extend({ status: z.literal('approved'), welcome: B64Url, member_id: Uuid }),
 ]);
 
 export const RefreshRequest = z.strictObject({ refresh_token: z.string().min(10).max(300) });

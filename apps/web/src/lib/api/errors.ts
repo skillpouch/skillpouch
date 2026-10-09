@@ -41,6 +41,7 @@ const MESSAGES: Partial<Record<string, string>> = {
 	unauthenticated: 'Your session ended. Sign in again.',
 	quota_exceeded: 'You’re out of storage. Free up space or upgrade.',
 	pouch_limit_reached: 'Your plan’s pouch limit is reached.',
+	last_pouch: 'You can’t delete your only pouch.',
 	pouch_locked: 'This pouch is locked on your current plan.',
 	rate_limited: 'Too many attempts. Wait a moment and try again.',
 	unlock_rate_limited: 'Too many unlock attempts. Try again later or use your Recovery Key.',

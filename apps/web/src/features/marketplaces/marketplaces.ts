@@ -173,6 +173,72 @@ export function fetchMarketplaceItem(marketplaceId: string, key: string) {
 	});
 }
 
+/** A GitHub repository read on its own, without adding it as a marketplace. */
+export interface RepositoryView {
+	repo: string;
+	private: boolean;
+	url: string;
+	/** Set when it already is one of your (or a built-in) marketplaces. */
+	marketplace_id: string | null;
+	has_manifest: boolean;
+	items: MarketplaceItem[];
+}
+
+export function useRepository(repo: string | null) {
+	return useQuery({
+		queryKey: queryKeys.githubRepository(repo ?? ''),
+		queryFn: ({ signal }) =>
+			api.get<RepositoryView>('/v1/github/repository', { query: { repo: repo! }, signal }),
+		enabled: repo !== null,
+		retry: false,
+		staleTime: 5 * 60_000,
+	});
+}
+
+export function fetchRepositoryItem(repo: string, key: string) {
+	return api.get<MarketplaceItemContent>('/v1/github/repository/item', {
+		query: { repo, key },
+	});
+}
+
+export type RepositoryOffer =
+	/** The repository is this one item: add it straight away. */
+	| { type: 'item'; item: MarketplaceItem }
+	/** Several of them (or a marketplace manifest): browse it as a marketplace. */
+	| { type: 'marketplace'; count: number }
+	/** None of this kind; `others` says what it holds instead. */
+	| { type: 'none'; others: { kind: MarketplaceKind; count: number }[] };
+
+/** What a repository offers when adding one `kind`. */
+export function repositoryOffer(view: RepositoryView, kind: IngredientKind): RepositoryOffer {
+	const matching = view.items.filter((item) => item.kind === kind);
+	if (matching.length === 1 && !(view.has_manifest && view.items.length > 1)) {
+		return { type: 'item', item: matching[0]! };
+	}
+	if (matching.length > 0) return { type: 'marketplace', count: matching.length };
+	const counts = new Map<MarketplaceKind, number>();
+	for (const item of view.items) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
+	return {
+		type: 'none',
+		others: [...counts].map(([other, count]) => ({ kind: other, count })),
+	};
+}
+
+/** Lower case for running text, keeping acronyms: `MCP servers` stays. */
+export function noun(text: string): string {
+	return text
+		.split(' ')
+		.map((word) => (word.length > 1 && word === word.toUpperCase() ? word : word.toLowerCase()))
+		.join(' ');
+}
+
+/** `1 skill`, `12 skills`, `2 MCP servers`. */
+export function kindCount(kind: IngredientKind, count: number): string {
+	const definition = kindDefinition(kind);
+	if (!definition) return String(count);
+	return `${count} ${noun(count === 1 ? definition.singular : definition.label)}`;
+}
+
 export function useInvalidateMarketplaces() {
 	const client = useQueryClient();
 	return () => client.invalidateQueries({ queryKey: queryKeys.marketplaces });

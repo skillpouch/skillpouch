@@ -5,12 +5,17 @@ import {
 	groupMarketplaces,
 	installedLookup,
 	itemFiles,
+	kindCount,
+	noun,
 	offering,
 	parseRepoInput,
+	repositoryOffer,
 	safeItemName,
 	startGithubConnect,
 	takeGithubReturn,
 	type Marketplace,
+	type MarketplaceItem,
+	type RepositoryView,
 } from '../marketplaces';
 
 const marketplace = (id: string, kinds: Marketplace['kinds']): Marketplace => ({
@@ -186,5 +191,64 @@ describe('GitHub connect state', () => {
 		expect(takeGithubReturn(fresh)).toBe('/app/p/1/marketplaces');
 		expect(takeGithubReturn(fresh)).toBeNull();
 		Object.defineProperty(window, 'location', { value: { ...window.location, assign } });
+	});
+});
+
+describe('repositoryOffer', () => {
+	const item = (kind: MarketplaceItem['kind'], name: string): MarketplaceItem => ({
+		key: name,
+		kind,
+		name,
+		description: null,
+		repo: 'acme/tools',
+		installs: null,
+	});
+	const repository = (items: MarketplaceItem[], hasManifest = false): RepositoryView => ({
+		repo: 'acme/tools',
+		private: false,
+		url: 'https://github.com/acme/tools',
+		marketplace_id: null,
+		has_manifest: hasManifest,
+		items,
+	});
+
+	it('offers the one item a repository is, even beside its own AGENTS.md', () => {
+		const pdf = item('skill', 'pdf');
+		expect(repositoryOffer(repository([pdf, item('instructions', 'AGENTS')]), 'skill')).toEqual(
+			{ type: 'item', item: pdf },
+		);
+	});
+
+	it('treats several of a kind, or a marketplace manifest, as a marketplace', () => {
+		const two = repository([item('skill', 'pdf'), item('skill', 'docx')]);
+		expect(repositoryOffer(two, 'skill')).toEqual({ type: 'marketplace', count: 2 });
+		const listed = repository([item('skill', 'pdf'), item('agent', 'reviewer')], true);
+		expect(repositoryOffer(listed, 'skill')).toEqual({ type: 'marketplace', count: 1 });
+	});
+
+	it('says what else a repository holds when it has none of the kind', () => {
+		const agents = repository([
+			item('agent', 'a'),
+			item('agent', 'b'),
+			item('mcp_server', 'gh'),
+		]);
+		expect(repositoryOffer(agents, 'skill')).toEqual({
+			type: 'none',
+			others: [
+				{ kind: 'agent', count: 2 },
+				{ kind: 'mcp_server', count: 1 },
+			],
+		});
+		expect(repositoryOffer(repository([]), 'skill')).toEqual({ type: 'none', others: [] });
+	});
+});
+
+describe('kindCount', () => {
+	it('counts in running text and keeps acronyms', () => {
+		expect(kindCount('skill', 1)).toBe('1 skill');
+		expect(kindCount('skill', 12)).toBe('12 skills');
+		expect(kindCount('mcp_server', 2)).toBe('2 MCP servers');
+		expect(noun('MCP server')).toBe('MCP server');
+		expect(noun('Agent')).toBe('agent');
 	});
 });

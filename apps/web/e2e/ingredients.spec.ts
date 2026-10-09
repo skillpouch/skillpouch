@@ -61,7 +61,24 @@ test.describe('ingredients', () => {
 		]) {
 			await openKind(page, label);
 			await expect(page.getByText(`No ${label.toLowerCase()} yet`)).toBeVisible();
+			if (label !== 'Instructions') {
+				await expect(page.getByRole('button', { name: /^Add / })).toHaveCount(1);
+			}
 		}
+	});
+
+	test('Add always asks where the item comes from', async ({ page }) => {
+		await openKind(page, 'Skills');
+		await page.getByRole('button', { name: 'Add skill' }).click();
+		const choose = page.getByRole('dialog', { name: 'Add skill' });
+		await expect(choose.getByRole('button', { name: /From GitHub/ })).toBeVisible();
+		await page.keyboard.press('Escape');
+
+		await openKind(page, 'Hooks');
+		await page.getByRole('button', { name: 'Add hook' }).click();
+		const hooks = page.getByRole('dialog', { name: 'Add hook' });
+		await expect(hooks.getByRole('button', { name: /Write it yourself/ })).toBeVisible();
+		await expect(hooks.getByRole('button', { name: /From GitHub/ })).toHaveCount(0);
 	});
 
 	test('a pouch has one set of instructions, shown and edited in place', async ({ page }) => {

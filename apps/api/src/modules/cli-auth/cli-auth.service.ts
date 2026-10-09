@@ -28,6 +28,7 @@ import {
 	type CliAuthCreate,
 } from '@skillpouch/contracts';
 import {
+	accountMembers,
 	cliAuthRequests,
 	cliConnectTokens,
 	deviceKeys,
@@ -391,7 +392,13 @@ async function finishRedeem(deps: Deps, id: string) {
 			.where(eq(devices.id, deviceId))
 			.for('update');
 		if (!device || device.state !== 'active') throw new AppError('device_revoked');
-		return issueDeviceTokens(deps, tx, device, claimed.jkt, { newFamily: true });
+		const [member] = await tx
+			.select({ id: accountMembers.id })
+			.from(accountMembers)
+			.where(and(eq(accountMembers.deviceId, deviceId), eq(accountMembers.kind, 'device')));
+		if (!member) throw new AppError('device_revoked');
+		const issued = await issueDeviceTokens(deps, tx, device, claimed.jkt, { newFamily: true });
+		return { ...issued, member_id: member.id };
 	});
 	return { status: 'approved' as const, ...tokens, welcome: toBase64Url(claimed.welcome!) };
 }

@@ -6,7 +6,7 @@
  */
 import { Limits } from '@skillpouch/contracts';
 import { pouches, storageAccounts } from '@skillpouch/db';
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import { AppError } from '../../http/app-error';
 import { addSeconds } from '../../lib/dates';
 import type { Principal } from '../../security/principal';
@@ -81,6 +81,18 @@ export function pouchView(pouch: PouchRow) {
 		delete_after: pouch.deleteAfter?.toISOString() ?? null,
 		created_at: pouch.createdAt.toISOString(),
 	};
+}
+
+/** `last_pouch` when deleting this pouch would leave the account without one. */
+export async function assertNotLastPouch(tx: TenantTx, pouch: PouchRow): Promise<void> {
+	const [other] = await tx
+		.select({ id: pouches.id })
+		.from(pouches)
+		.where(
+			and(ne(pouches.id, pouch.id), inArray(pouches.state, ['active', 'locked', 'archived'])),
+		)
+		.limit(1);
+	if (!other) throw new AppError('last_pouch');
 }
 
 export async function markPouchDeleted(

@@ -29,19 +29,8 @@ import {
 	type StoredBrowserKey,
 } from '../vault/key-store';
 import { fetchMembers, loadVerifiedRoster } from '../vault/roster';
+import { readAuthSession } from './auth-session';
 import { getSession, setSession, type SessionState } from './session-store';
-
-interface AuthSession {
-	user: { id: string; email: string };
-}
-
-/** Better Auth's own endpoint: works before the session is bound. */
-async function readAuthSession(): Promise<AuthSession | null> {
-	const response = await fetch('/v1/auth/get-session', { credentials: 'same-origin' });
-	if (!response.ok) return null;
-	const body = (await response.json()) as AuthSession | null;
-	return body?.user ? body : null;
-}
 
 async function loadOrCreateKey(userId: string): Promise<StoredBrowserKey> {
 	const existing = await loadBrowserKey(userId);

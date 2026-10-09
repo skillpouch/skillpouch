@@ -19,6 +19,7 @@ import { GithubApp } from './modules/marketplaces/github-app';
 import { McpRegistryClient } from './modules/marketplaces/mcp-registry';
 import { McpRegistryIndex } from './modules/marketplaces/mcp-registry-index';
 import { SkillsShClient } from './modules/marketplaces/skills-sh';
+import { CliReleases } from './modules/account/cli-release';
 import { AccessTokens } from './security/access-token';
 import { DeviceStatusCache } from './security/device-status';
 import { NonceService } from './security/nonce';
@@ -44,6 +45,8 @@ export interface Deps {
 	/** Null unless the GitHub App is configured: private-repo marketplaces are off. */
 	githubApp: GithubApp | null;
 	skillsSh: SkillsShClient;
+	/** The newest CLI on npm; tests swap its fetch. */
+	cliReleases: CliReleases;
 	mcpRegistry: McpRegistryClient;
 	/** Searchable copy of the MCP Registry in Postgres; API processes keep it synced. */
 	mcpIndex: McpRegistryIndex;
@@ -96,6 +99,7 @@ export async function createDeps(env: Env, log: pino.Logger, role: string): Prom
 					)
 				: null,
 		skillsSh: new SkillsShClient(),
+		cliReleases: new CliReleases(),
 		mcpRegistry,
 		mcpIndex: new McpRegistryIndex(mcpRegistry, db, now),
 		now,

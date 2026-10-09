@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** Avatar button with the account menu: account pages and sign out. */
+/** Avatar button with the account menu: account pages, this month's tokens and sign out. */
 import { useNavigate } from '@tanstack/react-router';
-import { CreditCard, LogOut, MonitorSmartphone, Shield, User } from 'lucide-react';
+import { Activity, CreditCard, LogOut, MonitorSmartphone, Shield, User } from 'lucide-react';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,6 +12,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOut } from '@/features/session/bootstrap';
 import { getSession, useSession } from '@/features/session/session-store';
+import {
+	compactTokens,
+	countsSince,
+	periodStart,
+	totalOf,
+	useUsage,
+	utcToday,
+} from '@/features/usage/usage';
 import { Avatar } from './avatar';
 
 export function AccountMenu() {
@@ -40,6 +48,10 @@ export function AccountMenu() {
 				<DropdownMenuItem onSelect={() => go('/app/account/devices')}>
 					<MonitorSmartphone /> Devices
 				</DropdownMenuItem>
+				<DropdownMenuItem onSelect={() => go('/app/account/usage')}>
+					<Activity /> Usage
+					<MonthTokens />
+				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={() => go('/app/account/security')}>
 					<Shield /> Security
 				</DropdownMenuItem>
@@ -57,5 +69,17 @@ export function AccountMenu() {
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
+	);
+}
+
+/** Tokens used this month; fetched only while the menu is open. */
+function MonthTokens() {
+	const usage = useUsage();
+	if (!usage.data) return null;
+	const month = totalOf(countsSince(usage.data.days, periodStart('month', utcToday())));
+	return (
+		<span className="ml-auto text-xs text-meta tabular-nums" title="Tokens this month">
+			{compactTokens(month)} this month
+		</span>
 	);
 }

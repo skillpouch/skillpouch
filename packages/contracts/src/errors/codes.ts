@@ -132,6 +132,11 @@ export const ErrorCodes = {
 		message: 'Pouch limit reached for your plan.',
 	},
 	pouch_read_only: { status: 409, retryable: false, message: 'This pouch is read-only.' },
+	last_pouch: {
+		status: 409,
+		retryable: false,
+		message: 'This is your only pouch; create another one before deleting it.',
+	},
 	pouch_locked: {
 		status: 409,
 		retryable: false,

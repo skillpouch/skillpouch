@@ -8,10 +8,12 @@ import {
 	addMarketplace,
 	connectGithub,
 	disconnectGithub,
+	inspectRepository,
 	listGithubRepositories,
 	listItems,
 	listMarketplaces,
 	readItem,
+	readRepositoryItem,
 	removeMarketplace,
 } from './marketplaces.service';
 
@@ -70,6 +72,17 @@ const ItemContent = z.object({
 	files: z.array(z.object({ path: z.string(), size: z.number().int(), content_b64: z.string() })),
 	truncated: z.boolean(),
 	url: z.string(),
+});
+
+const RepoQuery = z.object({ repo: z.string().min(3).max(300) });
+
+const Repository = z.object({
+	repo: z.string(),
+	private: z.boolean(),
+	url: z.string(),
+	marketplace_id: z.string().nullable(),
+	has_manifest: z.boolean(),
+	items: z.array(Item),
 });
 
 export async function marketplacesRoutes(app: ZodApp, deps: Deps) {
@@ -156,6 +169,37 @@ export async function marketplacesRoutes(app: ZodApp, deps: Deps) {
 		},
 		async (request) =>
 			readItem(deps, principalOf(request), request.params.marketplaceId, request.query.key),
+	);
+
+	app.get(
+		'/v1/github/repository',
+		{
+			config: { auth: 'any', rateLimit: 'marketplace' },
+			schema: {
+				tags: ['marketplaces'],
+				summary: 'What one GitHub repository holds, without adding it as a marketplace',
+				description:
+					'Public repositories, or private ones the connected GitHub App installations can read.',
+				querystring: RepoQuery,
+				response: { 200: Repository },
+			},
+		},
+		async (request) => inspectRepository(deps, principalOf(request), request.query.repo),
+	);
+
+	app.get(
+		'/v1/github/repository/item',
+		{
+			config: { auth: 'any', rateLimit: 'marketplace' },
+			schema: {
+				tags: ['marketplaces'],
+				summary: "One item's files from a GitHub repository, ready to encrypt and save",
+				querystring: RepoQuery.extend({ key: z.string().min(1).max(500) }),
+				response: { 200: ItemContent },
+			},
+		},
+		async (request) =>
+			readRepositoryItem(deps, principalOf(request), request.query.repo, request.query.key),
 	);
 
 	app.get(

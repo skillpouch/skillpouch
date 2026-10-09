@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/logo';
 
 export const LEGAL_CONTACT = 'info@skillpouch.net';
-export const LEGAL_UPDATED = 'October 8, 2026';
+export const LEGAL_UPDATED = 'October 9, 2026';
 
 /** Public, readable page for the Terms and the Privacy Policy. */
 export function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
