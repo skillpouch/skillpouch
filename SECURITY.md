@@ -19,9 +19,9 @@ Please report privately, not in a public issue, pull request or Discord channel.
 
 1. **Preferred:** GitHub private vulnerability reporting. Open this
    repository's **Security** tab and choose **Report a vulnerability**.
-2. **Or** on [Discord](https://discord.gg/u8eEJZEGhc), send a maintainer a
-   direct message saying you have a security report. Keep the details out of
-   public channels; we'll continue privately.
+2. **Or** tell us in the [SkillPouch Discord server](https://discord.gg/u8eEJZEGhc)
+   that you've found a security issue. Leave out the details there; we'll
+   take it from you privately.
 
 If the issue is in the CLI, you can report it in either repository.
 
