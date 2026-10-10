@@ -13,6 +13,24 @@ import { Effect } from 'postprocessing';
 import * as THREE from 'three';
 import './dither.css';
 
+/**
+ * The uniforms the wave shader and the retro effect rely on. `ShaderMaterial`'s
+ * index signature makes every uniform access possibly undefined, but these
+ * names always exist because the material is seeded with all of them.
+ */
+type WaveUniforms = {
+	time: THREE.IUniform<number>;
+	resolution: THREE.IUniform<THREE.Vector2>;
+	waveSpeed: THREE.IUniform<number>;
+	waveFrequency: THREE.IUniform<number>;
+	waveAmplitude: THREE.IUniform<number>;
+	waveColor: THREE.IUniform<THREE.Color>;
+	backgroundColor: THREE.IUniform<THREE.Color>;
+	mousePos: THREE.IUniform<THREE.Vector2>;
+	enableMouseInteraction: THREE.IUniform<number>;
+	mouseRadius: THREE.IUniform<number>;
+};
+
 const waveVertexShader = `
 precision highp float;
 varying vec2 vUv;
@@ -93,6 +111,10 @@ void main() {
   uv -= 0.5;
   uv.x *= resolution.x / resolution.y;
   float f = pattern(uv);
+  // Hero tuning: the raw noise field averages high, which floods the hero
+  // with purple. Remap so most of the field falls back to the background and
+  // only the crests light up.
+  f = smoothstep(0.3, 1.15, f);
   if (enableMouseInteraction == 1) {
     vec2 mouseNDC = (mousePos / resolution - 0.5) * vec2(1.0, -1.0);
     mouseNDC.x *= resolution.x / resolution.y;
@@ -237,7 +259,7 @@ function DitheredWaves({
 	useFrame(({ clock }) => {
 		// r3f copies the seed uniforms into the material once, so live values
 		// must be written through the material's own uniforms, not the seed.
-		const u = materialRef.current?.uniforms;
+		const u = materialRef.current?.uniforms as WaveUniforms | undefined;
 		if (!u) return;
 
 		// Keep the wave shader and the retro effect at the drawing-buffer size;
@@ -245,7 +267,7 @@ function DitheredWaves({
 		const dpr = gl.getPixelRatio();
 		const w = Math.floor(size.width * dpr);
 		const h = Math.floor(size.height * dpr);
-		const res = u.resolution?.value;
+		const res = u.resolution.value;
 		if (res && (res.x !== w || res.y !== h)) {
 			res.set(w, h);
 		}

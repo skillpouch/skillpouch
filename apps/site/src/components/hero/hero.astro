@@ -1,7 +1,5 @@
 ---
 // SPDX-License-Identifier: AGPL-3.0-only
-import hero from '@/assets/landing/hero.webp';
-import tuiOverview from '@/assets/landing/tui-overview.webp';
 import { Code2, Lock, Sparkles } from 'lucide-react';
 import { HeroScene } from './hero-beams';
 import { InstallCommand } from '@/components/ui/install-command';
@@ -39,58 +37,51 @@ const PROOF = [
 		class="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-b from-transparent to-bg"
 	></div>
 
-	<div class="relative flex max-w-[860px] flex-col items-center pt-32 text-center sm:pt-40">
+	<div class="landing-rise relative my-auto flex max-w-[980px] flex-col items-center gap-10 py-24 text-center lg:flex-row lg:gap-14 lg:text-left">
 		<div
 			aria-hidden="true"
-			class="absolute inset-x-[-10%] top-[38%] bottom-[-45%] -z-10 rounded-[50%] bg-black/80 blur-2xl"
+			class="absolute inset-x-[-8%] top-[-18%] bottom-[-30%] -z-10 rounded-[50%] bg-black/80 blur-2xl"
 		></div>
-		<h1 class="landing-display landing-rise text-[44px] leading-[1.02] font-semibold text-balance text-fg [animation-delay:50ms] sm:text-6xl lg:text-[76px]">
-			Your AI coding setup, on every computer.
-		</h1>
-		<p class="landing-rise mt-6 max-w-[56ch] text-base leading-relaxed text-pretty text-[#b4b4b4] [animation-delay:180ms] sm:text-lg">
-			Skills, agents, MCP servers and instructions sync across Claude Code, Codex, Cursor and
-			more. End-to-end encrypted.
-		</p>
-		<div class="landing-rise mt-9 flex flex-col items-center gap-3 [animation-delay:300ms] sm:flex-row">
-			<ButtonLink
-				href="/sign-in"
-				variant="primary"
-				size="lg"
-				className="h-11 rounded-full px-6 shadow-[0_8px_32px_-8px_var(--landing-glow)] active:scale-[0.98]"
-			>
-				Get started
-			</ButtonLink>
-			<InstallCommand client:idle />
-		</div>
-		<ul
-			class="landing-rise mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 [animation-delay:430ms]"
-			aria-label="Why SkillPouch"
-		>
-			{PROOF.map(({ icon: Icon, label }) => (
-				<li class="flex items-center gap-1.5 text-[13px] font-medium text-meta">
-					<Icon className="size-3.5 text-accent" aria-hidden="true" />
-					{label}
-				</li>
-			))}
-		</ul>
-	</div>
-
-	<div
-		class="landing-rise relative mt-auto w-full max-w-[880px] [animation-delay:550ms]"
-		style={{ transform: 'translateY(1px)' }}
-	>
-		<figure class="overflow-hidden rounded-t-2xl border border-b-0 border-white/12 bg-[#08060d] shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]">
-			<div class="h-[210px] sm:h-[280px] lg:h-[340px]">
-				<img
-					src={tuiOverview.src}
-					alt="The SkillPouch terminal UI: the pouch mascot, the active pouch, plan meters and daily token usage."
-					width={tuiOverview.width}
-					height={tuiOverview.height}
-					fetchpriority="high"
-					decoding="async"
-					class="block h-full w-full object-cover object-top"
-				/>
-			</div>
+		<figure class="landing-rise shrink-0" aria-label="The SkillPouch mascot">
+			<img
+				src={`${import.meta.env.BASE_URL}/tui/mascot.gif`}
+				alt="The SkillPouch mascot"
+				width={364}
+				height={336}
+				decoding="async"
+				class="block h-auto w-[120px] [image-rendering:pixelated] lg:w-[152px]"
+			/>
 		</figure>
+		<div class="flex flex-col items-center lg:items-start">
+			<h1 class="landing-display landing-rise text-[44px] leading-[1.02] font-semibold text-balance text-fg [animation-delay:50ms] sm:text-6xl lg:text-[68px]">
+				Your AI coding setup, on every computer.
+			</h1>
+			<p class="landing-rise mt-6 max-w-[56ch] text-base leading-relaxed text-pretty text-[#b4b4b4] [animation-delay:180ms] sm:text-lg">
+				Skills, agents, MCP servers and instructions sync across Claude Code, Codex, Cursor
+				and more. End-to-end encrypted.
+			</p>
+			<div class="landing-rise mt-9 flex flex-col items-center gap-3 [animation-delay:300ms] sm:flex-row">
+				<ButtonLink
+					href="/sign-in"
+					variant="primary"
+					size="lg"
+					className="h-11 rounded-full px-6 shadow-[0_8px_32px_-8px_var(--landing-glow)] active:scale-[0.98]"
+				>
+					Get started
+				</ButtonLink>
+				<InstallCommand client:idle />
+			</div>
+			<ul
+				class="landing-rise mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 [animation-delay:430ms] lg:justify-start"
+				aria-label="Why SkillPouch"
+			>
+				{PROOF.map(({ icon: Icon, label }) => (
+					<li class="flex items-center gap-1.5 text-[13px] font-medium text-meta">
+						<Icon className="size-3.5 text-accent" aria-hidden="true" />
+						{label}
+					</li>
+				))}
+			</ul>
+		</div>
 	</div>
 </section>
