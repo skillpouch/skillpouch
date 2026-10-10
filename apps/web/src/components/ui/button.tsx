@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Slot } from 'radix-ui';
-import type { ComponentProps } from 'react';
+import {
+	Children,
+	cloneElement,
+	isValidElement,
+	type ComponentProps,
+	type ReactElement,
+	type ReactNode,
+} from 'react';
 import { cn } from '@/lib/cn';
 import { Spinner } from './spinner';
 
@@ -32,6 +39,20 @@ const buttonVariants = cva(
 	},
 );
 
+/**
+ * Text labels in their own box trimmed to cap height and baseline, so flex
+ * centering centres the letters (Geist otherwise sits a little high).
+ */
+function labelled(children: ReactNode): ReactNode {
+	return Children.map(children, (child) =>
+		typeof child === 'string' || typeof child === 'number' ? (
+			<span className="trim-to-caps">{child}</span>
+		) : (
+			child
+		),
+	);
+}
+
 export interface ButtonProps extends ComponentProps<'button'>, VariantProps<typeof buttonVariants> {
 	/** Render the child element (e.g. a router `Link`) with button styles. */
 	asChild?: boolean;
@@ -51,9 +72,14 @@ export function Button({
 	...props
 }: ButtonProps) {
 	if (asChild) {
+		const child = isValidElement<{ children?: ReactNode }>(children)
+			? cloneElement(children as ReactElement<{ children?: ReactNode }>, {
+					children: labelled(children.props.children),
+				})
+			: children;
 		return (
 			<Slot.Root className={cn(buttonVariants({ variant, size }), className)} {...props}>
-				{children}
+				{child}
 			</Slot.Root>
 		);
 	}
@@ -66,7 +92,7 @@ export function Button({
 			{...props}
 		>
 			{loading ? <Spinner /> : null}
-			{children}
+			{labelled(children)}
 		</button>
 	);
 }

@@ -312,3 +312,12 @@
 		transition: none;
 	}
 }
+
+/*
+ * Geist sits a little high in its line box: trimming the box to the cap
+ * height and baseline lets flex centering center the letters themselves
+ * (buttons, the wordmark next to the logo).
+ */
+@utility trim-to-caps {
+	text-box: trim-both cap alphabetic;
+}

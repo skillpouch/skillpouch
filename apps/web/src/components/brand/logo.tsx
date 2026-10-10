@@ -22,9 +22,10 @@ export function Logo({
 				height={size}
 			/>
 			{withWordmark ? (
+				// Centred on the pouch's body, not on the bow above it.
 				<span
 					className={cn(
-						'text-[15px] font-semibold tracking-tight text-fg',
+						'trim-to-caps translate-y-[2px] text-[15px] font-semibold tracking-tight text-fg',
 						wordmarkClassName,
 					)}
 				>
