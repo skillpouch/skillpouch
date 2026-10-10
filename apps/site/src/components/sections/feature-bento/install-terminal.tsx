@@ -2,7 +2,7 @@
 import { useInView, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { INSTALL_COMMAND } from './landing-content';
+import { INSTALL_COMMAND } from '@/components/landing-content';
 
 export type TerminalLine =
 	| { kind: 'command'; text: string }

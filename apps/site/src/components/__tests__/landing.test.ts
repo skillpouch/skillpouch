@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { blend, fakeCiphertext } from '../cipher-text';
-import { LOGIN_SCRIPT, scriptSteps, visibleLines } from '../install-terminal';
+import { blend, fakeCiphertext } from '../sections/feature-bento/cipher-text';
+import {
+	LOGIN_SCRIPT,
+	scriptSteps,
+	visibleLines,
+} from '../sections/feature-bento/install-terminal';
 import { ASSISTANTS, FLOW_ASSISTANTS, formatPrice, planLines, type Plan } from '../landing-content';
-import { shotProgress } from '../product-shot';
+import { shotProgress } from '../sections/product-shot/product-shot';
 
 describe('formatPrice', () => {
 	it('drops cents from whole amounts only', () => {

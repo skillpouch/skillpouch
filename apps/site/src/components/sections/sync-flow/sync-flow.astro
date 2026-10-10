@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { Lock } from 'lucide-react';
 import logo from '@/assets/logo.svg';
-import { AssistantIcon } from './assistant-icon';
+import { AssistantIcon } from '@/components/ui/assistant-icon';
 import { FlowCanvas } from './flow-canvas';
-import { ASSISTANTS, FLOW_ASSISTANTS, ITEM_KINDS } from './landing-content';
+import { ASSISTANTS, FLOW_ASSISTANTS, ITEM_KINDS } from '@/components/landing-content';
 
 const HEIGHT = 336;
 const others = ASSISTANTS.filter((assistant) => !FLOW_ASSISTANTS.includes(assistant));

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import { curves, slice } from '../flow-canvas';
+import { curves, slice } from '../sections/sync-flow/flow-canvas';
 
 describe('sync diagram curves', () => {
 	it('fan in from each row to the middle of the far side', () => {

@@ -2,7 +2,7 @@
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { INSTALL_COMMAND } from './landing-content';
+import { INSTALL_COMMAND } from '../landing-content';
 
 /** The install command as a button that copies it. */
 export function InstallCommand({ className }: { className?: string }) {

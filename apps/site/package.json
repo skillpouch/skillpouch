@@ -16,6 +16,8 @@
 	"dependencies": {
 		"@astrojs/react": "^7.0.1",
 		"@fontsource-variable/bricolage-grotesque": "^5.3.0",
+		"@react-three/drei": "^10.7.9",
+		"@react-three/fiber": "^9.8.1",
 		"astro": "^7.3.8",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
@@ -24,13 +26,15 @@
 		"motion": "^14.1.0",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0",
-		"tailwind-merge": "^3.7.0"
+		"tailwind-merge": "^3.7.0",
+		"three": "^0.186.1"
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
+		"@types/three": "^0.186.0",
 		"tailwindcss": "^4.3.3",
 		"vite": "^8.3.3"
 	}

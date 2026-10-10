@@ -2,9 +2,9 @@
 import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { formatPrice, planLines, type Plan } from './landing-content';
+import { formatPrice, planLines, type Plan } from '@/components/landing-content';
 import { PlanName, planStyle } from './plan-name';
-import { ButtonLink } from './ui/button-link';
+import { ButtonLink } from '@/components/ui/button-link';
 
 /** The public plans, read when the page loads so prices are always current. */
 async function loadPlans(): Promise<Plan[]> {

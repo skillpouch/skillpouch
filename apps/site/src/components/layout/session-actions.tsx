@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useState } from 'react';
-import { ButtonLink } from './ui/button-link';
+import { ButtonLink } from '@/components/ui/button-link';
 
 /** Whether this browser has a session, from the same check the web app makes. */
 async function signedIn(): Promise<boolean> {
