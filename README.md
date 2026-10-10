@@ -1,5 +1,5 @@
 <div align="center">
-  <img src=".github/assets/hero.png" alt="SkillPouch — your AI coding setup, on every computer" width="100%" />
+  <img src=".github/assets/banner.png" alt="SkillPouch — your AI coding setup, on every computer" width="100%" />
 
   <p><strong>Your AI coding setup, on every computer.</strong><br />End-to-end encrypted sync for the tools and context that make your AI assistants yours.</p>
 
@@ -17,7 +17,9 @@
 
 Skills, agents, instructions, MCP servers, hooks and plugins tend to spread across assistants and computers. SkillPouch brings those pieces into one pouch and syncs them between your devices. Start free; paid plans add room.
 
-![SkillPouch dashboard](.github/assets/dashboard.webp)
+<p align="center">
+  <a href=".github/assets/promo-poster.png"><img src=".github/assets/promo-highlight.webp" alt="Animated clip: the SkillPouch terminal dashboard and token usage, then skills, agents, MCP servers and more drop into an encrypted pouch" width="100%" /></a>
+</p>
 
 ## What you can sync
 
