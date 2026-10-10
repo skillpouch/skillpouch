@@ -41,7 +41,7 @@ rollback() {
 
 log "live=$LIVE idle=$IDLE image=$IMAGE"
 export "$COLOR_VAR=$IMAGE" API_IMAGE="$IMAGE"
-# Images built on the host (the Raspberry Pi builds its own) are not pulled.
+# Images built on the host (a server that builds its own images) are not pulled.
 docker image inspect "$IMAGE" >/dev/null 2>&1 || "${COMPOSE[@]}" pull "api-$IDLE"
 
 log "migrating"
