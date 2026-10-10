@@ -263,6 +263,29 @@ describe('tamper detection', () => {
 		await expect(openRevision(keys, columns, other.signPub)).rejects.toMatchObject({
 			kind: 'signature_invalid',
 		});
+
+		// The parent link: an emptied column (pruned history) is fine, another parent is not.
+		const parentId = randomUUID();
+		const child = { ...body, revision_id: randomUUID(), parent_id: parentId };
+		const sealedChild = await sealRevision(keys, keyring.member.keys, child);
+		const childColumns = {
+			...columns,
+			revision_id: child.revision_id,
+			parent_id: parentId,
+			envelope: sealedChild.envelope,
+			signature: sealedChild.signature,
+		};
+		const signPub = keyring.member.keys.signPub;
+		expect(await openRevision(keys, childColumns, signPub)).toEqual(child);
+		expect(await openRevision(keys, { ...childColumns, parent_id: null }, signPub)).toEqual(
+			child,
+		);
+		await expect(
+			openRevision(keys, { ...childColumns, parent_id: randomUUID() }, signPub),
+		).rejects.toMatchObject({ kind: 'envelope_mismatch' });
+		await expect(
+			openRevision(keys, { ...columns, parent_id: randomUUID() }, signPub),
+		).rejects.toMatchObject({ kind: 'envelope_mismatch' });
 		expect(new TextDecoder().decode(openBlob(keys, blob.id, blob.bytes))).toBe('# Skill');
 	});
 

@@ -115,10 +115,12 @@ export async function openRevision(
 	);
 	const body = JSON.parse(fromUtf8(plaintext)) as RevisionBody;
 	if (body.format !== 1) throw new CryptoError('format_unsupported', 'unknown revision format');
+	// An empty parent column is history the server pruned (older servers
+	// emptied the link when the parent went); the signed body keeps it.
 	if (
 		body.artifact_id !== columns.artifact_id ||
 		body.revision_id !== columns.revision_id ||
-		body.parent_id !== columns.parent_id ||
+		(columns.parent_id !== null && body.parent_id !== columns.parent_id) ||
 		body.author_member_id !== columns.signer_member_id
 	) {
 		throw new CryptoError('envelope_mismatch', 'revision envelope does not match its record');
