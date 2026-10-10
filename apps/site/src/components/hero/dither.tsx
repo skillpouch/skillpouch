@@ -114,7 +114,7 @@ void main() {
   // Hero tuning: the raw noise field averages high, which floods the hero
   // with purple. Remap so most of the field falls back to the background and
   // only the crests light up.
-  f = smoothstep(0.3, 1.15, f);
+  f = smoothstep(0.12, 0.8, f);
   if (enableMouseInteraction == 1) {
     vec2 mouseNDC = (mousePos / resolution - 0.5) * vec2(1.0, -1.0);
     mouseNDC.x *= resolution.x / resolution.y;
