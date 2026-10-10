@@ -55,6 +55,8 @@ export async function createHarness(
 		BLOB_FS_ROOT: blobRoot,
 		LOG_LEVEL: 'silent',
 		RATE_LIMIT_ENABLED: 'false',
+		// A busy CI runner lags the event loop; only the load-shedding test turns it on.
+		LOAD_SHED_LAG_MS: '0',
 		ADMIN_EMAILS: 'admin@skillpouch.test',
 		...overrides,
 	});
