@@ -15,9 +15,8 @@
  *   /github/connected        return from installing the GitHub App
  *   /s/:shareId              public share link
  *   /admin                   admin dashboard (admins only; others see not found)
- *   /                        the landing page is the static site (apps/site); here only
- *                            a fallback that opens the app
- *   /terms, /privacy         legal pages
+ *   /                        opens the app (the landing page, Terms and Privacy are the
+ *                            static site on its own host)
  *
  * Pages are code-split; layouts, the session gate and crypto load up front.
  */
@@ -175,8 +174,6 @@ const AdminSystemPage = lazyPage(
 	'AdminSystemPage',
 	<PageSkeleton variant="overview" />,
 );
-const TermsPage = lazyPage(() => import('@/pages/legal/terms-page'), 'TermsPage', null);
-const PrivacyPage = lazyPage(() => import('@/pages/legal/privacy-page'), 'PrivacyPage', null);
 const SignInPage = lazyPage(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage', auth);
 const SetupPage = lazyPage(() => import('@/pages/setup/setup-page'), 'SetupPage', auth);
 const UnlockPage = lazyPage(() => import('@/pages/unlock/unlock-page'), 'UnlockPage', auth);
@@ -259,18 +256,6 @@ const shareRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/s/$shareId',
 	component: PublicSharePage,
-});
-
-const termsRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: '/terms',
-	component: TermsPage,
-});
-
-const privacyRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: '/privacy',
-	component: PrivacyPage,
 });
 
 const appRoute = createRoute({
@@ -450,8 +435,6 @@ const routeTree = rootRoute.addChildren([
 	cliAuthorizeRoute,
 	githubConnectedRoute,
 	shareRoute,
-	termsRoute,
-	privacyRoute,
 	appRoute.addChildren([
 		pouchesRoute,
 		pouchRoute.addChildren([

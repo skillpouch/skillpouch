@@ -6,6 +6,7 @@
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/logo';
 import { cn } from '@/lib/cn';
+import { PRIVACY_URL, TERMS_URL } from '@/lib/site';
 
 export interface AuthLayoutProps {
 	children: ReactNode;
@@ -38,6 +39,14 @@ export function AuthLayout({ children, background, width = 'sm', aside }: AuthLa
 				<span aria-hidden>·</span>
 				<a className="hover:text-fg" href="https://github.com/skillpouch">
 					GitHub
+				</a>
+				<span aria-hidden>·</span>
+				<a className="hover:text-fg" href={TERMS_URL}>
+					Terms
+				</a>
+				<span aria-hidden>·</span>
+				<a className="hover:text-fg" href={PRIVACY_URL}>
+					Privacy
 				</a>
 			</footer>
 		</div>

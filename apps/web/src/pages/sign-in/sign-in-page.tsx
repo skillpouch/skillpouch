@@ -4,7 +4,7 @@
  * arrived from the terminal; `?error=cancelled` shows why they are back, and
  * a session notice (revoked browser, ended session) says why they were signed out.
  */
-import { Link, useSearch } from '@tanstack/react-router';
+import { useSearch } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { SignInBackground } from '@/components/brand/sign-in-background';
 import { AuthLayout } from '@/components/layout/auth-layout';
@@ -22,6 +22,7 @@ import { GitHubIcon, GoogleIcon } from '@/features/auth/provider-icons';
 import { bootstrapSession } from '@/features/session/bootstrap';
 import { useSession } from '@/features/session/session-store';
 import { describeError } from '@/lib/api/errors';
+import { PRIVACY_URL, TERMS_URL } from '@/lib/site';
 
 export interface SignInSearch {
 	redirect?: string;
@@ -98,13 +99,13 @@ export function SignInPage() {
 				{import.meta.env.DEV ? <DevSignIn /> : null}
 				<p className="text-center text-xs text-meta">
 					By continuing you agree to the{' '}
-					<Link className="underline hover:text-fg" to="/terms">
+					<a className="underline hover:text-fg" href={TERMS_URL}>
 						Terms
-					</Link>{' '}
+					</a>{' '}
 					and{' '}
-					<Link className="underline hover:text-fg" to="/privacy">
+					<a className="underline hover:text-fg" href={PRIVACY_URL}>
 						Privacy Policy
-					</Link>
+					</a>
 					.
 				</p>
 			</div>

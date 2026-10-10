@@ -35,15 +35,19 @@ test.describe('signed out', () => {
 		expect(new URL(page.url()).host).toBe(new URL(page.url()).host);
 	});
 
-	test('the Terms and Privacy Policy are public and linked from sign-in', async ({ page }) => {
+	test('sign-in links the Terms and Privacy Policy on the site', async ({ page }) => {
 		await page.goto('/sign-in');
-		await page.getByRole('link', { name: 'Terms' }).click();
-		await expect(page).toHaveURL(/\/terms$/);
-		await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible();
-		await page.getByRole('link', { name: 'Privacy Policy' }).click();
-		await expect(page).toHaveURL(/\/privacy$/);
-		await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible();
-		await expect(page.getByRole('heading', { name: 'What we cannot see' })).toBeVisible();
+		const main = page.getByRole('main');
+		await expect(main.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', /\/terms$/);
+		await expect(main.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+			'href',
+			/\/privacy$/,
+		);
+	});
+
+	test('/ opens the app', async ({ page }) => {
+		await page.goto('/');
+		await expect(page).toHaveURL(/\/sign-in/);
 	});
 
 	test('unknown pages show not found', async ({ page }) => {
