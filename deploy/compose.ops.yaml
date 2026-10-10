@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Extra services for scripts/failover.sh and scripts/migrate-host.sh (see
+# README.md → "Standby and moving to a new server"). Both are behind profiles:
+# nothing here starts unless one of those scripts asks for it.
+services:
+  # Warm standby only: forwards the primary's Postgres over SSH, so this
+  # server's Postgres can stream from `primary-link:5432`.
+  primary-link:
+    profiles: [standby]
+    image: skillpouch/ops-ssh
+    pull_policy: never
+    restart: unless-stopped
+    volumes:
+      - ./standby:/standby:ro
+      - ./scripts/lib/primary-link.sh:/primary-link.sh:ro
+    command: ['sh', '/primary-link.sh']
+
+  # The Cloudflare Tunnel connector, with the same token as the other server.
+  # Host networking: the tunnel's public hostname points at localhost:80.
+  cloudflared:
+    profiles: [cloudflared]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - path: env/tunnel.env
+        required: false
+    command: ['tunnel', '--no-autoupdate', '--metrics', '127.0.0.1:20241', 'run']

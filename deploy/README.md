@@ -105,5 +105,181 @@ covers only the volume.
 `scripts/backup.sh` (nightly timer): `pg_dump` + immutable blob files to
 restic. Moving hosts = attach the volume (or rsync blobs + restore the dump)
 on the new machine, copy `deploy/secrets/`, run `deploy.sh`, move the
-Floating IP. For an always-on move use a streaming replica and the admin
-write-pause toggle during switchover.
+Floating IP. For an always-on move see
+[Standby and moving to a new server](#standby-and-moving-to-a-new-server).
+
+## Standby and moving to a new server
+
+Two scripts for servers behind Cloudflare Tunnel, both run on the **second**
+server (the standby, or the new server), from its checkout of this repository:
+
+- `scripts/failover.sh` keeps a warm standby and promotes it when the primary
+  dies.
+- `scripts/migrate-host.sh` moves a running service to a new server, with a
+  write pause of a few seconds instead of downtime.
+
+> **Not rehearsed in production yet.** The scripts have only been run
+> against throwaway containers. Rehearse both on two spare machines (or
+> staging) before you depend on them, and repeat the rehearsal after larger
+> changes to the stack.
+
+### How it works
+
+- **Database:** the second server's Postgres is a streaming replica of the
+  primary's (hot standby, read-only). It connects through an SSH link
+  (`compose.ops.yaml` → `primary-link`), so the primary's Postgres stays
+  unpublished. `setup` creates a replication login and slot named
+  `replica_<hostname>` on the primary, a `pg_hba` line for `replica_*` logins
+  and, if none is set, caps the WAL a slot may hold back at 8 GB
+  (`STANDBY_MAX_WAL`) so a standby that stays offline can't fill the
+  primary's disk. After the cap is exceeded the standby needs
+  `failover.sh setup --rebuild`.
+- **Files:** with `BLOB_DRIVER=s3` both servers use the same bucket and
+  nothing is copied. With the blobs volume, files missing on the second
+  server are copied every few minutes (they never change once stored).
+- **Config:** `env/*.env` and `secrets/` are copied from the primary; a
+  standby needs the same database passwords, `pepper_key` and
+  `jwt_signing_key`. The Cloudflare Tunnel token is copied from
+  `env/tunnel.env` or read from the primary's `cloudflared` service.
+- **Release:** the API image the primary runs is copied (or pulled from its
+  registry, or built for another CPU architecture from the same commit), and
+  so is the live web release.
+- **Cutover:** the second server runs a Cloudflare Tunnel connector with the
+  same token (the `cloudflared` service in `compose.ops.yaml`). Cloudflare
+  routes requests to any connected connector of a tunnel, so the second
+  server can answer as soon as it connects, and the primary stops when
+  its connector stops. No DNS change.
+- **Write pause:** the same switch as the admin dashboard's write pause,
+  written straight into `system_settings`. Mutating requests wait up to 10 s,
+  then get a retryable `503 maintenance_write_pause`; reads keep working.
+
+Everything privileged goes through Docker, so no sudo is needed, except to
+stop a `cloudflared` that was installed as a system service.
+
+### Requirements
+
+- The second server is prepared like the first (Docker, the repository
+  cloned, the user in the `docker` group, the data volume mounted at the same
+  `DATA_ROOT`), but **without** `tunnel/setup.sh`'s last steps: no
+  `cloudflared service install`, no Actions runner and no update timer. Those
+  would serve or deploy from it.
+- Keep its checkout on a recent `main` (`git pull`); the scripts don't move
+  it.
+- SSH from the second server to the primary. The first run of `setup` creates
+  `deploy/standby/id_ed25519` and prints the `ssh-copy-id` command that
+  authorizes it. That key can use Docker on the primary, which is
+  root-equivalent: `deploy/standby/` is git-ignored, keep it private. The
+  primary's sshd must allow TCP forwarding (`AllowTcpForwarding`, on by
+  default on Debian and Ubuntu).
+- Both servers run the same Postgres major version (`compose.yaml` pins it).
+
+### Warm standby
+
+On the standby:
+
+```sh
+deploy/scripts/failover.sh setup --primary deploy@primary.example --dry-run
+deploy/scripts/failover.sh setup --primary deploy@primary.example
+deploy/scripts/failover.sh status
+```
+
+`setup` copies config and secrets, sets up replication, copies the database
+(`pg_basebackup`), the release and the files, and installs a cron job that
+runs `failover.sh sync` every 5 minutes (`--every N`). It asks before
+replacing a database on the standby and refuses one that holds accounts
+(`--replace-local-database` overrides). Running it again is safe: an
+already streaming standby isn't copied again. Options: `--port` (SSH port),
+`--peer-dir` (the checkout on the primary, default the same path), `--yes`.
+
+`status` shows the WAL receiver, how far the standby is behind, the slot on
+the primary, the last file sync and whether the primary and the public URL
+answer. The sync log is `deploy/standby/sync.log`.
+
+What a failover can lose: replication is asynchronous, so the last moments
+before a crash may not have reached the standby (`status` shows the lag), and
+with the blobs volume, files uploaded since the last sync. With `s3` storage
+only the replication lag applies.
+
+### Failover: the primary is gone
+
+```sh
+deploy/scripts/failover.sh promote --dry-run
+deploy/scripts/failover.sh promote
+```
+
+It refuses while the primary still answers (use `migrate-host.sh` for a
+planned move; `--force` takes over anyway and stops the primary first if it
+can reach it), and warns if `https://<PUBLIC_HOST>` still answers although
+the primary can't be reached. Then it promotes Postgres, turns the write pause
+off, starts the API, worker and Caddy with the recorded release and connects
+the tunnel. If no release was copied, deploy after promotion with
+`deploy/tunnel/update.sh --force`.
+
+Afterwards:
+
+1. **Fence the old server before it comes back.** It would reconnect to the
+   same tunnel with old data. As soon as SSH works:
+   `deploy/scripts/failover.sh fence --host deploy@old.example` (stops its
+   tunnel connector, API and worker and turns on the write pause in its
+   database). The surest fence: create a new tunnel in Cloudflare, move the
+   public hostname to it, put the new token in `env/tunnel.env` on the new
+   primary and recreate its `cloudflared` container.
+2. Move deploys: install the Actions runner on the new primary
+   ([tunnel guide](tunnel/README.md) §5) and remove the old one.
+3. Set up a new standby, e.g. the repaired old server:
+   `failover.sh setup --primary <new primary>` there (replaces its database).
+
+### Moving to a new server
+
+On the new server:
+
+```sh
+deploy/scripts/migrate-host.sh --from deploy@old.example --dry-run
+deploy/scripts/migrate-host.sh --from deploy@old.example
+```
+
+1. **Prepare:** runs `failover.sh setup`, so the new server becomes a
+   streaming standby with config, release and files (this takes as long as the
+   database copy; nothing changes for users).
+2. **Checks:** streaming, the old server answers, the release and tunnel token
+   are here, last file copy. Then it asks once.
+3. **Switch:** stops the old worker → turns on the write pause in the old
+   database → waits 3 s (API instances cache the flag for 2 s) and until
+   writes that started before the pause have finished → copies the last files
+   → waits until the new database has replayed everything → promotes it →
+   starts the API → connects the tunnel here → turns the write pause off →
+   starts the worker. It prints how long writes were paused.
+4. **Drain:** stops the old server's tunnel connector, API and worker, and
+   copies files that finished uploading meanwhile. The old database is left
+   as it was, with the write pause on, as a fallback.
+
+If a step fails before the promotion, the pause is lifted and the old worker
+restarted: the old server carries on and the new one stays its standby. After
+the promotion it prints how to finish with `failover.sh promote --force` and
+`failover.sh fence`. Running `migrate-host.sh` again after a finished move
+stops at the account check instead of replacing the new database.
+
+What users notice: writes are held while the pause lasts, which is roughly
+the time the API takes to start after promotion (about 8 s in a test with
+containers on one machine). Writes held on the new server succeed when the
+pause ends; writes still waiting on the old server after 10 s get the
+retryable 503 and the clients send them again, now to the new server.
+SSE and long-poll clients reconnect and resume from their cursor. Sync
+operations are idempotent, so retries never apply twice. Other writes to the
+old server during the switch that bypass the pause (a sign-in, a billing
+webhook) can be lost: a sign-in may have to be repeated, and the daily
+billing reconcile picks up missed subscription changes.
+
+If `cloudflared` on the old server is a system service, stopping it needs
+sudo there: either passwordless sudo for the deploy user, or run the script in
+a terminal and type the password when asked (until then the old server still
+answers part of the requests). After the move:
+
+- move deploys (Actions runner or update timer) to the new server;
+- the new server's tunnel connector is the `cloudflared` container. Compose
+  calls it an orphan in `update.sh`'s output, which is harmless. To use a
+  system service instead: `sudo cloudflared service install <token>`, then
+  `docker compose --profile cloudflared rm -sf cloudflared` (run in `deploy/`
+  with `COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml:compose.ops.yaml`);
+- keep the old server as a standby of the new one for a while:
+  `failover.sh setup --primary <new server>` there.

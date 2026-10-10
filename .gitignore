@@ -16,6 +16,8 @@ data/
 deploy/env/*.env
 # production secrets (created by deploy/scripts/init-secrets.sh)
 deploy/secrets/
+# warm standby state: SSH key, replication password (deploy/scripts/failover.sh)
+deploy/standby/
 deploy/caddy/.live-color
 deploy/caddy/.deployed
 test-results/
