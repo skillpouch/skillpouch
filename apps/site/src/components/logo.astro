@@ -1,0 +1,18 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** The pouch mark followed by the wordmark, as in the web app. */
+import logo from '@/assets/logo.svg';
+
+interface Props {
+	size?: number;
+}
+
+const { size = 20 } = Astro.props;
+---
+
+<span class="inline-flex items-center gap-2">
+	<img src={logo.src} alt="" width={size} height={size} />
+	<span class="trim-to-caps translate-y-[2px] text-[15px] font-semibold tracking-tight text-fg">
+		SkillPouch
+	</span>
+</span>

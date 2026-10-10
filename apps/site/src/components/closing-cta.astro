@@ -1,0 +1,44 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+import hero from '@/assets/landing/hero.webp';
+import { InstallCommand } from './install-command';
+import { ButtonLink } from './ui/button-link';
+---
+
+<section aria-labelledby="closing-title" class="px-5 pt-12 pb-24">
+	<div class="relative isolate mx-auto max-w-[1120px] overflow-hidden rounded-3xl border border-white/10 px-6 py-20 text-center sm:py-24">
+		<img
+			src={hero.src}
+			alt=""
+			width={hero.width}
+			height={hero.height}
+			loading="lazy"
+			decoding="async"
+			class="absolute inset-0 -z-10 size-full object-cover object-[50%_85%] opacity-70"
+		/>
+		<div
+			aria-hidden="true"
+			class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_35%,rgb(0_0_0/0.85),rgb(0_0_0/0.35)_75%)]"
+		></div>
+		<h2
+			id="closing-title"
+			class="landing-display mx-auto max-w-[16ch] text-4xl leading-[1.05] font-semibold sm:text-6xl"
+		>
+			Set it up once. Use it everywhere.
+		</h2>
+		<p class="mx-auto mt-5 max-w-[46ch] text-base leading-relaxed text-[#b4b4b4]">
+			Sign in with GitHub or Google, then connect your computers from the terminal.
+		</p>
+		<div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+			<ButtonLink
+				href="/sign-in"
+				variant="primary"
+				size="lg"
+				className="h-11 rounded-full px-6 shadow-[0_8px_32px_-8px_var(--landing-glow)] active:scale-[0.98]"
+			>
+				Get started
+			</ButtonLink>
+			<InstallCommand client:visible />
+		</div>
+	</div>
+</section>

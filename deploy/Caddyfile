@@ -17,10 +17,16 @@ skillpouch.net, api.skillpouch.net {
 		import /etc/caddy/conf.d/upstreams.caddy
 	}
 
+	# The landing page is the static site in the release's _site/ (apps/site);
+	# every other path is the SPA, with index.html as the fallback.
 	handle {
 		root * /srv/web/current
-		@assets path /assets/*
+		rewrite / /_site/index.html
+		rewrite /robots.txt /_site/robots.txt
+		rewrite /sitemap.xml /_site/sitemap.xml
+		@assets path /assets/* /_site/_astro/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
+		header / Cache-Control "no-cache"
 		header /index.html Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server

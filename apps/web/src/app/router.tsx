@@ -15,12 +15,19 @@
  *   /github/connected        return from installing the GitHub App
  *   /s/:shareId              public share link
  *   /admin                   admin dashboard (admins only; others see not found)
- *   /                        public landing page
+ *   /                        the landing page is the static site (apps/site); here only
+ *                            a fallback that opens the app
  *   /terms, /privacy         legal pages
  *
  * Pages are code-split; layouts, the session gate and crypto load up front.
  */
-import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
+import {
+	createRootRoute,
+	createRoute,
+	createRouter,
+	Outlet,
+	redirect,
+} from '@tanstack/react-router';
 import { lazy, Suspense, type ReactNode } from 'react';
 import { CONTENT_SCROLL_ID } from '@/components/layout/app-shell';
 import { SessionGate, type GateRequirement } from '@/features/session/session-gate';
@@ -168,7 +175,6 @@ const AdminSystemPage = lazyPage(
 	'AdminSystemPage',
 	<PageSkeleton variant="overview" />,
 );
-const LandingPage = lazyPage(() => import('@/pages/landing/landing-page'), 'LandingPage', null);
 const TermsPage = lazyPage(() => import('@/pages/legal/terms-page'), 'TermsPage', null);
 const PrivacyPage = lazyPage(() => import('@/pages/legal/privacy-page'), 'PrivacyPage', null);
 const SignInPage = lazyPage(() => import('@/pages/sign-in/sign-in-page'), 'SignInPage', auth);
@@ -195,7 +201,9 @@ const rootRoute = createRootRoute({ component: RootLayout, notFoundComponent: No
 const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/',
-	component: LandingPage,
+	beforeLoad: () => {
+		throw redirect({ to: '/app', replace: true });
+	},
 });
 
 const signInRoute = createRoute({

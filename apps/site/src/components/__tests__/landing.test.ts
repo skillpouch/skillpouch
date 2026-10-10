@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
-import type { PlanRecord } from '@/lib/api/types';
 import { blend, fakeCiphertext } from '../cipher-text';
 import { LOGIN_SCRIPT, scriptSteps, visibleLines } from '../install-terminal';
-import { ASSISTANTS, FLOW_ASSISTANTS, formatPrice, planLines } from '../landing-content';
+import { ASSISTANTS, FLOW_ASSISTANTS, formatPrice, planLines, type Plan } from '../landing-content';
+import { shotProgress } from '../product-shot';
 
 describe('formatPrice', () => {
 	it('drops cents from whole amounts only', () => {
@@ -20,7 +20,7 @@ describe('planLines', () => {
 			price_cents: 300,
 			pouch_limit: 3,
 			storage_bytes: 1_073_741_824,
-		} as PlanRecord;
+		} as Plan;
 		expect(planLines(plan)).toEqual([
 			'3 pouches',
 			'1 GB of encrypted storage',
@@ -67,5 +67,15 @@ describe('cipher text', () => {
 	it('blends from one text to the other', () => {
 		expect(blend('abcdef', 'uvwxyz', 0)).toBe('abcdef');
 		expect(blend('abcdef', 'uvwxyz', 1)).toBe('uvwxyz');
+	});
+});
+
+describe('product shot', () => {
+	it('straightens from entering the viewport to 45% down it', () => {
+		expect(shotProgress(1000, 1000)).toBe(0);
+		expect(shotProgress(1200, 1000)).toBe(0);
+		expect(shotProgress(450, 1000)).toBeCloseTo(1);
+		expect(shotProgress(0, 1000)).toBe(1);
+		expect(shotProgress(725, 1000)).toBeCloseTo(0.5);
 	});
 });

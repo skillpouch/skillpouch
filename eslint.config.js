@@ -5,7 +5,15 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-	{ ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.engram/**'] },
+	{
+		ignores: [
+			'**/dist/**',
+			'**/coverage/**',
+			'**/node_modules/**',
+			'**/.astro/**',
+			'.engram/**',
+		],
+	},
 	js.configs.recommended,
 	...tseslint.configs.recommended,
 	{
@@ -20,8 +28,8 @@ export default tseslint.config(
 		},
 	},
 	{
-		// The web app runs in the browser and follows the rules of hooks.
-		files: ['apps/web/**/*.{ts,tsx}'],
+		// The web app and the site run in the browser and follow the rules of hooks.
+		files: ['apps/web/**/*.{ts,tsx}', 'apps/site/**/*.{ts,tsx}'],
 		languageOptions: { globals: { ...globals.browser } },
 		plugins: { 'react-hooks': reactHooks },
 		rules: {

@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { Link } from '@tanstack/react-router';
 import { Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { usePlans } from '@/features/billing/billing';
-import { PlanName } from '@/features/billing/plan-badge';
-import { planStyle } from '@/features/billing/plan-styles';
-import type { PlanRecord } from '@/lib/api/types';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { formatPrice, planLines } from './landing-content';
+import { formatPrice, planLines, type Plan } from './landing-content';
+import { PlanName, planStyle } from './plan-name';
+import { ButtonLink } from './ui/button-link';
 
-function PlanColumn({ plan }: { plan: PlanRecord }) {
+/** The public plans, read when the page loads so prices are always current. */
+async function loadPlans(): Promise<Plan[]> {
+	const response = await fetch('/v1/plans', { credentials: 'same-origin' });
+	if (!response.ok) throw new Error(`plans: ${response.status}`);
+	const body = (await response.json()) as { data?: { plans?: Plan[] } };
+	return body.data?.plans ?? [];
+}
+
+function PlanColumn({ plan }: { plan: Plan }) {
 	const style = planStyle(plan.slug, plan.price_cents > 0);
 	const paid = style !== null;
 	return (
@@ -42,20 +46,26 @@ function PlanColumn({ plan }: { plan: PlanRecord }) {
 					</li>
 				))}
 			</ul>
-			<Button
+			<ButtonLink
+				href="/sign-in"
 				variant={paid ? 'outline' : 'primary'}
 				size="lg"
 				className="mt-8 rounded-full active:scale-[0.98]"
-				asChild
 			>
-				<Link to="/sign-in">Get started</Link>
-			</Button>
+				Get started
+			</ButtonLink>
 		</li>
 	);
 }
 
 export function Pricing() {
-	const plans = usePlans();
+	const [plans, setPlans] = useState<Plan[] | 'loading' | 'failed'>('loading');
+	useEffect(() => {
+		loadPlans()
+			.then(setPlans)
+			.catch(() => setPlans('failed'));
+	}, []);
+
 	return (
 		<section id="pricing" aria-labelledby="pricing-title" className="scroll-mt-24 px-5 py-24">
 			<div className="mx-auto max-w-[1120px]">
@@ -72,33 +82,31 @@ export function Pricing() {
 					</p>
 				</div>
 
-				{plans.isPending ? (
+				{plans === 'loading' ? (
 					<ul className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3" aria-hidden>
 						{[0, 1, 2].map((index) => (
 							<li key={index}>
-								<Skeleton className="h-[372px] rounded-2xl" />
+								<div className="h-[372px] animate-pulse-soft rounded-2xl bg-[#141414]" />
 							</li>
 						))}
 					</ul>
-				) : plans.data?.length ? (
+				) : plans !== 'failed' && plans.length ? (
 					<ul
 						className={cn(
 							'mx-auto mt-14 grid grid-cols-1 gap-4',
-							plans.data.length >= 3
-								? 'md:grid-cols-3'
-								: 'max-w-[760px] md:grid-cols-2',
+							plans.length >= 3 ? 'md:grid-cols-3' : 'max-w-[760px] md:grid-cols-2',
 						)}
 					>
-						{plans.data.map((plan) => (
+						{plans.map((plan) => (
 							<PlanColumn key={plan.slug} plan={plan} />
 						))}
 					</ul>
 				) : (
 					<p className="mt-14 text-center text-sm text-muted">
 						Plans could not be loaded right now. You can see them after you{' '}
-						<Link to="/sign-in" className="text-fg underline underline-offset-4">
+						<a href="/sign-in" className="text-fg underline underline-offset-4">
 							sign in
-						</Link>
+						</a>
 						.
 					</p>
 				)}

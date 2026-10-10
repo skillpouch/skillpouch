@@ -1,0 +1,36 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+import Logo from './logo.astro';
+import { SessionActions } from './session-actions';
+
+const SECTIONS = [
+	{ href: '#how', label: 'How it works' },
+	{ href: '#features', label: 'Features' },
+	{ href: '#pricing', label: 'Pricing' },
+	{ href: '#faq', label: 'FAQ' },
+];
+---
+
+<header class="fixed inset-x-0 top-3 z-40 flex justify-center px-3 sm:top-4">
+	<nav
+		aria-label="Main"
+		class="flex w-full max-w-[880px] items-center justify-between gap-4 rounded-full border border-white/10 bg-black/60 py-1.5 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-xl"
+	>
+		<a href="#top" aria-label="SkillPouch, back to top" class="shrink-0">
+			<Logo size={22} />
+		</a>
+		<ul class="hidden items-center gap-1 text-[13px] text-muted md:flex">
+			{SECTIONS.map((section) => (
+				<li>
+					<a
+						href={section.href}
+						class="rounded-full px-3 py-1.5 transition-colors hover:bg-white/5 hover:text-fg focus-visible:text-fg"
+					>
+						{section.label}
+					</a>
+				</li>
+			))}
+		</ul>
+		<SessionActions client:load />
+	</nav>
+</header>

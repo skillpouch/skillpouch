@@ -94,8 +94,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium
         run: pnpm --filter @skillpouch/web exec playwright install --with-deps chromium
-      - name: Production build of the web app
-        run: pnpm --filter @skillpouch/web build
+      - name: Production build of the web app and the landing page
+        run: |
+          pnpm --filter @skillpouch/web --filter @skillpouch/site build
+          grep -q 'Your AI coding setup, on every computer.' apps/site/dist/index.html
+          grep -q '/_site/_astro/' apps/site/dist/index.html
       - name: Playwright (real API, real database, dev sign-in)
         run: pnpm --filter @skillpouch/web e2e
       - name: Upload the report on failure

@@ -1,0 +1,181 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/*
+ * The web app's design tokens (apps/web/src/styles/globals.css), trimmed to
+ * what the landing page uses. Keep the two in step.
+ */
+@import 'tailwindcss';
+
+@font-face {
+	font-family: 'Geist';
+	src: url('@fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Geist Mono';
+	src: url('@fonts/geist-mono/GeistMono-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@theme {
+	--font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+	--color-bg: #000;
+	--color-surface: #0a0a0a;
+	--color-surface-2: #111;
+	--color-hover: oklch(0.22 0 0);
+	--color-fg: #ededed;
+	--color-muted: #888;
+	--color-meta: #666;
+	--color-border: #1f1f1f;
+	--color-border-soft: #171717;
+	--color-border-strong: #262626;
+
+	--color-accent: #8442d9;
+	--color-accent-hover: #9254e6;
+	--color-accent-text: oklch(0.76 0.14 300);
+	--color-accent-tint: color-mix(in oklab, #8442d9 22%, transparent);
+
+	--color-success: oklch(0.74 0.15 150);
+
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+
+	--ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+	--animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+
+	@keyframes pulse-soft {
+		50% {
+			opacity: 0.4;
+		}
+	}
+}
+
+@layer base {
+	html {
+		color-scheme: dark;
+		background: var(--color-bg);
+		color: var(--color-fg);
+		font-family: var(--font-sans);
+		font-size: 14px;
+		-webkit-font-smoothing: antialiased;
+		-webkit-text-size-adjust: 100%;
+	}
+	body {
+		min-height: 100dvh;
+	}
+	::selection {
+		background: var(--color-accent-tint);
+	}
+	button:not(:disabled),
+	[role='button']:not([aria-disabled='true']),
+	summary {
+		cursor: pointer;
+	}
+	:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
+	}
+	/* Thin, dark scrollbars on desktop; none on touch devices. */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-border-strong) transparent;
+	}
+	@media (pointer: coarse) {
+		* {
+			scrollbar-width: none;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+}
+
+/* Paid plan looks on the pricing cards; palettes as in the web app. */
+@layer components {
+	.plan-style-supporter {
+		--plan-edge-1: oklch(0.62 0.2 300);
+		--plan-edge-2: oklch(0.78 0.13 350);
+		--plan-edge-3: oklch(0.95 0.02 320);
+		--plan-text-1: oklch(0.78 0.14 300);
+		--plan-text-2: oklch(0.86 0.1 350);
+		--plan-text-3: oklch(0.97 0.01 320);
+		--plan-sparkle: oklch(0.82 0.12 325);
+	}
+	.plan-style-supporter-plus {
+		--plan-edge-1: oklch(0.7 0.14 65);
+		--plan-edge-2: oklch(0.84 0.12 85);
+		--plan-edge-3: oklch(0.96 0.03 95);
+		--plan-text-1: oklch(0.8 0.13 70);
+		--plan-text-2: oklch(0.89 0.11 90);
+		--plan-text-3: oklch(0.98 0.02 95);
+		--plan-sparkle: oklch(0.86 0.13 85);
+	}
+	.plan-style-friends-pass {
+		--plan-edge-1: oklch(0.7 0.13 175);
+		--plan-edge-2: oklch(0.82 0.12 150);
+		--plan-edge-3: oklch(0.95 0.04 120);
+		--plan-text-1: oklch(0.8 0.12 175);
+		--plan-text-2: oklch(0.88 0.11 150);
+		--plan-text-3: oklch(0.97 0.03 120);
+		--plan-sparkle: oklch(0.82 0.13 165);
+	}
+	.plan-text {
+		background: linear-gradient(
+			100deg,
+			var(--plan-text-1),
+			var(--plan-text-2),
+			var(--plan-text-3),
+			var(--plan-text-2),
+			var(--plan-text-1)
+		);
+		background-size: 220% 100%;
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+	.plan-sparkle {
+		color: var(--plan-sparkle);
+	}
+	.plan-card {
+		border-color: transparent;
+		background:
+			linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+			linear-gradient(
+					135deg,
+					color-mix(in oklch, var(--plan-edge-1) 60%, transparent),
+					color-mix(in oklch, var(--plan-edge-2) 40%, transparent),
+					color-mix(in oklch, var(--plan-edge-3) 22%, transparent)
+				)
+				border-box;
+		box-shadow: 0 0 48px -16px color-mix(in oklch, var(--plan-edge-1) 40%, transparent);
+	}
+	.plan-shimmer .plan-text {
+		animation: plan-shimmer 2.4s linear infinite;
+	}
+}
+@keyframes plan-shimmer {
+	to {
+		background-position: -183.333% 0;
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.plan-shimmer .plan-text {
+		animation: none;
+	}
+}
+
+/* Centres button labels and the wordmark on their letters, not on Geist's line box. */
+@utility trim-to-caps {
+	text-box: trim-both cap alphabetic;
+}

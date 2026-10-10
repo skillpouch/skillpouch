@@ -1,0 +1,30 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+import { CONTACT_EMAIL, SOURCE_URL } from './landing-content';
+import Logo from './logo.astro';
+---
+
+<footer class="border-t border-border px-5 py-10">
+	<div class="mx-auto flex max-w-[1120px] flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+		<div class="flex flex-col gap-2">
+			<Logo />
+			<p class="text-xs text-meta">
+				© {new Date().getFullYear()} SkillPouch. Open source under the AGPL.
+			</p>
+		</div>
+		<nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-muted">
+			<a class="hover:text-fg" href={SOURCE_URL} rel="noreferrer" target="_blank">
+				Source code
+			</a>
+			<a class="hover:text-fg" href="/terms">
+				Terms
+			</a>
+			<a class="hover:text-fg" href="/privacy">
+				Privacy
+			</a>
+			<a class="hover:text-fg" href={`mailto:${CONTACT_EMAIL}`}>
+				{CONTACT_EMAIL}
+			</a>
+		</nav>
+	</div>
+</footer>

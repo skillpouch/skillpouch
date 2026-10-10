@@ -1,0 +1,125 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+import { Bell, Code2, Layers, Link2, MonitorSmartphone, Split } from 'lucide-react';
+import marketplaces from '@/assets/landing/marketplaces.webp';
+import tuiOverview from '@/assets/landing/tui-overview.webp';
+import tuiUsage from '@/assets/landing/tui-usage.webp';
+import usage from '@/assets/landing/usage.webp';
+import BentoCell from './bento-cell.astro';
+import BentoScreenshot from './bento-screenshot.astro';
+import { CipherText } from './cipher-text';
+import { InstallTerminal } from './install-terminal';
+import { TerminalUi, type TuiTab } from './terminal-ui';
+
+const TUI_TABS: TuiTab[] = [
+	{
+		id: 'overview',
+		label: 'Overview',
+		src: tuiOverview.src,
+		alt: 'The SkillPouch terminal UI: the pouch mascot, the active pouch, plan meters and a grid of daily token usage.',
+	},
+	{
+		id: 'usage',
+		label: 'Usage',
+		src: tuiUsage.src,
+		alt: 'The terminal UI usage tab: a bar chart of tokens per day and totals by model and assistant.',
+	},
+];
+
+const EXTRAS = [
+	{
+		icon: Layers,
+		title: 'More than one pouch',
+		text: 'Keep work and personal setups apart. Each computer uses one pouch at a time.',
+	},
+	{
+		icon: Link2,
+		title: 'Share links',
+		text: 'Send a skill or an agent to anyone with a link they can open in a browser.',
+	},
+	{
+		icon: Split,
+		title: 'Conflicts you settle',
+		text: 'When two computers change the same file, you pick the version to keep.',
+	},
+	{
+		icon: Bell,
+		title: 'Desktop notifications',
+		text: 'The CLI sends a desktop notification when something needs your attention.',
+	},
+	{
+		icon: MonitorSmartphone,
+		title: 'Every device in one list',
+		text: 'See which computers and browsers can open your pouches, and remove any of them.',
+	},
+	{
+		icon: Code2,
+		title: 'Open source',
+		text: 'AGPL licensed. Read the code, or run SkillPouch on your own server.',
+	},
+];
+---
+
+<section id="features" aria-labelledby="features-title" class="scroll-mt-24 px-5 py-24">
+	<div class="mx-auto max-w-[1120px]">
+		<h2
+			id="features-title"
+			class="landing-display max-w-[20ch] text-4xl leading-[1.05] font-semibold sm:text-5xl"
+		>
+			A terminal app, a web app, and nothing to babysit.
+		</h2>
+
+		<div class="mt-14 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
+			<BentoCell
+				title="Sync that runs on its own"
+				class="md:col-span-2 lg:col-span-4 lg:row-span-2"
+			>
+				Log in once and sync starts with your computer, keeps itself up to date, and runs in
+				the background. Run <code class="font-mono text-[13px] text-fg">skillpouch</code> to
+				open the terminal UI with your pouches, computers and token usage.
+				<TerminalUi slot="visual" client:visible tabs={TUI_TABS} />
+			</BentoCell>
+			<BentoCell title="Encrypted before it leaves" class="lg:col-span-2">
+				Files and item names are encrypted on your computer or in your browser. The server
+				never sees your master password or Recovery Key.
+				<CipherText slot="visual" client:visible />
+			</BentoCell>
+			<BentoCell title="Two commands to start" class="lg:col-span-2">
+				Install the CLI, log in, and approve the computer in your browser.
+				<InstallTerminal slot="visual" client:visible />
+			</BentoCell>
+			<BentoCell title="Marketplaces built in" class="lg:col-span-3">
+				Add skills and MCP servers from skills.sh, the official MCP Registry and GitHub
+				repositories, private ones included.
+				<BentoScreenshot
+					slot="visual"
+					image={marketplaces}
+					class="left-[-30%]"
+					alt="The marketplaces page listing popular skills from skills.sh, each with an Add button."
+				/>
+			</BentoCell>
+			<BentoCell title="Token usage across computers" class="lg:col-span-3">
+				Tokens per day, model and assistant, added up across your computers without counting
+				anything twice. Only the counts leave your computer.
+				<BentoScreenshot
+					slot="visual"
+					image={usage}
+					class="left-[-60%]"
+					alt="The usage page: token totals, a calendar of daily usage, and breakdowns by model and assistant."
+				/>
+			</BentoCell>
+		</div>
+
+		<ul class="mt-16 grid grid-cols-1 gap-x-10 gap-y-8 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-3">
+			{EXTRAS.map(({ icon: Icon, title, text }) => (
+				<li class="flex gap-3">
+					<Icon className="mt-0.5 size-4 shrink-0 text-accent-text" aria-hidden />
+					<div>
+						<h3 class="text-sm font-medium text-fg">{title}</h3>
+						<p class="mt-1 text-sm leading-relaxed text-muted">{text}</p>
+					</div>
+				</li>
+			))}
+		</ul>
+	</div>
+</section>

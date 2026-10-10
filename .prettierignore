@@ -1,6 +1,7 @@
 pnpm-lock.yaml
 .engram/
 dist/
+.astro/
 coverage/
 packages/db/migrations/
 LICENSE

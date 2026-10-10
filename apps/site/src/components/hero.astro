@@ -1,0 +1,66 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+import hero from '@/assets/landing/hero.webp';
+import logo from '@/assets/logo.svg';
+import { InstallCommand } from './install-command';
+import { ButtonLink } from './ui/button-link';
+---
+
+<section
+	id="top"
+	class="relative isolate flex min-h-[100dvh] flex-col items-center overflow-hidden px-5"
+>
+	<img
+		src={hero.src}
+		alt=""
+		width={hero.width}
+		height={hero.height}
+		fetchpriority="high"
+		decoding="async"
+		class="absolute inset-0 -z-20 size-full object-cover object-bottom"
+	/>
+	<div
+		aria-hidden="true"
+		class="absolute inset-x-0 top-0 -z-10 h-2/3 bg-[radial-gradient(ellipse_at_50%_30%,rgb(0_0_0/0.75),transparent_70%)]"
+	></div>
+	<div
+		aria-hidden="true"
+		class="absolute inset-x-0 bottom-0 -z-10 h-32 bg-gradient-to-b from-transparent to-bg"
+	></div>
+
+	<div class="relative flex max-w-[860px] flex-col items-center pt-32 text-center sm:pt-36">
+		<div
+			aria-hidden="true"
+			class="absolute inset-x-[-10%] top-[46%] bottom-[-20%] -z-10 rounded-[50%] bg-black/80 blur-2xl"
+		></div>
+		<h1 class="landing-display landing-rise text-[44px] leading-[1.02] font-semibold text-balance text-fg [animation-delay:50ms] sm:text-6xl lg:text-[76px]">
+			Your AI coding setup, on every computer.
+		</h1>
+		<p class="landing-rise mt-6 max-w-[56ch] text-base leading-relaxed text-pretty text-[#b4b4b4] [animation-delay:180ms] sm:text-lg">
+			Skills, agents, MCP servers and instructions sync across Claude Code, Codex, Cursor and
+			more. End-to-end encrypted.
+		</p>
+		<div class="landing-rise mt-9 flex flex-col items-center gap-3 [animation-delay:300ms] sm:flex-row">
+			<ButtonLink
+				href="/sign-in"
+				variant="primary"
+				size="lg"
+				className="h-11 rounded-full px-6 shadow-[0_8px_32px_-8px_var(--landing-glow)] active:scale-[0.98]"
+			>
+				Get started
+			</ButtonLink>
+			<InstallCommand client:idle />
+		</div>
+	</div>
+
+	<div
+		aria-hidden="true"
+		class="landing-pop absolute left-1/2 grid size-[92px] -translate-x-1/2 translate-y-1/2 place-items-center [animation-delay:550ms] sm:size-[104px]"
+		style={{ bottom: 'max(26.3%, 11.27vw)' }}
+	>
+		<div class="landing-halo absolute -inset-16 rounded-full"></div>
+		<div class="landing-float relative grid size-full place-items-center rounded-[26px] border border-white/15 bg-[linear-gradient(160deg,rgb(40_26_64/0.9),rgb(8_6_14/0.95))] shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_20px_60px_-12px_var(--landing-glow)] backdrop-blur-md">
+			<img src={logo.src} alt="" class="size-[58%]" width={60} height={60} />
+		</div>
+	</div>
+</section>

@@ -1,0 +1,35 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** The public home page, served at `/`. */
+import AssistantsStrip from '@/components/assistants-strip.astro';
+import ClosingCta from '@/components/closing-cta.astro';
+import Faq from '@/components/faq.astro';
+import FeatureBento from '@/components/feature-bento.astro';
+import Hero from '@/components/hero.astro';
+import LandingFooter from '@/components/landing-footer.astro';
+import LandingNav from '@/components/landing-nav.astro';
+import { Pricing } from '@/components/pricing';
+import ProductShot from '@/components/product-shot.astro';
+import SyncFlow from '@/components/sync-flow.astro';
+import Page from '@/layouts/page.astro';
+---
+
+<Page
+	title="SkillPouch: your AI coding setup, on every computer"
+	description="Skills, agents, MCP servers and instructions sync across Claude Code, Codex, Cursor and more. End-to-end encrypted, open source."
+>
+	<div class="landing min-h-dvh bg-bg text-fg">
+		<LandingNav />
+		<main>
+			<Hero />
+			<AssistantsStrip />
+			<ProductShot />
+			<SyncFlow />
+			<FeatureBento />
+			<Pricing client:idle />
+			<Faq />
+			<ClosingCta />
+		</main>
+		<LandingFooter />
+	</div>
+</Page>

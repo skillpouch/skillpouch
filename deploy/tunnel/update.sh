@@ -44,14 +44,17 @@ echo "[update] deploying $SHA"
 # 1. API image, built natively for this machine (amd64 or arm64).
 docker build -q -f deploy/docker/api.Dockerfile -t "skillpouch/api:$SHA" . >/dev/null
 
-# 2. Web app: build in a throwaway Node container, publish as a new release.
-# Hand the build output back to us, but never touch deploy/ (secrets are
-# owned by the API container user).
-docker run --rm -v "$REPO":/repo -w /repo -e CI=1 node:24-alpine sh -c \
-	'corepack enable >/dev/null && pnpm install --frozen-lockfile --filter @skillpouch/web... >/dev/null && pnpm --filter @skillpouch/web build >/dev/null && find /repo -path /repo/deploy -prune -o -user 0 -exec chown '"$(id -u):$(id -g)"' {} +'
+# 2. Web app and the static landing page: build in a throwaway Node
+# container, publish as a new release (the site goes in its _site/). Hand the
+# build output back to us, but never touch deploy/ (secrets are owned by the
+# API container user).
+docker run --rm -v "$REPO":/repo -w /repo -e CI=1 -e ASTRO_TELEMETRY_DISABLED=1 node:24-alpine sh -c \
+	'corepack enable >/dev/null && pnpm install --frozen-lockfile --filter @skillpouch/web... --filter @skillpouch/site... >/dev/null && pnpm --filter @skillpouch/web --filter @skillpouch/site build >/dev/null && find /repo -path /repo/deploy -prune -o -user 0 -exec chown '"$(id -u):$(id -g)"' {} +'
+grep -q 'Your AI coding setup' apps/site/dist/index.html || { echo "[update] the landing page build is empty" >&2; exit 1; }
 mkdir -p "$DATA_ROOT/web/releases"
 rm -rf "$DATA_ROOT/web/releases/$SHA"
 cp -r apps/web/dist "$DATA_ROOT/web/releases/$SHA"
+cp -r apps/site/dist "$DATA_ROOT/web/releases/$SHA/_site"
 ln -sfn "releases/$SHA" "$DATA_ROOT/web/current.new" && mv -T "$DATA_ROOT/web/current.new" "$DATA_ROOT/web/current"
 # keep the last 5 web releases
 ls -1t "$DATA_ROOT/web/releases" | tail -n +6 | xargs -r -I{} rm -rf "$DATA_ROOT/web/releases/{}"
@@ -59,6 +62,12 @@ ls -1t "$DATA_ROOT/web/releases" | tail -n +6 | xargs -r -I{} rm -rf "$DATA_ROOT
 # 3. Zero-downtime API switch (migrations, health check, rollback on failure).
 cd deploy
 export COMPOSE_FILE=compose.yaml:tunnel/compose.tunnel.yaml SMOKE_URL=http://127.0.0.1/readyz
+# Caddy's Caddyfile is a single-file bind mount, which keeps showing the old
+# file after a checkout replaces it: recreate Caddy when the config changed.
+if ! docker compose --env-file env/stack.env exec -T caddy cat /etc/caddy/Caddyfile | cmp -s - tunnel/Caddyfile; then
+	echo "[update] Caddyfile changed, recreating caddy"
+	docker compose --env-file env/stack.env up -d --no-deps --force-recreate caddy
+fi
 scripts/deploy.sh "skillpouch/api:$SHA"
 echo "$TARGET" > caddy/.deployed
 # Keep the 3 newest API images (live + the previous color for rollback + one

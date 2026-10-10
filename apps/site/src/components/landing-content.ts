@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Copy and data for the landing page, plus the few pure helpers it needs. */
-import type { PlanRecord } from '@/lib/api/types';
 import { formatBytes, plural } from '@/lib/format';
 
 export const INSTALL_COMMAND = 'npm i -g skillpouch';
@@ -79,6 +78,18 @@ export const FAQS: readonly Faq[] = [
 	},
 ];
 
+/** A public plan as `GET /v1/plans` returns it (the `Plan` contract). */
+export interface Plan {
+	slug: string;
+	name: string;
+	description: string;
+	price_cents: number;
+	currency: string;
+	interval: 'month' | 'year' | null;
+	pouch_limit: number;
+	storage_bytes: number;
+}
+
 /** `$3` for whole amounts, `$4.50` otherwise. */
 export function formatPrice(cents: number, currency = 'usd'): string {
 	return new Intl.NumberFormat('en', {
@@ -89,7 +100,7 @@ export function formatPrice(cents: number, currency = 'usd'): string {
 }
 
 /** What a plan includes, as short lines for its pricing card. */
-export function planLines(plan: PlanRecord): string[] {
+export function planLines(plan: Plan): string[] {
 	return [
 		plural(plan.pouch_limit, 'pouch', 'pouches'),
 		`${formatBytes(plan.storage_bytes)} of encrypted storage`,

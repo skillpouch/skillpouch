@@ -1,0 +1,69 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** The document shell: fonts, styles, and what search engines and link previews read. */
+import '@/styles/global.css';
+import '@fontsource-variable/bricolage-grotesque/wght.css';
+import '@/styles/landing.css';
+import bricolage from '@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2?url';
+import hero from '@/assets/landing/hero.webp';
+import logo from '@/assets/logo.svg';
+
+interface Props {
+	title: string;
+	description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL('/', Astro.site).href;
+const ogImage = new URL('/_site/og.jpg', Astro.site).href;
+const structuredData = {
+	'@context': 'https://schema.org',
+	'@type': 'SoftwareApplication',
+	name: 'SkillPouch',
+	url: canonical,
+	description,
+	applicationCategory: 'DeveloperApplication',
+	operatingSystem: 'macOS, Linux, Windows',
+	offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="theme-color" content="#000000" />
+		<meta name="referrer" content="no-referrer" />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<meta name="robots" content="index, follow" />
+		<link rel="canonical" href={canonical} />
+		<link rel="icon" type="image/svg+xml" href={logo.src} />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="SkillPouch" />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:type" content="image/jpeg" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta
+			property="og:image:alt"
+			content="SkillPouch: Your AI coding setup, on every computer."
+		/>
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
+
+		<link rel="preload" as="image" type="image/webp" href={hero.src} fetchpriority="high" />
+		<link rel="preload" as="font" type="font/woff2" href={bricolage} crossorigin />
+		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>

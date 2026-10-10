@@ -1,0 +1,85 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+import { Lock } from 'lucide-react';
+import logo from '@/assets/logo.svg';
+import { AssistantIcon } from './assistant-icon';
+import { FlowCanvas } from './flow-canvas';
+import { ASSISTANTS, FLOW_ASSISTANTS, ITEM_KINDS } from './landing-content';
+
+const HEIGHT = 336;
+const others = ASSISTANTS.filter((assistant) => !FLOW_ASSISTANTS.includes(assistant));
+---
+
+<section id="how" aria-labelledby="how-title" class="scroll-mt-24 px-5 py-24">
+	<div class="mx-auto max-w-[1120px]">
+		<h2
+			id="how-title"
+			class="landing-display max-w-[24ch] text-4xl leading-[1.05] font-semibold sm:text-5xl"
+		>
+			Write it once. Each assistant gets its own format.
+		</h2>
+		<p class="mt-5 max-w-[60ch] text-base leading-relaxed text-muted">
+			Add items in the web app or let the CLI pick up what is already on your computer.
+			SkillPouch writes each one where every assistant you turn on expects it, in the format
+			it reads.
+		</p>
+
+		<div class="mt-14 flex flex-col items-stretch gap-8 md:flex-row md:items-center md:gap-0">
+			<ul class="flex flex-wrap gap-2 md:h-[336px] md:w-44 md:flex-col md:flex-nowrap md:justify-around md:gap-0">
+				{ITEM_KINDS.map((kind) => (
+					<li class="rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-[13px] text-fg md:self-end">
+						{kind}
+					</li>
+				))}
+			</ul>
+
+			<FlowCanvas
+				client:visible={{ rootMargin: '400px' }}
+				count={ITEM_KINDS.length}
+				fan="in"
+				height={HEIGHT}
+				offset={0}
+			/>
+
+			{/* Only the tile takes up room, so the connectors meet at its centre. */}
+			<div class="relative flex flex-col items-center gap-3 self-center">
+				<div class="relative grid size-24 place-items-center rounded-[24px] border border-white/15 bg-[linear-gradient(160deg,rgb(40_26_64),rgb(10_8_16))] shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_0_80px_-10px_var(--landing-glow)]">
+					<img src={logo.src} alt="" class="size-14" width={56} height={56} />
+				</div>
+				<div class="flex flex-col items-center gap-1 md:absolute md:top-full md:mt-3 md:whitespace-nowrap">
+					<p class="text-sm font-medium">Your pouch</p>
+					<p class="flex items-center gap-1.5 text-xs text-meta">
+						<Lock className="size-3" aria-hidden /> encrypted
+					</p>
+				</div>
+			</div>
+
+			<FlowCanvas
+				client:visible={{ rootMargin: '400px' }}
+				count={FLOW_ASSISTANTS.length}
+				fan="out"
+				height={HEIGHT}
+				offset={1.4}
+			/>
+
+			<ul class="flex flex-col gap-2 md:h-[336px] md:w-[330px] md:justify-around md:gap-0">
+				{FLOW_ASSISTANTS.map((assistant) => (
+					<li class="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2">
+						<span class="grid size-7 shrink-0 place-items-center rounded-md bg-white/5 text-fg">
+							<AssistantIcon id={assistant.id} className="size-4" />
+						</span>
+						<span class="min-w-0">
+							<span class="block text-[13px] font-medium">{assistant.name}</span>
+							<span class="block truncate font-mono text-[11px] text-meta">
+								{assistant.path}
+							</span>
+						</span>
+					</li>
+				))}
+			</ul>
+		</div>
+		<p class="mt-8 text-[13px] text-meta md:text-right">
+			Also {others.map((assistant) => assistant.name).join(', ')}.
+		</p>
+	</div>
+</section>
