@@ -38,6 +38,7 @@ import {
 	honestAccount,
 	removeMember,
 	type HonestAccount,
+	type ServedArtifact,
 } from '@/test/evil-server';
 import { fetchBlobs, loadPouchContents } from '../../ingredients/ingredients';
 import { findBrowserMember, openBrowserKeyring } from '../../session/bootstrap';
@@ -509,6 +510,90 @@ describe('revisions', () => {
 		expect(result.ingredients.map((i) => i.id)).toEqual([before.id]);
 		expect(result.unreadable.map((u) => u.id)).toEqual([after.id]);
 		await expectReport('signature_invalid', account.pouchId);
+	});
+});
+
+describe('older versions and missing items', () => {
+	async function contents(browser?: StoredBrowserKey) {
+		const keyring = await openAsBrowser(browser ?? (await thisBrowser()));
+		return loadPouchContents(keyring, account.pouchId);
+	}
+	const names = (result: Awaited<ReturnType<typeof contents>>) =>
+		result.ingredients.map((i) => `${i.name}${i.deleted ? ' (deleted)' : ''}`);
+	const edit = (
+		artifact: ServedArtifact,
+		text: string,
+		options?: Parameters<HonestAccount['server']['editItem']>[5],
+	) => account.server.editItem(account.keyring, account.pouchId, artifact, 'pdf', text, options);
+
+	it('follows honest history: edits, a deliberate restore, a merge, a new browser', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		await contents();
+		const v1 = await edit(pdf, 'v2');
+		await contents();
+		// Restoring version 1 on purpose writes a new revision with the old files.
+		await edit(pdf, 'v1');
+		expect((await contents()).ingredients[0]!.revisionId).toBe(pdf.head!.id);
+		await edit(pdf, 'merged', { mergeParentId: v1.id });
+		const merged = await contents();
+		expect(merged.unreadable).toEqual([]);
+		expect(merged.ingredients[0]!.revisionId).toBe(pdf.head!.id);
+
+		const other = await addMember(account, 'browser');
+		const fresh = await storedBrowser(other.keys, other.id);
+		const elsewhere = await openAsBrowser(fresh);
+		expect((await loadPouchContents(elsewhere, account.pouchId)).unreadable).toEqual([]);
+		expect(account.server.reports).toEqual([]);
+	});
+
+	it('refuses (and reports) an older head replayed in place of the newer one it saw', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		await account.server.putItem(account.keyring, account.pouchId, 'ok', 'fine');
+		await contents();
+		const v1 = await edit(pdf, 'v2');
+		await contents();
+
+		pdf.head = v1;
+		const result = await contents();
+		expect(names(result)).toEqual(['ok']);
+		expect(result.unreadable.map((u) => u.id)).toEqual([pdf.id]);
+		await expectReport('revision_rollback', account.pouchId);
+	});
+
+	it('refuses the old live head of an item it saw deleted', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		await contents();
+		const live = await edit(pdf, 'v1', { deleted: true });
+		expect(names(await contents())).toEqual(['pdf (deleted)']);
+
+		pdf.head = live;
+		pdf.deleted_at = null;
+		const result = await contents();
+		expect(names(result)).toEqual([]);
+		await expectReport('revision_rollback', account.pouchId);
+	});
+
+	it('an item the listing left out may come back as it was, but not older', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const v1 = await edit(pdf, 'v2');
+		await contents();
+		account.server.artifacts = [];
+		expect(names(await contents())).toEqual([]);
+
+		account.server.artifacts = [pdf];
+		expect(names(await contents())).toEqual(['pdf']);
+		account.server.artifacts = [{ ...pdf, head: v1 }];
+		expect(names(await contents())).toEqual([]);
+		await expectReport('revision_rollback', account.pouchId);
+	});
+
+	it('reads a freed deleted item whose pruned parent link is empty', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		await edit(pdf, 'v1', { deleted: true });
+		pdf.head = { ...pdf.head!, parent_id: null, blob_ids: [] };
+		const result = await contents();
+		expect(names(result)).toEqual(['pdf (deleted)']);
+		expect(result.unreadable).toEqual([]);
 	});
 });
 

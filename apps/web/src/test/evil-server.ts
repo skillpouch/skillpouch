@@ -227,49 +227,97 @@ export class EvilServer {
 		text: string,
 		options: { parentId?: string | null; rosterHead?: string } = {},
 	): Promise<ServedArtifact> {
+		const head = await this.sealHead(keyring, pouchId, {
+			artifactId: crypto.randomUUID(),
+			name,
+			text,
+			parentId: options.parentId ?? null,
+			...(options.rosterHead ? { rosterHead: options.rosterHead } : {}),
+		});
+		const artifact: ServedArtifact = {
+			id: head.artifact_id,
+			name_index: b64(randomBytes(32)),
+			deleted_at: null,
+			updated_at: NOW,
+			head,
+		};
+		this.artifacts.push(artifact);
+		return artifact;
+	}
+
+	/**
+	 * Moves an item to a new head on top of its current one, as the API does
+	 * after someone's signed write; returns the head it replaced.
+	 */
+	async editItem(
+		keyring: Keyring,
+		pouchId: string,
+		artifact: ServedArtifact,
+		name: string,
+		text: string,
+		options: { deleted?: boolean; mergeParentId?: string } = {},
+	): Promise<ServedRevision> {
+		const replaced = artifact.head!;
+		artifact.head = await this.sealHead(keyring, pouchId, {
+			artifactId: artifact.id,
+			name,
+			text,
+			parentId: replaced.id,
+			mergeParentId: options.mergeParentId ?? null,
+			deleted: options.deleted ?? false,
+		});
+		artifact.deleted_at = options.deleted ? NOW : null;
+		return replaced;
+	}
+
+	private async sealHead(
+		keyring: Keyring,
+		pouchId: string,
+		of: {
+			artifactId: string;
+			name: string;
+			text: string;
+			parentId: string | null;
+			mergeParentId?: string | null;
+			deleted?: boolean;
+			rosterHead?: string;
+		},
+	): Promise<ServedRevision> {
 		const keys = pouchKeys(keyring, pouchId);
-		const blob = sealBlob(keys, new TextEncoder().encode(text));
+		const blob = sealBlob(keys, new TextEncoder().encode(of.text));
 		const body: RevisionBody = {
 			format: 1,
-			artifact_id: crypto.randomUUID(),
+			artifact_id: of.artifactId,
 			revision_id: crypto.randomUUID(),
-			parent_id: options.parentId ?? null,
-			merge_parent_id: null,
+			parent_id: of.parentId,
+			merge_parent_id: of.mergeParentId ?? null,
 			kind: 'skill',
 			scope: 'global',
-			logical_key: name,
-			deleted: false,
+			logical_key: of.name,
+			deleted: of.deleted ?? false,
 			entries: [{ path: 'SKILL.md', blob: blob.id, size: blob.size, mode: 'file' }],
-			roster_head: options.rosterHead ?? keyring.roster.headHash,
+			roster_head: of.rosterHead ?? keyring.roster.headHash,
 			author_member_id: keyring.member.id,
 			created_at: NOW,
 		};
 		const sealed = await sealRevision(keys, keyring.member.keys, body);
-		const artifact: ServedArtifact = {
-			id: body.artifact_id,
-			name_index: b64(randomBytes(32)),
-			deleted_at: null,
-			updated_at: NOW,
-			head: {
-				id: body.revision_id,
-				artifact_id: body.artifact_id,
-				parent_id: body.parent_id,
-				merge_parent_id: null,
-				envelope: sealed.envelope,
-				envelope_hash: b64(blake3Hash(unb64(sealed.envelope))),
-				signature: sealed.signature,
-				signer_member_id: keyring.member.id,
-				key_gen: sealed.keyGen,
-				stored_size: unb64(sealed.envelope).length,
-				origin: 'web',
-				author_device_id: null,
-				blob_ids: [blob.id],
-				created_at: NOW,
-			},
-		};
 		this.blobs.set(blob.id, blob.bytes);
-		this.artifacts.push(artifact);
-		return artifact;
+		return {
+			id: body.revision_id,
+			artifact_id: body.artifact_id,
+			parent_id: body.parent_id,
+			merge_parent_id: body.merge_parent_id,
+			envelope: sealed.envelope,
+			envelope_hash: b64(blake3Hash(unb64(sealed.envelope))),
+			signature: sealed.signature,
+			signer_member_id: keyring.member.id,
+			key_gen: sealed.keyGen,
+			stored_size: unb64(sealed.envelope).length,
+			origin: 'web',
+			author_device_id: null,
+			blob_ids: [blob.id],
+			created_at: NOW,
+		};
 	}
 }
 
