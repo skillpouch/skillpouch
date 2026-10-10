@@ -12,22 +12,12 @@
 	letter-spacing: -0.035em;
 }
 
-/* Sync diagram: a short bright dash runs along each connector. */
-.landing-flow-dash {
-	stroke-dasharray: 10 120;
-	stroke-dashoffset: 10;
-}
-
 /* The pouch tile where the light beam lands. */
 .landing-halo {
 	background: radial-gradient(closest-side, var(--landing-glow), transparent 75%);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-	.landing-flow-dash {
-		animation: landing-flow 2.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-		animation-delay: var(--delay, 0s);
-	}
 	.landing-halo {
 		animation: landing-breathe 4.8s ease-in-out infinite;
 	}
@@ -36,18 +26,6 @@
 	}
 	.landing-caret {
 		animation: landing-caret 1s steps(1) infinite;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.landing-flow-dash {
-		display: none;
-	}
-}
-
-@keyframes landing-flow {
-	to {
-		stroke-dashoffset: -100;
 	}
 }
 

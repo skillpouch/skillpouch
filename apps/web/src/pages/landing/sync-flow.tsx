@@ -1,57 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { Lock } from 'lucide-react';
-import type { CSSProperties } from 'react';
 import { AssistantIcon } from '@/features/devices/components/assistant-badge';
+import { FlowCanvas } from './flow-canvas';
 import { ASSISTANTS, FLOW_ASSISTANTS, ITEM_KINDS } from './landing-content';
 
 const HEIGHT = 336;
-
-/** Curves from evenly spaced rows on one side to the middle of the other. */
-function Connectors({ count, fan }: { count: number; fan: 'in' | 'out' }) {
-	const rows = Array.from({ length: count }, (_, index) => ((index + 0.5) / count) * HEIGHT);
-	const mid = HEIGHT / 2;
-	return (
-		<svg
-			aria-hidden
-			viewBox={`0 0 100 ${HEIGHT}`}
-			preserveAspectRatio="none"
-			className="hidden h-[336px] min-w-12 flex-1 md:block"
-		>
-			{rows.map((y, index) => {
-				const d =
-					fan === 'in'
-						? `M0 ${y} C55 ${y} 45 ${mid} 100 ${mid}`
-						: `M0 ${mid} C55 ${mid} 45 ${y} 100 ${y}`;
-				return (
-					<g key={index}>
-						<path
-							d={d}
-							fill="none"
-							stroke="rgb(255 255 255 / 0.1)"
-							strokeWidth={1}
-							vectorEffect="non-scaling-stroke"
-						/>
-						<path
-							d={d}
-							fill="none"
-							pathLength={100}
-							stroke="oklch(0.8 0.13 300)"
-							strokeWidth={2}
-							strokeLinecap="round"
-							vectorEffect="non-scaling-stroke"
-							className="landing-flow-dash"
-							style={
-								{
-									'--delay': `${(fan === 'in' ? 0 : 1.4) + index * 0.37}s`,
-								} as CSSProperties
-							}
-						/>
-					</g>
-				);
-			})}
-		</svg>
-	);
-}
 
 export function SyncFlow() {
 	const others = ASSISTANTS.filter((assistant) => !FLOW_ASSISTANTS.includes(assistant));
@@ -82,9 +35,10 @@ export function SyncFlow() {
 						))}
 					</ul>
 
-					<Connectors count={ITEM_KINDS.length} fan="in" />
+					<FlowCanvas count={ITEM_KINDS.length} fan="in" height={HEIGHT} offset={0} />
 
-					<div className="flex flex-col items-center gap-3 self-center">
+					{/* Only the tile takes up room, so the connectors meet at its centre. */}
+					<div className="relative flex flex-col items-center gap-3 self-center">
 						<div className="relative grid size-24 place-items-center rounded-[24px] border border-white/15 bg-[linear-gradient(160deg,rgb(40_26_64),rgb(10_8_16))] shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_0_80px_-10px_var(--landing-glow)]">
 							<img
 								src="/logo.svg"
@@ -94,13 +48,20 @@ export function SyncFlow() {
 								height={56}
 							/>
 						</div>
-						<p className="text-sm font-medium">Your pouch</p>
-						<p className="-mt-2 flex items-center gap-1.5 text-xs text-meta">
-							<Lock className="size-3" aria-hidden /> encrypted
-						</p>
+						<div className="flex flex-col items-center gap-1 md:absolute md:top-full md:mt-3 md:whitespace-nowrap">
+							<p className="text-sm font-medium">Your pouch</p>
+							<p className="flex items-center gap-1.5 text-xs text-meta">
+								<Lock className="size-3" aria-hidden /> encrypted
+							</p>
+						</div>
 					</div>
 
-					<Connectors count={FLOW_ASSISTANTS.length} fan="out" />
+					<FlowCanvas
+						count={FLOW_ASSISTANTS.length}
+						fan="out"
+						height={HEIGHT}
+						offset={1.4}
+					/>
 
 					<ul className="flex flex-col gap-2 md:h-[336px] md:w-[330px] md:justify-around md:gap-0">
 						{FLOW_ASSISTANTS.map((assistant) => (
