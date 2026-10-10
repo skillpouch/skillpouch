@@ -43,7 +43,8 @@ export default defineConfig({
 		},
 		{
 			command: `vite --port ${webPort} --strictPort`,
-			url: baseURL,
+			// Not `/`: it redirects to the site, which only starts after this server.
+			url: `${baseURL}/sign-in`,
 			reuseExistingServer: false,
 			timeout: 120_000,
 			env: {

@@ -25,14 +25,20 @@ function webAppLinks(): Plugin {
 		name: 'skillpouch:web-app-links',
 		apply: 'serve',
 		configureServer(server) {
-			server.middlewares.use((req, res, next) => {
-				// Astro strips the base from `url` before this runs.
-				const url = (req as { originalUrl?: string }).originalUrl ?? req.url ?? '/';
-				if (OWN_PATHS.some((prefix) => url.startsWith(prefix))) return next();
-				res.statusCode = 302;
-				res.setHeader('Location', `${appUrl}${url}`);
-				res.end();
-			});
+			// Astro puts its base handler (a 404 for pages outside `/_site`) at the
+			// front of the stack once set up; this goes in front of it afterwards.
+			return () => {
+				server.middlewares.stack.unshift({
+					route: '',
+					handle: (req, res, next) => {
+						const url = req.url ?? '/';
+						if (OWN_PATHS.some((prefix) => url.startsWith(prefix))) return next();
+						res.statusCode = 302;
+						res.setHeader('Location', `${appUrl}${url}`);
+						res.end();
+					},
+				});
+			};
 		},
 	};
 }

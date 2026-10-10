@@ -11,7 +11,9 @@ test.describe('landing page', () => {
 				name: 'Your AI coding setup, on every computer.',
 			}),
 		).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Copy npm i -g skillpouch' })).toBeVisible();
+		await expect(
+			page.getByRole('button', { name: 'Copy npm i -g skillpouch' }).first(),
+		).toBeVisible();
 		await expect(
 			page.getByRole('heading', { name: 'Free to use. Paid plans add room.' }),
 		).toBeVisible();
@@ -35,11 +37,12 @@ test.describe('landing page', () => {
 		await page.goto('/');
 		const screens = page.getByRole('group', { name: 'Terminal UI screen' });
 		await screens.scrollIntoViewIfNeeded();
-		await screens.getByRole('button', { name: 'Usage' }).click();
-		await expect(screens.getByRole('button', { name: 'Usage' })).toHaveAttribute(
-			'aria-pressed',
-			'true',
-		);
+		const usage = screens.getByRole('button', { name: 'Usage' });
+		// The buttons are pre-rendered; a click before the island hydrates does nothing.
+		await expect(async () => {
+			await usage.click();
+			await expect(usage).toHaveAttribute('aria-pressed', 'true', { timeout: 1_000 });
+		}).toPass();
 		await expect(page.getByAltText(/The terminal UI usage tab/)).toBeVisible();
 	});
 
