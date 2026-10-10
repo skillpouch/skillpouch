@@ -17,14 +17,16 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Linux runners are pinned to ubuntu-24.04: a new `ubuntu-latest` image only
+# arrives on purpose, not under a green build.
 jobs:
   checks:
     name: lint · format · typecheck · contracts drift
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -41,7 +43,7 @@ jobs:
 
   test:
     name: tests (unit · integration · e2e)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
@@ -57,9 +59,9 @@ jobs:
     env:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:55432/postgres
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -70,7 +72,7 @@ jobs:
 
   build:
     name: production build + boot smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [checks]
     services:
       postgres:
@@ -88,9 +90,9 @@ jobs:
       # No SKILLPOUCH_MIGRATIONS_DIR: the bundle must find dist/migrations itself.
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/skillpouch
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -123,12 +125,12 @@ jobs:
 
   web:
     name: web app + site build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [checks]
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -143,7 +145,7 @@ jobs:
           grep -q 'https://app.skillpouch.net/sign-in' apps/site/dist/index.html
           grep -q 'Terms of Service' apps/site/dist/terms/index.html
           grep -q 'Privacy Policy' apps/site/dist/privacy/index.html
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: site
           path: apps/site/dist
@@ -151,14 +153,14 @@ jobs:
 
   changes:
     name: what changed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       site: ${{ steps.filter.outputs.site }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -170,7 +172,7 @@ jobs:
 
   site-deploy:
     name: deploy the site to Cloudflare Pages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [changes, test, build, web]
     # Only when the site (or something it builds from) changed.
     if: >-
@@ -186,12 +188,12 @@ jobs:
       - name: Cloudflare credentials
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
         run: echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID not set; site deploy skipped"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         with:
           name: site
           path: site
-      - uses: cloudflare/wrangler-action@v3
+      - uses: cloudflare/wrangler-action@v4
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
@@ -202,12 +204,12 @@ jobs:
 
   image:
     name: API image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [test, build]
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: deploy/docker/api.Dockerfile
