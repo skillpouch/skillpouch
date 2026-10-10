@@ -196,6 +196,8 @@ jobs:
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          # The first run creates the project; later runs only deploy.
+          preCommands: npx wrangler pages project create skillpouch-site --production-branch=main || true
           command: pages deploy site --project-name=skillpouch-site --branch=main --commit-hash=${{ github.sha }}
 
   image:
