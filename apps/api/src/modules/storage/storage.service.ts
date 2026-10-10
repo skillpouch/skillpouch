@@ -15,7 +15,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
 import { recalcAccountUsage } from '../../jobs/purge';
-import { releaseRevisions } from '../../jobs/retention';
+import { releaseRevisions, releaseTombstoneFiles } from '../../jobs/retention';
 import { rows } from '../../jobs/sql';
 import { appendAudit } from '../../security/audit';
 import { withTenantTx, type TenantTx } from '../../security/tenant-tx';
@@ -160,10 +160,13 @@ export async function storageUsage(tx: TenantTx, storageAccountId: string) {
 
 /**
  * Removes older versions now. Without `artifactIds`: every non-current
- * revision of the pouch (history + trash). With them: every non-current
- * revision of those artifacts, which must already be deleted. Revisions an
- * open conflict pins are always kept. Blobs nothing references any more are
- * deleted right away (no 24 h grace — the user asked for the space back).
+ * revision of the pouch and the files of its deleted items (history +
+ * trash). With them: the same for those artifacts, which must already be
+ * deleted. A deleted item's head revision — its signed delete — always stays,
+ * so a computer that syncs much later still removes its copy instead of
+ * sending it back. Revisions an open conflict pins are always kept. Blobs
+ * nothing references any more are deleted right away (no 24 h grace — the
+ * user asked for the space back).
  */
 export async function freeSpace(
 	deps: Deps,
@@ -201,6 +204,9 @@ export async function freeSpace(
 	const artifactFilter = input.artifactIds
 		? sql`AND r.artifact_id = ANY(${sql.param(input.artifactIds)}::uuid[])`
 		: sql``;
+	const tombstoneFilter = input.artifactIds
+		? sql`AND a.id = ANY(${sql.param(input.artifactIds)}::uuid[])`
+		: sql``;
 	const removedBlobs = await deps.db.maintenance.transaction(async (tx) => {
 		const ids = rows<{ id: string }>(
 			await tx.execute(sql`
@@ -215,7 +221,24 @@ export async function freeSpace(
 					AND NOT EXISTS (SELECT 1 FROM pinned p WHERE p.id = r.id)
 				FOR UPDATE OF r`),
 		).map((row) => row.id);
-		const released = await releaseRevisions(tx, ids);
+		// Deleted items keep their signed delete (the head revision); only its files go.
+		const tombstones = rows<{ id: string }>(
+			await tx.execute(sql`
+				WITH pinned AS (
+					SELECT unnest(ARRAY[base_revision_id, server_revision_id, incoming_revision_id]) AS id
+					FROM conflicts WHERE pouch_id = ${input.pouchId} AND state = 'open'
+				)
+				SELECT a.head_revision_id AS id FROM artifacts a
+				WHERE a.storage_account_id = ${input.storageAccountId} AND a.pouch_id = ${input.pouchId}
+					${tombstoneFilter}
+					AND a.deleted_at IS NOT NULL AND a.head_revision_id IS NOT NULL
+					AND NOT EXISTS (SELECT 1 FROM pinned p WHERE p.id = a.head_revision_id)
+				FOR UPDATE OF a`),
+		).map((row) => row.id);
+		const released = [
+			...(await releaseRevisions(tx, ids)),
+			...(await releaseTombstoneFiles(tx, tombstones)),
+		];
 		const releasedIds = released
 			.filter((row) => row.storage_account_id === input.storageAccountId)
 			.map((row) => row.blob_id);
@@ -243,6 +266,7 @@ export async function freeSpace(
 			target: `pouch:${input.pouchId}`,
 			details: {
 				revisions: ids.length,
+				tombstones: tombstones.length,
 				blobs: removed.length,
 				artifacts: input.artifactIds?.length ?? null,
 			},

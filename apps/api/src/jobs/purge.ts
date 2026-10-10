@@ -14,6 +14,8 @@ type Tx = Parameters<Parameters<Deps['db']['maintenance']['transaction']>[0]>[0]
 
 /** Deletes all data of one pouch (not the roster statements, which are append-only history). */
 async function purgePouchRows(tx: Tx, pouchId: string): Promise<void> {
+	// Items and their signed deletes are kept otherwise (migration 0012).
+	await tx.execute(sql`SELECT set_config('app.purging_pouch', ${pouchId}, true)`);
 	await tx.execute(sql`UPDATE artifacts SET head_revision_id = NULL WHERE pouch_id = ${pouchId}`);
 	for (const table of [
 		'snapshots',

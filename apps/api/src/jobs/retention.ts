@@ -80,6 +80,28 @@ export interface ReleasedBlob {
  */
 export async function releaseRevisions(tx: Tx, ids: string[]): Promise<ReleasedBlob[]> {
 	if (ids.length === 0) return [];
+	const released = await releaseBlobRefs(tx, ids);
+	// Children keep the id of a deleted parent (a dangling link): it is also
+	// inside their signed envelope, and clients refuse a record that disagrees.
+	await tx.execute(
+		sql`UPDATE conflicts SET incoming_revision_id = NULL WHERE state <> 'open' AND incoming_revision_id = ANY(${sql.param(ids)}::uuid[])`,
+	);
+	await tx.execute(sql`DELETE FROM revisions WHERE id = ANY(${sql.param(ids)}::uuid[])`);
+	return released;
+}
+
+/**
+ * Frees the files of deleted items but keeps their head revision: the signed
+ * delete every computer needs to remove its copy, even one that comes back
+ * after months. `ids` are those heads; callers must have excluded revisions
+ * open conflicts pin. Returns blobs that dropped to `ref_count = 0`.
+ */
+export async function releaseTombstoneFiles(tx: Tx, ids: string[]): Promise<ReleasedBlob[]> {
+	if (ids.length === 0) return [];
+	return releaseBlobRefs(tx, ids);
+}
+
+async function releaseBlobRefs(tx: Tx, ids: string[]): Promise<ReleasedBlob[]> {
 	const released = rows<ReleasedBlob>(
 		await tx.execute(sql`
 			WITH released AS (
@@ -96,17 +118,6 @@ export async function releaseRevisions(tx: Tx, ids: string[]): Promise<ReleasedB
 				AND b.pouch_id = counts.pouch_id AND b.blob_id = counts.blob_id
 			RETURNING b.storage_account_id, b.pouch_id, b.blob_id, b.ref_count`),
 	);
-	// Children keep their history readable: a deleted parent becomes a dangling (null) link.
-	await tx.execute(
-		sql`UPDATE revisions SET parent_id = NULL WHERE parent_id = ANY(${sql.param(ids)}::uuid[])`,
-	);
-	await tx.execute(
-		sql`UPDATE revisions SET merge_parent_id = NULL WHERE merge_parent_id = ANY(${sql.param(ids)}::uuid[])`,
-	);
-	await tx.execute(
-		sql`UPDATE conflicts SET incoming_revision_id = NULL WHERE state <> 'open' AND incoming_revision_id = ANY(${sql.param(ids)}::uuid[])`,
-	);
-	await tx.execute(sql`DELETE FROM revisions WHERE id = ANY(${sql.param(ids)}::uuid[])`);
 	return released.filter((row) => Number(row.ref_count) === 0);
 }
 
