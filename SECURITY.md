@@ -15,13 +15,13 @@ Self-hosted instances should run a recent commit of `main`.
 
 ## Reporting a vulnerability
 
-Please report privately, not in a public issue, pull request or Discord.
+Please report privately, not in a public issue, pull request or Discord channel.
 
 1. **Preferred:** GitHub private vulnerability reporting. Open this
    repository's **Security** tab and choose **Report a vulnerability**.
-2. **Or email** [info@skillpouch.net](mailto:info@skillpouch.net) with
-   "Security" in the subject. If you'd like to encrypt the details, say so in
-   a first short message and we'll agree on a way.
+2. **Or** on [Discord](https://discord.gg/u8eEJZEGhc), send a maintainer a
+   direct message saying you have a security report. Keep the details out of
+   public channels; we'll continue privately.
 
 If the issue is in the CLI, you can report it in either repository.
 
