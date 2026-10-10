@@ -50,6 +50,20 @@ jobs:
           REF: ${{ github.event.workflow_run.head_sha || inputs.ref || 'origin/main' }}
         run: |
           if ! [[ "$REF" =~ ^([0-9a-f]{7,40}|origin/main)$ ]]; then echo "bad ref: $REF"; exit 1; fi
+          # Pushes that only touch the site (Cloudflare Pages) or docs leave the
+          # server alone; a manual deploy always runs.
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            deployed=$(cat "$SKILLPOUCH_DIR/deploy/caddy/.deployed" 2>/dev/null || true)
+            git -C "$SKILLPOUCH_DIR" fetch --quiet origin main
+            if [ -n "$deployed" ] && git -C "$SKILLPOUCH_DIR" cat-file -e "$deployed^{commit}" 2>/dev/null; then
+              server_files=$(git -C "$SKILLPOUCH_DIR" diff --name-only "$deployed" "$REF" \
+                | grep -vE '^(apps/site/|branding/)|\.md$' || true)
+              if [ -z "$server_files" ]; then
+                echo "::notice::only site or docs changed since $deployed; server deploy skipped"
+                exit 0
+              fi
+            fi
+          fi
           "$SKILLPOUCH_DIR/deploy/tunnel/update.sh" --ref "$REF"
       - name: Health
         run: curl -fsS http://127.0.0.1/readyz

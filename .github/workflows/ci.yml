@@ -149,11 +149,33 @@ jobs:
           path: apps/site/dist
           retention-days: 7
 
+  changes:
+    name: what changed
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            site:
+              - 'apps/site/**'
+              - 'packages/**'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/ci.yml'
+
   site-deploy:
     name: deploy the site to Cloudflare Pages
     runs-on: ubuntu-latest
-    needs: [test, build, web]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [changes, test, build, web]
+    # Only when the site (or something it builds from) changed.
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.changes.outputs.site == 'true'
     concurrency:
       group: site-deploy
       cancel-in-progress: false
