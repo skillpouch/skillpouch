@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** The admin dashboard: hidden from everyone else, and managing an account from it. */
-import { completeSetup, createAccount, expect, newBrowser, signIn, test } from './fixtures';
+import {
+	PASSWORD,
+	completeSetup,
+	createAccount,
+	expect,
+	newBrowser,
+	signIn,
+	test,
+	unlock,
+} from './fixtures';
 
 const ADMIN = 'e2e-admin@skillpouch.test';
 
@@ -24,7 +33,10 @@ test.describe('admin dashboard', () => {
 		await other.context().close();
 
 		await signIn(page, ADMIN);
-		await completeSetup(page);
+		// One admin address for the whole run: set up the first time, unlocked on a retry.
+		await page.waitForURL(/\/(setup|unlock)/);
+		if (page.url().includes('/setup')) await completeSetup(page);
+		else await unlock(page, PASSWORD);
 		await page.getByRole('button', { name: 'Account menu' }).click();
 		await page.getByRole('menuitem', { name: 'Admin dashboard' }).click();
 		await expect(page).toHaveURL(/\/admin$/);
@@ -34,7 +46,9 @@ test.describe('admin dashboard', () => {
 		await page.getByRole('link', { name: 'Users', exact: true }).click();
 		await page.getByRole('textbox', { name: 'Search users' }).fill(customer.email);
 		await page.getByRole('button', { name: customer.email }).click();
-		await expect(page.getByRole('heading', { name: customer.email })).toBeVisible();
+		// Dev sign-in names an account after its address.
+		const name = customer.email.split('@')[0]!;
+		await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Give a plan' }).click();
 		const dialog = page.getByRole('dialog');
