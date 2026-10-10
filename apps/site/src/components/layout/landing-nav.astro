@@ -14,10 +14,15 @@ const SECTIONS = [
 ];
 ---
 
-<header class="fixed inset-x-0 top-3 z-40 flex justify-center px-3 sm:top-4">
+<header data-landing-nav class="group fixed inset-x-0 top-3 z-40 flex justify-center px-3 sm:top-4">
+	<!-- Once the page scrolls, content fades out before it reaches the pill. -->
+	<div
+		aria-hidden="true"
+		class="pointer-events-none absolute inset-x-0 -top-3 h-28 bg-gradient-to-b from-bg from-50% to-transparent opacity-0 transition-opacity duration-300 group-data-scrolled:opacity-100 sm:-top-4"
+	></div>
 	<nav
 		aria-label="Main"
-		class="flex w-full max-w-[880px] items-center justify-between gap-4 rounded-full border border-white/10 bg-black/60 py-1.5 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-xl"
+		class="relative flex w-full max-w-[880px] items-center justify-between gap-4 rounded-full border border-white/10 bg-black/60 py-1.5 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-xl transition-colors duration-300 group-data-scrolled:bg-black/85"
 	>
 		<a href="/#top" aria-label="SkillPouch home" class="shrink-0">
 			<Logo size={22} />
@@ -36,12 +41,18 @@ const SECTIONS = [
 		</ul>
 		<div class="flex items-center gap-1">
 			<SocialLinks />
-			<ButtonLink href={SIGN_IN_URL} variant="ghost" className="rounded-full">
-				Sign in
-			</ButtonLink>
 			<ButtonLink href={SIGN_IN_URL} variant="primary" className="rounded-full">
 				Get started
 			</ButtonLink>
 		</div>
 	</nav>
 </header>
+
+<script>
+	const header = document.querySelector<HTMLElement>('[data-landing-nav]');
+	if (header) {
+		const update = () => header.toggleAttribute('data-scrolled', window.scrollY > 8);
+		window.addEventListener('scroll', update, { passive: true });
+		update();
+	}
+</script>
