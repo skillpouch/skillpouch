@@ -136,9 +136,26 @@ export function parseRecoveryKey(text: string): RecoveryKey {
 
 // ---- passkey (WebAuthn PRF) ---------------------------------------------------------
 
+/** WebAuthn PRF (CTAP2 `hmac-secret`) outputs are always 32 bytes. */
+export const PRF_OUTPUT_BYTES = 32;
+
 /** The PRF `eval.first` input for a passkey member. */
 export function prfInput(memberSalt: Uint8Array): Uint8Array {
 	return concat('skillpouch/v1/prf', memberSalt);
+}
+
+/**
+ * The `passkey` member's key pair from the PRF output for `prfInput(memberSalt)`.
+ * Anything but a 32-byte output means the authenticator didn't evaluate PRF.
+ */
+export async function passkeyMemberKeys(
+	prfOutput: Uint8Array,
+	memberSalt: Uint8Array,
+): Promise<MemberKeyPair> {
+	if (prfOutput.length !== PRF_OUTPUT_BYTES) {
+		throw new CryptoError('wrong_secret', 'This passkey didn’t return an unlock secret.');
+	}
+	return secretMemberKeys('passkey', prfOutput, memberSalt);
 }
 
 export function newMemberSalt(): Uint8Array {

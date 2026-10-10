@@ -10,7 +10,7 @@ import { jwkThumbprint, type PublicJwk } from './keys';
 import { padmeLength } from './padding';
 import { blobId, buildPouchKeys, nameIndex } from './pouch-keys';
 import { seal } from './sealed';
-import { memberSeed, secretMemberKeys } from './secrets';
+import { memberSeed, passkeyMemberKeys, prfInput, secretMemberKeys } from './secrets';
 
 const fill = (length: number, start: number) =>
 	Uint8Array.from({ length }, (_, i) => (start + i) & 0xff);
@@ -24,6 +24,8 @@ export async function computeVectors() {
 	const secret = fill(64, 7);
 	const salt = fill(16, 200);
 	const member = await secretMemberKeys('password', secret, salt);
+	const prfOutput = fill(32, 150);
+	const passkey = await passkeyMemberKeys(prfOutput, salt);
 	const cliSign: PublicJwk = member.signPub;
 	const cliEnc: PublicJwk = member.encPub;
 
@@ -68,6 +70,14 @@ export async function computeVectors() {
 			sign_pub: member.signPub,
 			enc_pub: member.encPub,
 			sign_jkt: jwkThumbprint(member.signPub),
+		},
+		passkey_seed: {
+			member_salt: b64(salt),
+			prf_input: b64(prfInput(salt)),
+			prf_output: b64(prfOutput),
+			seed: b64(memberSeed('passkey', prfOutput, salt)),
+			sign_pub: passkey.signPub,
+			enc_pub: passkey.encPub,
 		},
 		confirm_code: {
 			request_id: '01920000-0000-7000-8000-00000000c0de',

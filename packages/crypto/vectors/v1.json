@@ -85,6 +85,24 @@
 		},
 		"sign_jkt": "SDVwrsK_aV3PecAO0AuhkMi7APWFRKeZ0OVietvmLDo"
 	},
+	"passkey_seed": {
+		"member_salt": "yMnKy8zNzs_Q0dLT1NXW1w",
+		"prf_input": "c2tpbGxwb3VjaC92MS9wcmbIycrLzM3Oz9DR0tPU1dbX",
+		"prf_output": "lpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq-wsbKztLU",
+		"seed": "-SnIUZTnZOns0dVx50MY20272sjUMz1Acmv8-elPnBs",
+		"sign_pub": {
+			"kty": "EC",
+			"crv": "P-256",
+			"x": "4tWP2xI6Iifrxo_w_6qeuNX3wHVZtEEA_7ktF5zMd7I",
+			"y": "BuKJc9_zlXBZdD2MODwx8sjv4MPFAZmzWPeN-XgAQ30"
+		},
+		"enc_pub": {
+			"kty": "EC",
+			"crv": "P-256",
+			"x": "OrMcsgSzv9WKo9kS7bD-Qty6oQE9o6V8jAsfCNdy0tQ",
+			"y": "OZHlcK4f3xprMcnP4qeEITw8tq3pro_NHY5v9aD0taQ"
+		}
+	},
 	"confirm_code": {
 		"request_id": "01920000-0000-7000-8000-00000000c0de",
 		"code": "4185-4388"

@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { blake3 } from '@noble/hashes/blake3.js';
 import { calculateJwkThumbprint } from 'jose';
 import { describe, expect, it } from 'vitest';
@@ -37,7 +39,17 @@ import {
 	utf8,
 	verify,
 	checkNewPassword,
+	assertMatchesRoster,
+	exact,
+	memberSeed,
+	passkeyMemberKeys,
+	prfInput,
+	unb64,
 } from '../src';
+
+const committedVectors = JSON.parse(
+	readFileSync(join(import.meta.dirname, '..', 'vectors', 'v1.json'), 'utf8'),
+);
 
 const keysFor = (pouchId = '01900000-0000-7000-8000-000000000001') =>
 	buildPouchKeys(pouchId, [{ keyGen: 1, material: newPouchSecrets() }]);
@@ -190,6 +202,54 @@ describe('secrets', () => {
 		const composed = await passwordSecret('ﬁlé-password-12', salt, params, pepper);
 		const decomposed = await passwordSecret('file\u0301-password-12', salt, params, pepper);
 		expect(composed).toEqual(decomposed);
+	});
+
+	it('derives the passkey seed with HKDF-SHA256 exactly as the committed vector says', async () => {
+		const vector = committedVectors.passkey_seed;
+		const salt = unb64(vector.member_salt);
+		const prf = unb64(vector.prf_output);
+		expect(prfInput(salt)).toEqual(unb64(vector.prf_input));
+		expect(new TextDecoder().decode(unb64(vector.prf_input).subarray(0, 17))).toBe(
+			'skillpouch/v1/prf',
+		);
+		// A second, independent HKDF implementation (WebCrypto) must agree.
+		const ikm = await crypto.subtle.importKey('raw', exact(prf), 'HKDF', false, ['deriveBits']);
+		const webCrypto = new Uint8Array(
+			await crypto.subtle.deriveBits(
+				{
+					name: 'HKDF',
+					hash: 'SHA-256',
+					salt: exact(salt),
+					info: exact(utf8('skillpouch/v1/member-seed/passkey')),
+				},
+				ikm,
+				256,
+			),
+		);
+		expect(b64(webCrypto)).toBe(vector.seed);
+		expect(b64(memberSeed('passkey', prf, salt))).toBe(vector.seed);
+		const keys = await passkeyMemberKeys(prf, salt);
+		expect(keys.signPub).toEqual(vector.sign_pub);
+		expect(keys.encPub).toEqual(vector.enc_pub);
+		// Domain separation: the same bytes as a Recovery Key derive another member.
+		expect(memberSeed('recovery', prf, salt)).not.toEqual(webCrypto);
+	});
+
+	it('refuses a PRF output that is not 32 bytes and tells a wrong PRF apart', async () => {
+		const salt = randomBytes(16);
+		await expect(passkeyMemberKeys(randomBytes(16), salt)).rejects.toMatchObject({
+			kind: 'wrong_secret',
+		});
+		await expect(passkeyMemberKeys(new Uint8Array(0), salt)).rejects.toBeInstanceOf(
+			CryptoError,
+		);
+		const prf = randomBytes(32);
+		const keys = await passkeyMemberKeys(prf, salt);
+		expect((await passkeyMemberKeys(prf, salt)).signPub).toEqual(keys.signPub);
+		const wrong = await passkeyMemberKeys(randomBytes(32), salt);
+		expect(() => assertMatchesRoster(wrong, keys.signPub)).toThrow(CryptoError);
+		const otherSalt = await passkeyMemberKeys(prf, randomBytes(16));
+		expect(otherSalt.signPub).not.toEqual(keys.signPub);
 	});
 
 	it('generates and parses 12-word Recovery Keys, tolerant of case and spacing', () => {

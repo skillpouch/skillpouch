@@ -27,6 +27,9 @@ import {
 	openPouchMeta,
 	openRevision,
 	openWelcome,
+	assertMatchesRoster,
+	newMemberSalt,
+	passkeyMemberKeys,
 	passwordSecret,
 	pouchKeys,
 	randomBytes,
@@ -390,6 +393,61 @@ describe('authorize CLI and revoke', () => {
 		await expect(
 			verifyRoster(ctx.server.statements.slice(0, -2), { accountId: ctx.accountId }),
 		).rejects.toThrow(/one password and one recovery/);
+	});
+
+	it('a passkey member opens the same pouch keys from its PRF output — and nothing from a wrong one', async () => {
+		const ctx = await setup();
+		const prf = randomBytes(32);
+		const salt = newMemberSalt();
+		const passkeyId = randomUUID();
+		const added = await buildAddMember(
+			ctx.genesis.keyring,
+			memberEntry(passkeyId, 'passkey', await passkeyMemberKeys(prf, salt), {
+				memberSalt: b64(salt),
+			}),
+		);
+		ctx.server.append([added.statement.input], added.key_envelopes);
+		expect(added.key_envelopes.map((envelope) => envelope.member_id)).toEqual([passkeyId]);
+
+		const roster = await verifyRoster(ctx.server.statements, { accountId: ctx.accountId });
+		const member = roster.members.get(passkeyId)!;
+		expect(member.kind).toBe('passkey');
+		// The browser re-derives from what the server keeps: the salt and the PRF input.
+		const unlocked = await passkeyMemberKeys(prf, unb64(member.memberSalt!));
+		assertMatchesRoster(unlocked, member.signPub);
+		const viaPasskey = await openKeyring(
+			{ id: passkeyId, kind: 'passkey', keys: unlocked },
+			roster,
+			ctx.server.envelopes,
+		);
+		expect(pouchKeys(viaPasskey, ctx.ids.pouch).current).toEqual(
+			pouchKeys(ctx.genesis.keyring, ctx.ids.pouch).current,
+		);
+
+		const wrong = await passkeyMemberKeys(randomBytes(32), unb64(member.memberSalt!));
+		expect(() => assertMatchesRoster(wrong, member.signPub)).toThrow(/does not match/);
+		await expect(
+			openKeyring(
+				{ id: passkeyId, kind: 'passkey', keys: wrong },
+				roster,
+				ctx.server.envelopes,
+			),
+		).rejects.toBeInstanceOf(Error);
+
+		// Removing the passkey rotates every pouch: the old PRF opens nothing newer.
+		const removal = await buildRemoveMember(ctx.genesis.keyring, passkeyId);
+		ctx.server.append(removal.statements, removal.key_envelopes);
+		expect(removal.key_envelopes.some((envelope) => envelope.member_id === passkeyId)).toBe(
+			false,
+		);
+		const after = await verifyRoster(ctx.server.statements, { accountId: ctx.accountId });
+		const stale = await openKeyring(
+			{ id: passkeyId, kind: 'passkey', keys: unlocked },
+			after,
+			ctx.server.envelopes,
+		);
+		expect(pouchKeys(stale, ctx.ids.pouch).current.keyGen).toBe(1);
+		expect(after.pouches.get(ctx.ids.pouch)!.keyGen).toBe(2);
 	});
 
 	it('replaces the Recovery Key the same way', async () => {
