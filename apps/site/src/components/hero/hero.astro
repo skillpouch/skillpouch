@@ -3,7 +3,7 @@
 import hero from '@/assets/landing/hero.webp';
 import tuiOverview from '@/assets/landing/tui-overview.webp';
 import { Code2, Lock, Sparkles } from 'lucide-react';
-import { HeroBeams } from './hero-beams';
+import { HeroScene } from './hero-beams';
 import { InstallCommand } from '@/components/ui/install-command';
 import { ButtonLink } from '@/components/ui/button-link';
 
@@ -29,7 +29,7 @@ const PROOF = [
 		class="absolute inset-0 -z-20 size-full object-cover object-bottom"
 	/>
     -->
-	<HeroBeams client:load />
+	<HeroScene client:load />
 	<div
 		aria-hidden="true"
 		class="absolute inset-x-0 top-0 -z-10 h-2/3 bg-[radial-gradient(ellipse_at_50%_30%,rgb(0_0_0/0.75),transparent_70%)]"
