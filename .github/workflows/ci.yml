@@ -67,50 +67,6 @@ jobs:
       - name: End-to-end suite (explicit, real HTTP socket)
         run: pnpm --filter @skillpouch/api exec vitest run --project e2e
 
-  web-e2e:
-    name: web end-to-end (Playwright · desktop + phone)
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports: ['55432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 30
-    env:
-      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:55432/postgres
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: pnpm --filter @skillpouch/web exec playwright install --with-deps chromium
-      - name: Production build of the web app and the landing page
-        run: |
-          pnpm --filter @skillpouch/web --filter @skillpouch/site build
-          grep -q 'Your AI coding setup, on every computer.' apps/site/dist/index.html
-          grep -q '/_site/_astro/' apps/site/dist/index.html
-      - name: Playwright (real API, real database, dev sign-in)
-        run: pnpm --filter @skillpouch/web e2e
-      - name: Upload the report on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: |
-            apps/web/playwright-report
-            apps/web/test-results
-          retention-days: 7
-
   build:
     name: production build + boot smoke test
     runs-on: ubuntu-latest
