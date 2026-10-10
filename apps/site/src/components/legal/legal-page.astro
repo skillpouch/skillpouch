@@ -1,0 +1,61 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** A readable page for the Terms and the Privacy Policy, inside the site's nav and footer. */
+import LandingFooter from '@/components/layout/landing-footer.astro';
+import LandingNav from '@/components/layout/landing-nav.astro';
+import Page from '@/layouts/page.astro';
+
+interface Props {
+	title: string;
+	description: string;
+	path: string;
+}
+
+const LEGAL_UPDATED = 'October 9, 2026';
+
+const { title, description, path } = Astro.props;
+---
+
+<Page title={`${title} · SkillPouch`} description={description} path={path}>
+	<div class="landing flex min-h-dvh flex-col bg-bg text-fg">
+		<LandingNav />
+		<main class="mx-auto w-full max-w-[680px] flex-1 px-5 pt-32 pb-24 sm:pt-36">
+			<h1 class="landing-display text-4xl leading-[1.05] font-semibold sm:text-5xl">
+				{title}
+			</h1>
+			<p class="mt-4 text-xs text-meta">Last updated {LEGAL_UPDATED}</p>
+			<div class="legal mt-10 flex flex-col gap-8 text-[15px] leading-relaxed text-muted">
+				<slot />
+			</div>
+		</main>
+		<LandingFooter />
+	</div>
+</Page>
+
+<style>
+	.legal :global(h2) {
+		font-size: 1rem;
+		font-weight: 500;
+		color: var(--color-fg);
+	}
+	.legal :global(section) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+	.legal :global(ul) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		padding-left: 1.25rem;
+		list-style: disc;
+	}
+	.legal :global(a) {
+		color: var(--color-fg);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	.legal :global(a:hover) {
+		color: var(--color-accent-text);
+	}
+</style>

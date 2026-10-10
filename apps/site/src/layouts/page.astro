@@ -11,11 +11,14 @@ import logo from '@/assets/logo.svg';
 interface Props {
 	title: string;
 	description: string;
+	/** The page's own path, for the canonical URL. */
+	path?: string;
 }
 
-const { title, description } = Astro.props;
-const canonical = new URL('/', Astro.site).href;
-const ogImage = new URL('/_site/og.jpg', Astro.site).href;
+const { title, description, path = '/' } = Astro.props;
+const home = path === '/';
+const canonical = new URL(path, Astro.site).href;
+const ogImage = new URL('/og.jpg', Astro.site).href;
 const structuredData = {
 	'@context': 'https://schema.org',
 	'@type': 'SoftwareApplication',
@@ -59,9 +62,11 @@ const structuredData = {
 		<meta name="twitter:description" content={description} />
 		<meta name="twitter:image" content={ogImage} />
 
-		<link rel="preload" as="image" type="image/webp" href={hero.src} fetchpriority="high" />
+		{home && (
+			<link rel="preload" as="image" type="image/webp" href={hero.src} fetchpriority="high" />
+		)}
 		<link rel="preload" as="font" type="font/woff2" href={bricolage} crossorigin />
-		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+		{home && <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
 	</head>
 	<body>
 		<slot />

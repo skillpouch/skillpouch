@@ -12,7 +12,7 @@ export const LOGIN_SCRIPT: readonly TerminalLine[] = [
 	{ kind: 'command', text: INSTALL_COMMAND },
 	{ kind: 'command', text: 'skillpouch login' },
 	{ kind: 'output', text: 'Waiting for you to approve laptop', tone: 'meta' },
-	{ kind: 'output', text: 'Opened skillpouch.net/cli/authorize', tone: 'accent' },
+	{ kind: 'output', text: 'Opened app.skillpouch.net/cli/authorize', tone: 'accent' },
 	{ kind: 'output', text: 'Check that it shows 2605 · 3825', tone: 'meta' },
 	{ kind: 'output', text: '✓ Logged in as Ada Lovelace', tone: 'success' },
 	{ kind: 'output', text: 'Supporter plan · this computer is laptop', tone: 'meta' },

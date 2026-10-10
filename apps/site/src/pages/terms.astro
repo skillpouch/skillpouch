@@ -1,0 +1,106 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** The Terms of Service, served at `/terms`. */
+import ContactLink from '@/components/legal/contact-link.astro';
+import LegalPage from '@/components/legal/legal-page.astro';
+---
+
+<LegalPage
+	title="Terms of Service"
+	description="The terms for using SkillPouch, its command-line tool and its API."
+	path="/terms"
+>
+	<p>
+		These terms apply when you use SkillPouch at skillpouch.net, its command-line tool and its
+		API. By creating an account you agree to them.
+	</p>
+
+	<section>
+		<h2>Your account</h2>
+		<p>
+			You sign in with GitHub or Google and are responsible for everything done with your
+			account. Keep your master password and Recovery Key safe: your data is end-to-end
+			encrypted, so if you lose both and have no other trusted device or browser, nobody,
+			including us, can recover it.
+		</p>
+	</section>
+
+	<section>
+		<h2>Your content</h2>
+		<p>
+			You keep all rights to what you sync. You give us only the permission needed to store
+			and deliver it, in encrypted form, to your devices and to the people you share it with.
+			You are responsible for having the right to sync and share it.
+		</p>
+	</section>
+
+	<section>
+		<h2>Acceptable use</h2>
+		<p>Do not use SkillPouch to:</p>
+		<ul>
+			<li>store or share anything illegal, or malware;</li>
+			<li>infringe others’ rights;</li>
+			<li>attack, overload or try to break into the service or other accounts;</li>
+			<li>get around plan limits or resell the service without our permission.</li>
+		</ul>
+		<p>We may suspend accounts that break these rules.</p>
+	</section>
+
+	<section>
+		<h2>Plans and payments</h2>
+		<p>
+			The Free plan costs nothing. Paid plans are sold through Polar, our merchant of record,
+			which handles payment, taxes and invoices. You can cancel at any time; your plan stays
+			active until the end of the paid period. If you move to a smaller plan, nothing is
+			deleted: anything above the new limits becomes read-only.
+		</p>
+	</section>
+
+	<section>
+		<h2>Availability</h2>
+		<p>
+			We work to keep SkillPouch available and your data safe, but the service is provided “as
+			is”, without warranties. Your devices keep their own copies of your files; keep backups
+			of anything important.
+		</p>
+	</section>
+
+	<section>
+		<h2>Liability</h2>
+		<p>
+			To the extent the law allows, we are not liable for indirect or consequential losses, or
+			for loss of data. Our total liability is limited to the amount you paid us in the 12
+			months before the claim.
+		</p>
+	</section>
+
+	<section>
+		<h2>Ending your account</h2>
+		<p>
+			You can delete your account at any time in your account settings. We may end or suspend
+			accounts that break these terms, and will tell you why when we can.
+		</p>
+	</section>
+
+	<section>
+		<h2>Privacy</h2>
+		<p>
+			How we handle personal data is described in the <a href="/privacy">Privacy Policy</a>.
+		</p>
+	</section>
+
+	<section>
+		<h2>Changes</h2>
+		<p>
+			We may update these terms. For significant changes we notify you before they take
+			effect; using SkillPouch afterwards means you accept them.
+		</p>
+	</section>
+
+	<section>
+		<h2>Contact</h2>
+		<p>
+			Questions about these terms: <ContactLink />.
+		</p>
+	</section>
+</LegalPage>

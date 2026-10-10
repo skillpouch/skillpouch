@@ -1,9 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /app
-Disallow: /admin
-Disallow: /s/
-Disallow: /cli/
-Disallow: /v1/
 
 Sitemap: https://skillpouch.net/sitemap.xml

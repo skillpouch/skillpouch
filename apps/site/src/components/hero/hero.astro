@@ -1,5 +1,6 @@
 ---
 // SPDX-License-Identifier: AGPL-3.0-only
+import { SIGN_IN_URL } from '@/lib/links';
 import { Code2, Lock, Sparkles } from 'lucide-react';
 import { HeroScene } from './hero-scene';
 import { InstallCommand } from '@/components/ui/install-command';
@@ -44,7 +45,7 @@ const PROOF = [
 		></div>
 		<figure class="landing-rise shrink-0" aria-label="The SkillPouch mascot">
 			<img
-				src={`${import.meta.env.BASE_URL}/tui/mascot.gif`}
+				src="/tui/mascot.gif"
 				alt="The SkillPouch mascot"
 				width={364}
 				height={336}
@@ -62,7 +63,7 @@ const PROOF = [
 			</p>
 			<div class="landing-rise mt-9 flex flex-col items-center gap-3 [animation-delay:300ms] sm:flex-row">
 				<ButtonLink
-					href="/sign-in"
+					href={SIGN_IN_URL}
 					variant="primary"
 					size="lg"
 					className="h-11 rounded-full px-6 shadow-[0_8px_32px_-8px_var(--landing-glow)] active:scale-[0.98]"

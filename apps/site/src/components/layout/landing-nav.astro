@@ -1,14 +1,16 @@
 ---
 // SPDX-License-Identifier: AGPL-3.0-only
+import { ButtonLink } from '@/components/ui/button-link';
+import { SIGN_IN_URL } from '@/lib/links';
 import Logo from './logo.astro';
-import { SessionActions } from './session-actions';
 import SocialLinks from './social-links.astro';
 
+// Absolute, so they also work from the Terms and Privacy pages.
 const SECTIONS = [
-	{ href: '#how', label: 'How it works' },
-	{ href: '#features', label: 'Features' },
-	{ href: '#pricing', label: 'Pricing' },
-	{ href: '#faq', label: 'FAQ' },
+	{ href: '/#how', label: 'How it works' },
+	{ href: '/#features', label: 'Features' },
+	{ href: '/#pricing', label: 'Pricing' },
+	{ href: '/#faq', label: 'FAQ' },
 ];
 ---
 
@@ -17,7 +19,7 @@ const SECTIONS = [
 		aria-label="Main"
 		class="flex w-full max-w-[880px] items-center justify-between gap-4 rounded-full border border-white/10 bg-black/60 py-1.5 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-xl"
 	>
-		<a href="#top" aria-label="SkillPouch, back to top" class="shrink-0">
+		<a href="/#top" aria-label="SkillPouch home" class="shrink-0">
 			<Logo size={22} />
 		</a>
 		<ul class="hidden items-center gap-1 text-[13px] text-muted md:flex">
@@ -34,7 +36,12 @@ const SECTIONS = [
 		</ul>
 		<div class="flex items-center gap-1">
 			<SocialLinks />
-			<SessionActions client:load />
+			<ButtonLink href={SIGN_IN_URL} variant="ghost" className="rounded-full">
+				Sign in
+			</ButtonLink>
+			<ButtonLink href={SIGN_IN_URL} variant="primary" className="rounded-full">
+				Get started
+			</ButtonLink>
 		</div>
 	</nav>
 </header>

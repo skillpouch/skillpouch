@@ -2,13 +2,14 @@
 import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { PLANS_URL, SIGN_IN_URL } from '@/lib/links';
 import { formatPrice, planLines, type Plan } from '@/components/landing-content';
 import { PlanName, planStyle } from './plan-name';
 import { ButtonLink } from '@/components/ui/button-link';
 
 /** The public plans, read when the page loads so prices are always current. */
 async function loadPlans(): Promise<Plan[]> {
-	const response = await fetch('/v1/plans', { credentials: 'same-origin' });
+	const response = await fetch(PLANS_URL, { credentials: 'omit' });
 	if (!response.ok) throw new Error(`plans: ${response.status}`);
 	const body = (await response.json()) as { data?: { plans?: Plan[] } };
 	return body.data?.plans ?? [];
@@ -47,7 +48,7 @@ function PlanColumn({ plan }: { plan: Plan }) {
 				))}
 			</ul>
 			<ButtonLink
-				href="/sign-in"
+				href={SIGN_IN_URL}
 				variant={paid ? 'outline' : 'primary'}
 				size="lg"
 				className="mt-8 rounded-full active:scale-[0.98]"
@@ -104,7 +105,7 @@ export function Pricing() {
 				) : (
 					<p className="mt-14 text-center text-sm text-muted">
 						Plans could not be loaded right now. You can see them after you{' '}
-						<a href="/sign-in" className="text-fg underline underline-offset-4">
+						<a href={SIGN_IN_URL} className="text-fg underline underline-offset-4">
 							sign in
 						</a>
 						.
