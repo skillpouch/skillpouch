@@ -2,7 +2,7 @@
 /**
  * Share links. The sender encrypts a snapshot of one item with a fresh
  * random key that only travels in the link's fragment
- * (`https://skillpouch.net/s/<id>#<key>`): browsers never send fragments to
+ * (`https://app.skillpouch.net/s/<id>#<key>`): browsers never send fragments to
  * servers, so SkillPouch stores ciphertext it cannot read.
  *
  *   bundle = seal(K_share, { kind, name, files[] }, aad = "skillpouch/v1/share" ‖ share_id)

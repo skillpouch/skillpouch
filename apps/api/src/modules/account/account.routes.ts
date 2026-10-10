@@ -101,7 +101,12 @@ export async function accountRoutes(app: ZodApp, deps: Deps) {
 				response: { 200: z.object({ plans: z.array(Plan) }) },
 			},
 		},
-		async () => {
+		async (_request, reply) => {
+			// The landing page (its own origin) reads prices without credentials.
+			if (!reply.hasHeader('access-control-allow-origin')) {
+				reply.header('access-control-allow-origin', '*');
+				reply.removeHeader('access-control-allow-credentials');
+			}
 			const rows = await deps.db.app
 				.select()
 				.from(plans)

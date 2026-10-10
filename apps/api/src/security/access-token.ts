@@ -30,7 +30,7 @@ export interface AccessTokenClaims {
 	scope: string;
 }
 
-const ISSUER = 'https://skillpouch.net';
+const ISSUER = 'https://app.skillpouch.net';
 const AUDIENCE = 'skillpouch-api';
 
 export class AccessTokens {

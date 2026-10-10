@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Share links. The browser seals one item with a random key that only exists
- * in the link fragment (`https://skillpouch.net/s/<id>#key=…`), so the server
+ * in the link fragment (`https://app.skillpouch.net/s/<id>#key=…`), so the server
  * stores and serves ciphertext it cannot open.
  */
 import { z } from 'zod';

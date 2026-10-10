@@ -31,8 +31,8 @@ const env = loadEnv({
 	IP_HASH_SECRET: throwaway(),
 	PEPPER_KEY: throwaway(),
 	DATABASE_URL: 'postgres://openapi@127.0.0.1:1/openapi',
-	API_PUBLIC_URL: 'https://skillpouch.net',
-	WEB_ORIGIN: 'https://skillpouch.net',
+	API_PUBLIC_URL: 'https://app.skillpouch.net',
+	WEB_ORIGIN: 'https://app.skillpouch.net',
 	SWAGGER: 'false',
 });
 const deps = await createDeps(env, pino({ level: 'silent' }), 'openapi');

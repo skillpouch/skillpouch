@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Envelope, error handling, health, swagger and route registration (06, 17). */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHarness, type Harness } from '../helpers/harness';
+import { createHarness, WEB_ORIGIN, type Harness } from '../helpers/harness';
 
 describe('HTTP foundation', () => {
 	let h: Harness;
@@ -66,6 +66,26 @@ describe('HTTP foundation', () => {
 		expect(Object.keys(doc.paths)).toContain('/v1/pouches');
 		const ui = await h.app.inject({ method: 'GET', url: '/docs/' });
 		expect(ui.statusCode).toBe(200);
+	});
+
+	it('lets any site read the public plans, but nothing else', async () => {
+		const origin = 'https://skillpouch.net';
+		const plans = await h.app.inject({ method: 'GET', url: '/v1/plans', headers: { origin } });
+		expect(plans.statusCode).toBe(200);
+		expect(plans.headers['access-control-allow-origin']).toBe('*');
+		expect(plans.headers['access-control-allow-credentials']).toBeUndefined();
+		const nonce = await h.app.inject({
+			method: 'GET',
+			url: '/v1/dpop/nonce',
+			headers: { origin },
+		});
+		expect(nonce.headers['access-control-allow-origin']).toBeUndefined();
+		const web = await h.app.inject({
+			method: 'GET',
+			url: '/v1/plans',
+			headers: { origin: WEB_ORIGIN },
+		});
+		expect(web.headers['access-control-allow-origin']).toBe(WEB_ORIGIN);
 	});
 
 	it('declares config.auth on every registered route', () => {
