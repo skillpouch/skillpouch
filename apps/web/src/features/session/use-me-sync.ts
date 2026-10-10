@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { Me } from '@/lib/api/types';
-import { patchMe, useUnlocked } from './session-store';
+import { getSession, patchMe, useUnlocked } from './session-store';
 
 /**
  * Two sources write `me`: this query, and the session store (startup and
@@ -28,14 +28,26 @@ export function useMeSync(): void {
 	});
 
 	useEffect(() => {
-		if (client.getQueryData(queryKeys.me) !== me) client.setQueryData(queryKeys.me, me);
+		if (!sameMe(client.getQueryData<Me>(queryKeys.me), me))
+			client.setQueryData(queryKeys.me, me);
 	}, [client, me]);
 
 	const fetched = query.data;
 	const fetchedAt = query.dataUpdatedAt;
 	useEffect(() => {
-		if (fetched) patchMe(fetched);
+		// Only new content goes to the store: the cache hands back its own copy
+		// of what the store just gave it, and writing that back would bounce
+		// between the two forever.
+		const current = getSession();
+		if (fetched && 'me' in current && !sameMe(current.me, fetched)) patchMe(fetched);
 		// Only a new fetch should write to the store, not a store change echoing back.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fetchedAt]);
+}
+
+/** The same account details, whichever object holds them. */
+export function sameMe(a: Me | undefined, b: Me | undefined): boolean {
+	return (
+		a === b || (a !== undefined && b !== undefined && JSON.stringify(a) === JSON.stringify(b))
+	);
 }

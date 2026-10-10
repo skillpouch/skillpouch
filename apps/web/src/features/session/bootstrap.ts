@@ -20,6 +20,7 @@ import {
 } from '@skillpouch/crypto';
 import { api, setDpopKey } from '@/lib/api/client';
 import { isApiError } from '@/lib/api/errors';
+import { queryClient } from '@/lib/query-client';
 import type { KeyEnvelopeRecord, Me } from '@/lib/api/types';
 import {
 	deleteBrowserKey,
@@ -212,4 +213,6 @@ export async function signOut(state: SessionState): Promise<void> {
 		body: '{}',
 	}).catch(() => undefined);
 	setSession({ status: 'signed_out' });
+	// Nothing of this account may show up for the next one to sign in.
+	queryClient.clear();
 }
