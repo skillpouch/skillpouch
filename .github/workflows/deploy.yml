@@ -57,7 +57,7 @@ jobs:
             git -C "$SKILLPOUCH_DIR" fetch --quiet origin main
             if [ -n "$deployed" ] && git -C "$SKILLPOUCH_DIR" cat-file -e "$deployed^{commit}" 2>/dev/null; then
               server_files=$(git -C "$SKILLPOUCH_DIR" diff --name-only "$deployed" "$REF" \
-                | grep -vE '^(apps/site/|branding/|\.github/)|\.md$' || true)
+                | grep -vE '^(apps/(site|docs)/|branding/|\.github/)|\.md$' || true)
               if [ -z "$server_files" ]; then
                 echo "::notice::only site or docs changed since $deployed; server deploy skipped"
                 exit 0
