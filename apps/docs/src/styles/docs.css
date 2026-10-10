@@ -1,0 +1,74 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/*
+ * The site's look (apps/site/src/styles/global.css): pitch black, the
+ * SkillPouch purple, self-hosted Geist. Keep the two in step.
+ */
+
+@font-face {
+	font-family: 'Geist';
+	src: url('@fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Geist Mono';
+	src: url('@fonts/geist-mono/GeistMono-Variable.woff2') format('woff2');
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+:root,
+::backdrop {
+	--sl-font: 'Geist', ui-sans-serif, system-ui, sans-serif;
+	--sl-font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+	--sl-color-white: #ededed;
+	--sl-color-gray-1: #ededed;
+	--sl-color-gray-2: #c7c7c7;
+	--sl-color-gray-3: #888;
+	--sl-color-gray-4: #666;
+	--sl-color-gray-5: #262626;
+	--sl-color-gray-6: #111;
+	--sl-color-black: #000;
+
+	--sl-color-accent-low: color-mix(in oklab, #8442d9 28%, black);
+	--sl-color-accent: #8442d9;
+	--sl-color-accent-high: oklch(0.76 0.14 300);
+
+	--sl-color-bg-nav: #000;
+	--sl-color-bg-sidebar: #000;
+	--sl-color-bg-inline-code: #111;
+	--sl-color-hairline: #1f1f1f;
+	--sl-color-hairline-light: #262626;
+	--sl-color-hairline-shade: #000;
+	--sl-color-backdrop-overlay: rgb(0 0 0 / 0.7);
+}
+
+.site-title {
+	gap: 0.5rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var(--sl-color-white);
+}
+
+.site-title img {
+	height: 1.5rem;
+	width: auto;
+}
+
+::selection {
+	background: color-mix(in oklab, #8442d9 45%, transparent);
+}
+
+/* The accent button on the home page: the site's primary button. */
+.sl-link-button.primary {
+	background: #8442d9;
+	border-color: #8442d9;
+	color: #fff;
+}
+
+.sl-link-button.primary:hover {
+	background: #9254e6;
+	border-color: #9254e6;
+}

@@ -1,0 +1,66 @@
+---
+title: First run
+description: Run skillpouch, sign this computer in through your browser and set it up.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+Run SkillPouch in a terminal:
+
+```sh
+skillpouch
+```
+
+In an interactive terminal this opens the **dashboard**. The first time, it
+signs this computer in and sets it up.
+
+<Steps>
+
+1. **Log in.** Press <kbd>enter</kbd>. SkillPouch creates this computer's
+   keys and opens an approval page in your browser (press <kbd>o</kbd> to
+   open it again). The terminal shows an 8-digit code.
+
+2. **Sign in on the web.** If the browser isn't signed in yet, continue with
+   GitHub or Google. A new account then creates its **master password** and
+   shows its **Recovery Key** (12 words); save both, because SkillPouch can't
+   reset them for you. An existing account unlocks with its master password,
+   a passkey or the Recovery Key.
+
+3. **Authorize the computer.** The page shows the computer's name, system,
+   location and the assistants it found. Type the code from your terminal and
+   choose **Authorize**. Only do this for a `skillpouch login` you started
+   yourself; never authorize a link or code someone sent you.
+
+4. **Choose a pouch and assistants.** Back in the terminal, the dashboard
+   asks which pouch this computer syncs and what to do with what's already
+   on it. See [Choosing a pouch and assistants](/getting-started/choosing/).
+
+5. **Done.** Check the summary and press <kbd>enter</kbd>. From now on the
+   computer syncs on its own in the [background](/cli/background-sync/),
+   also after a restart.
+
+</Steps>
+
+## Without a browser on this computer
+
+On a server or over SSH, either:
+
+- run `skillpouch login --no-browser` and open the printed link on any
+  device where you can sign in, then type the code from the terminal there;
+  or
+- in the web app, open **Account → Devices → Connect CLI**. It shows the
+  install command and a one-time `skillpouch login <token>` command to run on
+  the computer. The token works once and expires after 10 minutes.
+
+Then run `skillpouch` to choose the pouch and assistants.
+
+## The dashboard
+
+Running `skillpouch` again later opens the dashboard with the tabs
+**Overview**, **Pouches**, **Usage**, **Sync**, **Computers** and
+**Account**. The Usage tab shows token counts the CLI reads from local
+Claude Code, Codex and OpenCode logs; it reports counts, not prompt text.
+
+Outside an interactive terminal (a pipe or a script), `skillpouch` prints a
+short summary and the commands to try instead. Every command is in the
+[CLI reference](/cli/).

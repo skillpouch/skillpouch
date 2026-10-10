@@ -1,0 +1,69 @@
+---
+title: Install
+description: Install the SkillPouch CLI with npm, pnpm or bun.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+SkillPouch has two halves: the **CLI** on each computer, which links your
+pouch into every AI assistant it finds, and the **web app** at
+[app.skillpouch.net](https://app.skillpouch.net), where you sign in, manage
+pouches and edit items.
+
+## Install the CLI
+
+The `skillpouch` package installs a native program for your system. It needs
+Node.js 18 or newer for the installer.
+
+<Tabs syncKey="pkg">
+	<TabItem label="npm">
+
+```sh
+npm i -g skillpouch
+```
+
+    </TabItem>
+    <TabItem label="pnpm">
+
+```sh
+pnpm add -g skillpouch
+```
+
+    </TabItem>
+    <TabItem label="bun">
+
+```sh
+bun add -g skillpouch
+```
+
+    </TabItem>
+
+</Tabs>
+
+Builds are published for:
+
+| System  | Architectures              |
+| ------- | -------------------------- |
+| Linux   | x64, arm64                 |
+| macOS   | Intel (x64), Apple silicon |
+| Windows | x64, arm64                 |
+
+SkillPouch keeps itself up to date with the same package manager you
+installed it with; see [Updates](/cli/updates/).
+
+## Check it
+
+```sh
+skillpouch --version
+```
+
+## Next
+
+Run `skillpouch` to [sign in and set this computer up](/getting-started/first-run/).
+
+:::tip[Build from source]
+The CLI is open source. To build it yourself, clone
+[skillpouch-cli](https://github.com/skillpouch/skillpouch-cli) and run
+`cargo build --workspace` with a Rust toolchain from rustup. Builds from
+source never update themselves.
+:::

@@ -1,0 +1,43 @@
+---
+title: SkillPouch documentation
+description: Sync your AI assistant skills, agents, MCP servers and instructions across every computer, end-to-end encrypted.
+template: splash
+hero:
+    tagline: Your AI coding setup, on every computer. Skills, agents, commands, MCP servers and instructions, synced between your assistants and end-to-end encrypted.
+    image:
+        file: ../../assets/logo.svg
+    actions:
+        - text: Get started
+          link: /getting-started/install/
+          icon: right-arrow
+          variant: primary
+        - text: Open the web app
+          link: https://app.skillpouch.net
+          icon: external
+          variant: minimal
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<CardGrid>
+	<LinkCard
+		title="Install the CLI"
+		href="/getting-started/install/"
+		description="npm, pnpm or bun, then run skillpouch."
+	/>
+	<LinkCard
+		title="Supported assistants"
+		href="/assistants/"
+		description="Claude Code, Codex, OpenCode, Gemini CLI, Antigravity and more: what syncs where."
+	/>
+	<LinkCard
+		title="CLI reference"
+		href="/cli/"
+		description="Every command, configuration, updates and the background sync."
+	/>
+	<LinkCard
+		title="Web app guides"
+		href="/web/pouches/"
+		description="Pouches and items, conflicts, and connected computers."
+	/>
+</CardGrid>

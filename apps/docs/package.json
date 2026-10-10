@@ -1,0 +1,28 @@
+{
+	"name": "@skillpouch/docs",
+	"private": true,
+	"version": "0.1.0",
+	"description": "SkillPouch documentation: guides, CLI and API reference, served at docs.skillpouch.net.",
+	"license": "AGPL-3.0-only",
+	"type": "module",
+	"scripts": {
+		"dev": "node scripts/gen-errors.mjs && astro dev",
+		"build": "node scripts/gen-errors.mjs && astro build",
+		"preview": "astro preview",
+		"typecheck": "node scripts/gen-errors.mjs && astro check",
+		"test": "vitest run",
+		"test:unit": "vitest run",
+		"gen:cli": "node scripts/gen-cli.mjs",
+		"gen:errors": "node scripts/gen-errors.mjs"
+	},
+	"dependencies": {
+		"@astrojs/starlight": "^0.42.6",
+		"astro": "^7.3.8",
+		"geist": "^1.7.2",
+		"sharp": "^0.35.5",
+		"starlight-openapi": "^0.27.0"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.10"
+	}
+}

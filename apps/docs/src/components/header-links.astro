@@ -1,0 +1,37 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** The header's links to the site and the web app, then the social icons. */
+import SocialIcons from '@astrojs/starlight/components/SocialIcons.astro';
+
+const LINKS = [
+	{ href: 'https://skillpouch.net', label: 'Website' },
+	{ href: 'https://app.skillpouch.net', label: 'Web app' },
+];
+---
+
+<nav aria-label="SkillPouch" class="header-links sl-flex">
+	{LINKS.map((link) => (
+		<a href={link.href}>{link.label}</a>
+	))}
+</nav>
+<SocialIcons />
+
+<style>
+	.header-links {
+		gap: 1.25rem;
+		margin-inline-end: 0.75rem;
+		font-size: var(--sl-text-sm);
+	}
+	.header-links a {
+		color: var(--sl-color-gray-2);
+		text-decoration: none;
+	}
+	.header-links a:hover {
+		color: var(--sl-color-white);
+	}
+	@media (max-width: 72rem) {
+		.header-links {
+			display: none;
+		}
+	}
+</style>
