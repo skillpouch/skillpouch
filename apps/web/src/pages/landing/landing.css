@@ -1,0 +1,71 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Landing page only: the display face and the few looping effects. */
+
+.landing {
+	--landing-display: 'Bricolage Grotesque Variable', var(--font-sans);
+	--landing-glow: color-mix(in oklab, #8442d9 55%, transparent);
+}
+
+.landing-display {
+	font-family: var(--landing-display);
+	font-optical-sizing: auto;
+	letter-spacing: -0.035em;
+}
+
+/* Sync diagram: a short bright dash runs along each connector. */
+.landing-flow-dash {
+	stroke-dasharray: 10 120;
+	stroke-dashoffset: 10;
+}
+
+/* The pouch tile where the light beam lands. */
+.landing-halo {
+	background: radial-gradient(closest-side, var(--landing-glow), transparent 75%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.landing-flow-dash {
+		animation: landing-flow 2.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+		animation-delay: var(--delay, 0s);
+	}
+	.landing-halo {
+		animation: landing-breathe 4.8s ease-in-out infinite;
+	}
+	.landing-float {
+		animation: landing-float 6s ease-in-out infinite;
+	}
+	.landing-caret {
+		animation: landing-caret 1s steps(1) infinite;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.landing-flow-dash {
+		display: none;
+	}
+}
+
+@keyframes landing-flow {
+	to {
+		stroke-dashoffset: -100;
+	}
+}
+
+@keyframes landing-breathe {
+	50% {
+		opacity: 0.55;
+		transform: scale(0.9);
+	}
+}
+
+@keyframes landing-float {
+	50% {
+		transform: translateY(-6px);
+	}
+}
+
+@keyframes landing-caret {
+	50% {
+		opacity: 0;
+	}
+}

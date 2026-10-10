@@ -13,10 +13,8 @@ import {
 } from './fixtures';
 
 test.describe('signed out', () => {
-	test('the app root and dashboard pages send you to sign-in, keeping where you were going', async ({
-		page,
-	}) => {
-		await page.goto('/');
+	test('dashboard pages send you to sign-in, keeping where you were going', async ({ page }) => {
+		await page.goto('/app');
 		await expect(page).toHaveURL(/\/sign-in/);
 		await page.goto('/app/account/devices');
 		await expect(page).toHaveURL(/\/sign-in\?redirect=%2Fapp%2Faccount%2Fdevices/);
