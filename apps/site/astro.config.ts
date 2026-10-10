@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
-import type { Plugin } from 'vite';
+import type { Connect, Plugin } from 'vite';
 
 const apiTarget = process.env.SKILLPOUCH_API_URL ?? 'http://localhost:8080';
 const appUrl = process.env.SKILLPOUCH_APP_URL ?? 'http://localhost:5173';
@@ -28,16 +28,14 @@ function webAppLinks(): Plugin {
 			// Astro puts its base handler (a 404 for pages outside `/_site`) at the
 			// front of the stack once set up; this goes in front of it afterwards.
 			return () => {
-				server.middlewares.stack.unshift({
-					route: '',
-					handle: (req, res, next) => {
-						const url = req.url ?? '/';
-						if (OWN_PATHS.some((prefix) => url.startsWith(prefix))) return next();
-						res.statusCode = 302;
-						res.setHeader('Location', `${appUrl}${url}`);
-						res.end();
-					},
-				});
+				const handle: Connect.NextHandleFunction = (req, res, next) => {
+					const url = req.url ?? '/';
+					if (OWN_PATHS.some((prefix) => url.startsWith(prefix))) return next();
+					res.statusCode = 302;
+					res.setHeader('Location', `${appUrl}${url}`);
+					res.end();
+				};
+				server.middlewares.stack.unshift({ route: '', handle });
 			};
 		},
 	};
