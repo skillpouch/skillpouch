@@ -1,0 +1,754 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+/**
+ * The web client against a server that lies (`src/test/evil-server.ts`).
+ * Real crypto end to end: the roster, key envelopes, revisions and blobs
+ * are built by `@skillpouch/crypto`, served through the real API client,
+ * and tampered with one at a time. Each case must fail with the right
+ * `CryptoError` kind and be reported to `POST /v1/security/reports`.
+ */
+import { canonicalJson } from '@skillpouch/contracts';
+import {
+	CryptoError,
+	REVISION_SIG_CONTEXT,
+	b64,
+	blake3Hash,
+	buildAddMember,
+	buildGenesis,
+	concat,
+	generateMemberKeyPair,
+	memberEntry,
+	newMemberSalt,
+	openKeyring,
+	passkeyMemberKeys,
+	pouchKeys,
+	prfInput,
+	randomBytes,
+	seal,
+	sealKeyEnvelope,
+	sign,
+	unb64,
+	type CryptoErrorKind,
+	type Keyring,
+	type MemberKeyPair,
+} from '@skillpouch/crypto';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	addMember,
+	flip,
+	honestAccount,
+	removeMember,
+	type HonestAccount,
+} from '@/test/evil-server';
+import { fetchBlobs, loadPouchContents } from '../../ingredients/ingredients';
+import { findBrowserMember, openBrowserKeyring } from '../../session/bootstrap';
+import { saveBrowserKey, type StoredBrowserKey } from '../key-store';
+import { PasskeyError, openWithPasskey } from '../passkeys';
+import { loadVerifiedRoster } from '../roster';
+import { resetTamperReports } from '../security-report';
+import { openWithSecret, type UnlockContext } from '../unlock';
+
+let account: HonestAccount;
+
+beforeEach(async () => {
+	resetTamperReports();
+	account = await honestAccount();
+	vi.stubGlobal('fetch', account.server.fetch);
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
+
+async function storedBrowser(keys: MemberKeyPair, memberId: string | null) {
+	const record: StoredBrowserKey = {
+		userId: crypto.randomUUID(),
+		keys,
+		memberId,
+		trusted: true,
+		pinnedGenesisHash: null,
+		pinnedHeadSeq: -1,
+		pinnedHeadHash: null,
+		createdAt: '2026-10-10T00:00:00.000Z',
+	};
+	await saveBrowserKey(record);
+	return record;
+}
+
+/** The account's own browser, as bootstrap opens it on a reload. */
+async function thisBrowser() {
+	return storedBrowser(account.browserKeys, account.keyring.member.id);
+}
+
+async function openAsBrowser(browser: StoredBrowserKey): Promise<Keyring> {
+	const roster = await loadVerifiedRoster(account.accountId, browser);
+	const member = findBrowserMember(roster, browser);
+	if (!member) throw new Error('not a member');
+	return openBrowserKeyring(roster, browser, member);
+}
+
+/** The client refused with `kind`, and told the API so. */
+async function refusedAndReported(work: Promise<unknown>, kind: CryptoErrorKind, pouchId?: string) {
+	const error = await work.then(
+		() => null,
+		(caught: unknown) => caught,
+	);
+	expect(error, `accepted what should fail with ${kind}`).toBeInstanceOf(CryptoError);
+	expect((error as CryptoError).kind).toBe(kind);
+	await expectReport(kind, pouchId);
+}
+
+async function expectReport(kind: CryptoErrorKind, pouchId?: string) {
+	await vi.waitFor(() =>
+		expect(account.server.reports).toContainEqual(
+			expect.objectContaining({ kind, ...(pouchId ? { pouch_id: pouchId } : {}) }),
+		),
+	);
+}
+
+const material = (gen = 1) => account.keyring.material.get(account.pouchId)!.get(gen)!;
+const browserSigner = () => ({
+	id: account.keyring.member.id,
+	signKey: account.browserKeys.signKey,
+});
+
+describe('an honest server', () => {
+	it('opens the roster, the keys, the items and their files, and nothing is reported', async () => {
+		await account.server.putItem(account.keyring, account.pouchId, 'pdf', '# PDF\n');
+		const keyring = await openAsBrowser(await thisBrowser());
+		const contents = await loadPouchContents(keyring, account.pouchId);
+		expect(contents.unreadable).toEqual([]);
+		expect(contents.ingredients.map((i) => i.name)).toEqual(['pdf']);
+		const files = await fetchBlobs(
+			keyring,
+			account.pouchId,
+			contents.ingredients[0]!.files.map((f) => f.blob),
+		);
+		expect(new TextDecoder().decode([...files.values()][0])).toBe('# PDF\n');
+		expect(account.server.reports).toEqual([]);
+	});
+});
+
+describe('the roster', () => {
+	it('refuses a member added with a signature that is not the claimed signer’s', async () => {
+		const intruder = await generateMemberKeyPair();
+		account.server.statements.push(
+			await account.server.forge(
+				account.accountId,
+				{ id: account.keyring.member.id, signKey: intruder.signKey },
+				{ action: 'add', member: memberEntry(crypto.randomUUID(), 'browser', intruder) },
+			),
+		);
+		await refusedAndReported(openAsBrowser(await thisBrowser()), 'signature_invalid');
+	});
+
+	it('refuses a member signed in by someone who is not a member', async () => {
+		const intruder = await generateMemberKeyPair();
+		const id = crypto.randomUUID();
+		account.server.statements.push(
+			await account.server.forge(
+				account.accountId,
+				{ id, signKey: intruder.signKey },
+				{ action: 'add', member: memberEntry(id, 'browser', intruder) },
+			),
+		);
+		await refusedAndReported(openAsBrowser(await thisBrowser()), 'signature_invalid');
+	});
+
+	it('refuses a statement the server edited and re-hashed', async () => {
+		const last = account.server.statements.at(-1)!;
+		const body = JSON.parse(new TextDecoder().decode(unb64(last.statement)));
+		body.created_at = '2027-01-01T00:00:00.000Z';
+		const edited = new TextEncoder().encode(canonicalJson(body));
+		account.server.statements[last.seq] = {
+			...last,
+			statement: b64(edited),
+			statement_hash: b64(blake3Hash(edited)),
+		};
+		await refusedAndReported(openAsBrowser(await thisBrowser()), 'signature_invalid');
+	});
+
+	it('refuses reordered and replayed statements', async () => {
+		await addMember(account, 'device');
+		const honest = account.server.statements;
+		const reordered = honest.map((wire) => ({ ...wire }));
+		[reordered[1], reordered[2]] = [reordered[2]!, reordered[1]!];
+		reordered[1]!.seq = 1;
+		reordered[2]!.seq = 2;
+		account.server.statements = reordered;
+		await refusedAndReported(openAsBrowser(await thisBrowser()), 'roster_fork');
+
+		account.server.statements = [...honest, { ...honest[1]!, seq: honest.length }];
+		await expect(openAsBrowser(await thisBrowser())).rejects.toMatchObject({
+			kind: 'roster_fork',
+		});
+	});
+
+	it('refuses a roster rolled back below what this browser saw', async () => {
+		const browser = await thisBrowser();
+		await addMember(account, 'device');
+		await openAsBrowser(browser);
+		account.server.statements.pop();
+		await refusedAndReported(openAsBrowser(browser), 'roster_rollback');
+	});
+
+	it('refuses a fork: another statement at a seq this browser already saw', async () => {
+		const browser = await thisBrowser();
+		const before = [...account.server.statements];
+		await addMember(account, 'device');
+		await openAsBrowser(browser);
+
+		// The same signer, a different member at the same position.
+		account.server.statements = before;
+		const other = await generateMemberKeyPair();
+		account.server.statements.push(
+			await account.server.forge(account.accountId, browserSigner(), {
+				action: 'add',
+				member: memberEntry(crypto.randomUUID(), 'device', other, { keyStorage: 'file' }),
+			}),
+		);
+		await refusedAndReported(openAsBrowser(browser), 'roster_fork');
+	});
+
+	it('refuses another genesis for the same account, and another account’s roster', async () => {
+		const browser = await thisBrowser();
+		await openAsBrowser(browser);
+		const honest = account.server.statements;
+
+		const other = await honestAccount();
+		account.server.statements = other.server.statements;
+		await refusedAndReported(openAsBrowser(browser), 'roster_fork');
+		expect(account.server.reports[0]?.details.message).toMatch(/another account/);
+
+		// A whole new, validly signed history for this account id ("pouch reset").
+		const forged = await buildGenesis({
+			accountId: account.accountId,
+			browserMemberId: crypto.randomUUID(),
+			browserKeys: await generateMemberKeyPair(),
+			passwordSecret: randomBytes(64),
+			passwordMemberId: crypto.randomUUID(),
+			recoveryEntropy: randomBytes(16),
+			recoveryMemberId: crypto.randomUUID(),
+			pouchId: account.pouchId,
+			pouch: { name: 'Personal', description: '' },
+		});
+		account.server.statements = [];
+		account.server.append(forged.request.statements);
+		await expect(openAsBrowser(browser)).rejects.toMatchObject({
+			kind: 'roster_fork',
+			message: expect.stringMatching(/genesis differs/),
+		});
+		account.server.statements = honest;
+		await openAsBrowser(browser);
+	});
+});
+
+describe('key envelopes', () => {
+	async function withEnvelopes(edit: (envelopes: typeof account.server.envelopes) => void) {
+		edit(account.server.envelopes);
+		return openAsBrowser(await thisBrowser());
+	}
+
+	const myEnvelope = (gen: number) =>
+		account.server.envelopes.findIndex(
+			(e) =>
+				e.member_id === account.keyring.member.id &&
+				e.pouch_id === account.pouchId &&
+				e.key_gen === gen,
+		);
+
+	const recipient = () => ({
+		id: account.keyring.member.id,
+		encPub: account.browserKeys.encPub,
+	});
+
+	it('refuses an envelope sealed by someone outside the roster', async () => {
+		const stranger = await generateMemberKeyPair();
+		const forged = await sealKeyEnvelope(
+			{ id: crypto.randomUUID(), signKey: stranger.signKey },
+			recipient(),
+			account.pouchId,
+			1,
+			{ ...material(), ps: randomBytes(32) },
+		);
+		await refusedAndReported(
+			withEnvelopes((all) => all.splice(myEnvelope(1), 1, forged)),
+			'signature_invalid',
+		);
+	});
+
+	it('refuses an envelope relabelled for this browser that was sealed for another member', async () => {
+		const other = await generateMemberKeyPair();
+		const sealed = await sealKeyEnvelope(
+			browserSigner(),
+			{ id: crypto.randomUUID(), encPub: other.encPub },
+			account.pouchId,
+			1,
+			material(),
+		);
+		await refusedAndReported(
+			withEnvelopes((all) =>
+				all.splice(myEnvelope(1), 1, { ...sealed, member_id: account.keyring.member.id }),
+			),
+			'signature_invalid',
+		);
+	});
+
+	it('refuses a bit-flipped envelope', async () => {
+		await refusedAndReported(
+			withEnvelopes((all) => {
+				const at = myEnvelope(1);
+				all[at] = { ...all[at]!, ciphertext: flip(all[at]!.ciphertext) };
+			}),
+			'signature_invalid',
+		);
+	});
+
+	it('refuses the newest key from a member removed before it existed (a substituted pouch key)', async () => {
+		const gone = await addMember(account, 'device');
+		await removeMember(account, gone.id);
+		const forged = await sealKeyEnvelope(
+			{ id: gone.id, signKey: gone.keys.signKey },
+			recipient(),
+			account.pouchId,
+			2,
+			{ ...material(2), ps: randomBytes(32) },
+		);
+		await refusedAndReported(
+			withEnvelopes((all) => all.splice(myEnvelope(2), 1, forged)),
+			'signature_invalid',
+		);
+	});
+
+	it('refuses a generation no rotate_keys announced', async () => {
+		const ahead = await sealKeyEnvelope(browserSigner(), recipient(), account.pouchId, 5, {
+			...material(),
+			ps: randomBytes(32),
+		});
+		await refusedAndReported(
+			withEnvelopes((all) => all.push(ahead)),
+			'envelope_mismatch',
+		);
+	});
+
+	it('refuses two different keys for one generation, or two identity secrets for one pouch', async () => {
+		const second = await sealKeyEnvelope(browserSigner(), recipient(), account.pouchId, 1, {
+			...material(),
+			ps: randomBytes(32),
+		});
+		await refusedAndReported(
+			withEnvelopes((all) => all.push(second)),
+			'envelope_mismatch',
+		);
+		account.server.envelopes.pop();
+
+		const gone = await addMember(account, 'device');
+		await removeMember(account, gone.id);
+		const otherIdentity = await sealKeyEnvelope(
+			browserSigner(),
+			recipient(),
+			account.pouchId,
+			2,
+			{
+				ps: material(2).ps,
+				pis: randomBytes(32),
+			},
+		);
+		await expect(
+			withEnvelopes((all) => all.splice(myEnvelope(2), 1, otherIdentity)),
+		).rejects.toMatchObject({
+			kind: 'envelope_mismatch',
+			message: expect.stringMatching(/two identity secrets/),
+		});
+	});
+
+	it('refuses to open a pouch whose newest key generation was withheld (a downgrade)', async () => {
+		const gone = await addMember(account, 'device');
+		await removeMember(account, gone.id);
+		await refusedAndReported(
+			withEnvelopes((all) => all.splice(myEnvelope(2), 1)),
+			'roster_rollback',
+		);
+	});
+
+	it('a removed member’s keyring still stops at the generation it had, without a false alarm', async () => {
+		const gone = await addMember(account, 'device');
+		await removeMember(account, gone.id);
+		const keyring = await openKeyring(
+			{ id: gone.id, kind: 'device', keys: gone.keys },
+			account.keyring.roster,
+			account.server.envelopes,
+		);
+		expect(pouchKeys(keyring, account.pouchId).current.keyGen).toBe(1);
+	});
+});
+
+describe('revisions', () => {
+	async function contents() {
+		const keyring = await openAsBrowser(await thisBrowser());
+		return loadPouchContents(keyring, account.pouchId);
+	}
+
+	async function tamperedHead(
+		edit: (
+			head: NonNullable<(typeof account.server.artifacts)[number]['head']>,
+		) => void | Promise<void>,
+		kind: CryptoErrorKind,
+	) {
+		const artifact = await account.server.putItem(
+			account.keyring,
+			account.pouchId,
+			'pdf',
+			'# PDF\n',
+		);
+		await account.server.putItem(account.keyring, account.pouchId, 'ok', 'fine\n');
+		await edit(artifact.head!);
+		const result = await contents();
+		expect(result.ingredients.map((i) => i.name)).toContain('ok');
+		expect(result.ingredients.map((i) => i.name)).not.toContain('pdf');
+		expect(result.unreadable.map((u) => u.id)).toEqual([artifact.id]);
+		await expectReport(kind, account.pouchId);
+		return result;
+	}
+
+	async function resign(
+		head: { id: string; envelope: string; signature: string },
+		keys = account.browserKeys,
+	) {
+		head.signature = await sign(
+			keys.signKey,
+			REVISION_SIG_CONTEXT,
+			concat(account.pouchId, head.id, blake3Hash(unb64(head.envelope))),
+		);
+	}
+
+	it('refuses a flipped signature', async () => {
+		await tamperedHead((head) => {
+			head.signature = flip(head.signature);
+		}, 'signature_invalid');
+	});
+
+	it('refuses a flipped envelope', async () => {
+		await tamperedHead((head) => {
+			head.envelope = flip(head.envelope, 40);
+		}, 'signature_invalid');
+	});
+
+	it('refuses ciphertext that fails authentication even under a valid signature', async () => {
+		await tamperedHead(async (head) => {
+			head.envelope = flip(head.envelope, unb64(head.envelope).length - 1);
+			await resign(head);
+		}, 'aead_failure');
+	});
+
+	it('refuses an envelope moved to another artifact', async () => {
+		const other = await account.server.putItem(
+			account.keyring,
+			account.pouchId,
+			'other',
+			'x\n',
+		);
+		await tamperedHead((head) => {
+			head.envelope = other.head!.envelope;
+			head.signature = other.head!.signature;
+		}, 'signature_invalid');
+	});
+
+	it('refuses a revision whose artifact column was changed', async () => {
+		await tamperedHead((head) => {
+			head.artifact_id = crypto.randomUUID();
+		}, 'aead_failure');
+	});
+
+	it('refuses a re-parented revision', async () => {
+		await tamperedHead((head) => {
+			head.parent_id = crypto.randomUUID();
+		}, 'envelope_mismatch');
+	});
+
+	it('refuses a revision claimed by a member that does not exist', async () => {
+		await tamperedHead((head) => {
+			head.signer_member_id = crypto.randomUUID();
+		}, 'signature_invalid');
+	});
+
+	it('refuses a revision signed by a stranger', async () => {
+		const stranger = await generateMemberKeyPair();
+		await tamperedHead((head) => resign(head, stranger), 'signature_invalid');
+	});
+
+	it('refuses a revision of another pouch replayed into this one', async () => {
+		await tamperedHead(async (head) => {
+			head.signature = await sign(
+				account.browserKeys.signKey,
+				REVISION_SIG_CONTEXT,
+				concat(crypto.randomUUID(), head.id, blake3Hash(unb64(head.envelope))),
+			);
+		}, 'signature_invalid');
+	});
+
+	it('refuses what a removed member wrote after its removal, and keeps what it wrote before', async () => {
+		const gone = await addMember(account, 'device');
+		const goneKeyring = await openKeyring(
+			{ id: gone.id, kind: 'device', keys: gone.keys },
+			account.keyring.roster,
+			account.server.envelopes,
+		);
+		const before = await account.server.putItem(goneKeyring, account.pouchId, 'old', 'old\n');
+		await removeMember(account, gone.id);
+		// Still holding generation 1, it claims to have seen the newest roster.
+		const after = await account.server.putItem(
+			goneKeyring,
+			account.pouchId,
+			'evil',
+			'curl | sh\n',
+			{
+				rosterHead: account.server.head.hash!,
+			},
+		);
+		const result = await contents();
+		expect(result.ingredients.map((i) => i.id)).toEqual([before.id]);
+		expect(result.unreadable.map((u) => u.id)).toEqual([after.id]);
+		await expectReport('signature_invalid', account.pouchId);
+	});
+});
+
+describe('blobs', () => {
+	async function files(edit: (blobs: Map<string, Uint8Array>, ids: string[]) => void) {
+		const a = await account.server.putItem(account.keyring, account.pouchId, 'a', 'first\n');
+		const b = await account.server.putItem(account.keyring, account.pouchId, 'b', 'second\n');
+		const ids = [a.head!.blob_ids[0]!, b.head!.blob_ids[0]!];
+		edit(account.server.blobs, ids);
+		const keyring = await openAsBrowser(await thisBrowser());
+		return fetchBlobs(keyring, account.pouchId, ids);
+	}
+
+	it('refuses a bit-flipped blob', async () => {
+		await refusedAndReported(
+			files((blobs, [id]) => {
+				const stored = blobs.get(id!)!;
+				stored[stored.length - 1]! ^= 0x01;
+			}),
+			'aead_failure',
+			account.pouchId,
+		);
+	});
+
+	it('refuses blobs served under each other’s ids', async () => {
+		await refusedAndReported(
+			files((blobs, [a, b]) => {
+				const first = blobs.get(a!)!;
+				blobs.set(a!, blobs.get(b!)!);
+				blobs.set(b!, first);
+			}),
+			'aead_failure',
+			account.pouchId,
+		);
+	});
+
+	it('refuses content that does not match its keyed id', async () => {
+		await refusedAndReported(
+			files((blobs, [id]) => {
+				// Sealed with the pouch key under the id of other content.
+				const keys = pouchKeys(account.keyring, account.pouchId);
+				const aad = concat('skillpouch/v1/blob', account.pouchId, unb64(id!));
+				blobs.set(
+					id!,
+					seal(
+						keys.current.content,
+						keys.current.keyGen,
+						new TextEncoder().encode('rm -rf ~\n'),
+						aad,
+					),
+				);
+			}),
+			'blob_id_mismatch',
+			account.pouchId,
+		);
+	});
+
+	it('refuses another account’s blob', async () => {
+		const other = await honestAccount();
+		const theirs = await other.server.putItem(other.keyring, other.pouchId, 'x', 'theirs\n');
+		await refusedAndReported(
+			files((blobs, [id]) => {
+				blobs.set(id!, other.server.blobs.get(theirs.head!.blob_ids[0]!)!);
+			}),
+			'aead_failure',
+			account.pouchId,
+		);
+	});
+});
+
+describe('unlocking with the Recovery Key', () => {
+	async function newBrowser(): Promise<UnlockContext> {
+		const browser = await storedBrowser(await generateMemberKeyPair(), null);
+		return { accountId: account.accountId, browser, membership: 'none' };
+	}
+
+	it('takes the member and its salt from the signed roster, not the server’s unlock parameters', async () => {
+		const passwordId = [...account.keyring.roster.members.values()].find(
+			(m) => m.kind === 'password',
+		)!.id;
+		account.server.rewrite = (route, data) =>
+			route === 'GET /v1/account/unlock/params'
+				? {
+						...(data as object),
+						members: [
+							{ id: passwordId, kind: 'recovery', member_salt: b64(newMemberSalt()) },
+						],
+					}
+				: data;
+		const keyring = await openWithSecret(await newBrowser(), 'recovery', account.recoveryWords);
+		expect(keyring.member.kind).toBe('recovery');
+		expect(pouchKeys(keyring, account.pouchId).current).toEqual(
+			pouchKeys(account.keyring, account.pouchId).current,
+		);
+		expect(account.server.reports).toEqual([]);
+	});
+
+	it('refuses (and reports) when the newest key was withheld from the recovery member', async () => {
+		const gone = await addMember(account, 'device');
+		await removeMember(account, gone.id);
+		const recoveryId = [...account.keyring.roster.members.values()].find(
+			(m) => m.kind === 'recovery',
+		)!.id;
+		account.server.envelopes = account.server.envelopes.filter(
+			(e) => !(e.member_id === recoveryId && e.key_gen === 2),
+		);
+		await refusedAndReported(
+			openWithSecret(await newBrowser(), 'recovery', account.recoveryWords),
+			'roster_rollback',
+		);
+	});
+});
+
+describe('unlocking with a passkey', () => {
+	/** An authenticator whose PRF output depends on its secret and the input, like a real one. */
+	function authenticator(secret: Uint8Array, credentialId: Uint8Array) {
+		const get = vi.fn(
+			async ({ publicKey }: { publicKey: PublicKeyCredentialRequestOptions }) => {
+				const prf = (
+					publicKey.extensions as {
+						prf: { evalByCredential: Record<string, { first: ArrayBuffer }> };
+					}
+				).prf;
+				const input = new Uint8Array(prf.evalByCredential[b64(credentialId)]!.first);
+				const output = blake3Hash(concat(secret, input));
+				const data = randomBytes(37).buffer;
+				return {
+					id: b64(credentialId),
+					rawId: credentialId.slice().buffer,
+					type: 'public-key',
+					authenticatorAttachment: 'platform',
+					response: {
+						clientDataJSON: data,
+						authenticatorData: data,
+						signature: data,
+						userHandle: null,
+					},
+					getClientExtensionResults: () => ({
+						prf: { results: { first: output.slice().buffer } },
+					}),
+				};
+			},
+		);
+		Object.defineProperty(navigator, 'credentials', { configurable: true, value: { get } });
+		return get;
+	}
+
+	async function registerPasskey() {
+		const secret = randomBytes(32);
+		const credentialId = randomBytes(16);
+		const salt = newMemberSalt();
+		const keys = await passkeyMemberKeys(blake3Hash(concat(secret, prfInput(salt))), salt);
+		const memberId = crypto.randomUUID();
+		const { statement, key_envelopes } = await buildAddMember(
+			account.keyring,
+			memberEntry(memberId, 'passkey', keys, { memberSalt: b64(salt) }),
+		);
+		account.server.append([statement.input], key_envelopes);
+		const record = {
+			id: crypto.randomUUID(),
+			member_id: memberId,
+			credential_id: b64(credentialId),
+			transports: ['internal'],
+			label: 'MacBook',
+			created_at: '2026-10-10T00:00:00.000Z',
+			last_used_at: null,
+		};
+		account.server.passkeys.push(record);
+		return { secret, credentialId, memberId, record, keys };
+	}
+
+	async function context(): Promise<UnlockContext> {
+		const browser = await storedBrowser(await generateMemberKeyPair(), null);
+		return { accountId: account.accountId, browser, membership: 'none' };
+	}
+
+	const asserted = () => account.server.requests.includes('POST /v1/account/passkeys/assert');
+
+	it('opens the pouch keys with an honest server', async () => {
+		const passkey = await registerPasskey();
+		authenticator(passkey.secret, passkey.credentialId);
+		const keyring = await openWithPasskey(await context());
+		expect(keyring.member).toMatchObject({ id: passkey.memberId, kind: 'passkey' });
+		expect(asserted()).toBe(true);
+	});
+
+	it('ignores a passkey the server lists for a member that is not in the roster', async () => {
+		const passkey = await registerPasskey();
+		const get = authenticator(passkey.secret, passkey.credentialId);
+		account.server.passkeys = [{ ...passkey.record, member_id: crypto.randomUUID() }];
+		await expect(openWithPasskey(await context())).rejects.toBeInstanceOf(PasskeyError);
+		expect(get).not.toHaveBeenCalled();
+		expect(asserted()).toBe(false);
+	});
+
+	it('refuses a passkey member injected into the roster without a member’s signature', async () => {
+		const forger = await generateMemberKeyPair();
+		const salt = newMemberSalt();
+		account.server.statements.push(
+			await account.server.forge(
+				account.accountId,
+				{ id: account.keyring.member.id, signKey: forger.signKey },
+				{
+					action: 'add',
+					member: memberEntry(crypto.randomUUID(), 'passkey', forger, {
+						memberSalt: b64(salt),
+					}),
+				},
+			),
+		);
+		await refusedAndReported(openWithPasskey(await context()), 'signature_invalid');
+		expect(asserted()).toBe(false);
+	});
+
+	it('a credential mapped to another passkey member (the wrong salt) derives a key the roster refuses', async () => {
+		const mine = await registerPasskey();
+		const theirs = await registerPasskey();
+		authenticator(mine.secret, mine.credentialId);
+		account.server.passkeys = [{ ...mine.record, member_id: theirs.memberId }];
+		await expect(openWithPasskey(await context())).rejects.toMatchObject({
+			kind: 'wrong_secret',
+		});
+		expect(asserted()).toBe(false);
+		expect(account.server.reports).toEqual([]);
+	});
+
+	it('refuses (and reports) a substituted key envelope for the passkey member', async () => {
+		const passkey = await registerPasskey();
+		authenticator(passkey.secret, passkey.credentialId);
+		const stranger = await generateMemberKeyPair();
+		const forged = await sealKeyEnvelope(
+			{ id: crypto.randomUUID(), signKey: stranger.signKey },
+			{ id: passkey.memberId, encPub: passkey.keys.encPub },
+			account.pouchId,
+			1,
+			{ ...material(), ps: randomBytes(32) },
+		);
+		account.server.envelopes = account.server.envelopes
+			.filter((e) => e.member_id !== passkey.memberId)
+			.concat(forged);
+		await refusedAndReported(openWithPasskey(await context()), 'signature_invalid');
+	});
+});
