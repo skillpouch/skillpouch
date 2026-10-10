@@ -10,9 +10,7 @@ interface Props {
 const { size = 20 } = Astro.props;
 ---
 
-<span class="inline-flex items-center gap-2">
+<span class="flex items-center gap-2">
 	<img src={logo.src} alt="" width={size} height={size} />
-	<span class="trim-to-caps translate-y-[2px] text-[15px] font-semibold tracking-tight text-fg">
-		SkillPouch
-	</span>
+	<span class="trim-to-caps text-[15px] font-semibold tracking-tight text-fg">SkillPouch</span>
 </span>
