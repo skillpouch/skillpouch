@@ -5,8 +5,8 @@
  * them to sign and decrypt, but nothing (not even this app) can read them out.
  *
  * Alongside the keys we pin what this browser has already verified: the
- * account's genesis hash and the highest roster head seen, so a server that
- * later serves a different history or rolls it back is detected.
+ * account's genesis hash and the highest roster head seen (seq and hash), so
+ * a server that later serves a different history or rolls it back is detected.
  */
 import type { MemberKeyPair } from '@skillpouch/crypto';
 
@@ -19,6 +19,8 @@ export interface StoredBrowserKey {
 	trusted: boolean;
 	pinnedGenesisHash: string | null;
 	pinnedHeadSeq: number;
+	/** Hash of the statement at `pinnedHeadSeq` (absent on records saved before it was kept). */
+	pinnedHeadHash?: string | null;
 	createdAt: string;
 }
 

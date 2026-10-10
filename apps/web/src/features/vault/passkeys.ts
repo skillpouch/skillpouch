@@ -34,6 +34,7 @@ import type { KeyEnvelopeRecord, PasskeyRecord } from '@/lib/api/types';
 import { currentKeyring } from '../session/session-store';
 import { reloadKeyring, withRosterChange } from './keyring';
 import { loadVerifiedRoster } from './roster';
+import { reportingTamper } from './security-report';
 import { completeUnlock, fetchUnlockParams, type UnlockContext } from './unlock';
 
 export type PasskeyProblem =
@@ -428,7 +429,9 @@ export async function openWithPasskey(context: UnlockContext): Promise<Keyring> 
 		'/v1/account/unlock/envelopes',
 		{ query: { member_id: passkey.member_id } },
 	);
-	return openKeyring({ id: passkey.member_id, kind: 'passkey', keys }, roster, key_envelopes);
+	return reportingTamper({ where: 'key_envelopes' }, () =>
+		openKeyring({ id: passkey.member_id, kind: 'passkey', keys }, roster, key_envelopes),
+	);
 }
 
 export async function unlockBrowserWithPasskey(

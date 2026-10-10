@@ -8,6 +8,8 @@
  * batch request, then decrypted blob by blob.
  */
 import {
+	CryptoError,
+	maySignRevision,
 	openBlob,
 	openRevision,
 	parseFetched,
@@ -22,6 +24,7 @@ import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { ArtifactRecord, RevisionRecord } from '@/lib/api/types';
 import { useUnlocked } from '../session/session-store';
+import { reportTamper } from '../vault/security-report';
 import { asText, describe } from './content';
 import { isIngredientKind, kindDefinition, type IngredientKind } from './kinds';
 
@@ -65,12 +68,18 @@ export async function openHead(
 	deleted: boolean,
 ): Promise<Ingredient | null> {
 	const signer = keyring.roster.members.get(head.signer_member_id);
-	if (!signer) throw new Error('signed by an unknown member');
+	if (!signer) throw new CryptoError('signature_invalid', 'revision by an unknown member');
 	const body = await openRevision(
 		pouchKeys(keyring, pouchId),
 		{ ...head, revision_id: head.id },
 		signer.signPub,
 	);
+	if (!maySignRevision(keyring.roster, signer.id, body.roster_head)) {
+		throw new CryptoError(
+			'signature_invalid',
+			'revision by a member removed before it was written',
+		);
+	}
 	const kind = body.kind;
 	if (!isIngredientKind(kind)) return null;
 	return {
@@ -120,6 +129,7 @@ export async function loadPouchContents(keyring: Keyring, pouchId: string): Prom
 				);
 				if (opened) ingredients.push(opened);
 			} catch (error) {
+				reportTamper(error, { where: 'revision', pouchId });
 				unreadable.push({ id: artifact.id, reason: (error as Error).message });
 			}
 		}),
@@ -150,7 +160,13 @@ export async function fetchBlobs(
 		const framed = await api.bytes('POST', `/v1/pouches/${pouchId}/blobs/fetch`, {
 			body: { ids: batch },
 		});
-		for (const [id, stored] of parseFetched(framed)) result.set(id, openBlob(keys, id, stored));
+		try {
+			for (const [id, stored] of parseFetched(framed))
+				result.set(id, openBlob(keys, id, stored));
+		} catch (error) {
+			reportTamper(error, { where: 'blob', pouchId });
+			throw error;
+		}
 	}
 	return result;
 }

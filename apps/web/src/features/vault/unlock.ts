@@ -11,6 +11,7 @@
  */
 import {
 	CryptoError,
+	activeMembers,
 	buildAddMember,
 	jwkThumbprint,
 	memberEntry,
@@ -29,6 +30,7 @@ import type { KeyEnvelopeRecord, UnlockParamsRecord } from '@/lib/api/types';
 import { updateBrowserKey, type StoredBrowserKey } from './key-store';
 import { derivePasswordSecret } from './password';
 import { loadVerifiedRoster } from './roster';
+import { reportingTamper } from './security-report';
 
 export type UnlockMethod = 'password' | 'recovery';
 
@@ -83,22 +85,23 @@ async function deriveKeys(
 	}
 }
 
-/** Proves the secret and returns a keyring acting as the secret member. */
+/**
+ * Proves the secret and returns a keyring acting as the secret member. The
+ * member and its salt come from the signed roster, not the server's view.
+ */
 export async function openWithSecret(
 	context: UnlockContext,
 	method: UnlockMethod,
 	secretText: string,
 ): Promise<Keyring> {
 	const params = await fetchUnlockParams();
-	const entry = params.members.find((member) => member.kind === method);
-	if (!entry?.member_salt)
-		throw new CryptoError('wrong_secret', 'This unlock method isn’t set up.');
 	const roster = await loadVerifiedRoster(context.accountId, context.browser);
-	const rosterMember = roster.members.get(entry.id);
-	if (!rosterMember) throw new CryptoError('roster_fork', 'unlock member is not in the roster');
+	const member = activeMembers(roster).find((candidate) => candidate.kind === method);
+	if (!member?.memberSalt)
+		throw new CryptoError('wrong_secret', 'This unlock method isn’t set up.');
 
-	const keys = await deriveKeys(method, secretText, params, unb64(entry.member_salt));
-	if (!sameKey(keys.signPub, rosterMember.signPub)) {
+	const keys = await deriveKeys(method, secretText, params, unb64(member.memberSalt));
+	if (!sameKey(keys.signPub, member.signPub)) {
 		if (method === 'password') {
 			await api.post('/v1/account/unlock/failed').catch(() => undefined);
 			throw new CryptoError('wrong_secret', 'Wrong master password.');
@@ -107,9 +110,11 @@ export async function openWithSecret(
 	}
 	const { key_envelopes } = await api.get<{ key_envelopes: KeyEnvelopeRecord[] }>(
 		'/v1/account/unlock/envelopes',
-		{ query: { member_id: entry.id } },
+		{ query: { member_id: member.id } },
 	);
-	return openKeyring({ id: entry.id, kind: method, keys }, roster, key_envelopes);
+	return reportingTamper({ where: 'key_envelopes' }, () =>
+		openKeyring({ id: member.id, kind: method, keys }, roster, key_envelopes),
+	);
 }
 
 /** Adds this browser to the roster, signed by the member that just unlocked. */

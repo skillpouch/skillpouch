@@ -53,6 +53,7 @@ export async function createAccountVault(input: GenesisInput): Promise<void> {
 		trusted: input.trustBrowser,
 		pinnedGenesisHash: genesis.genesisHash,
 		pinnedHeadSeq: genesis.keyring.roster.headSeq,
+		pinnedHeadHash: genesis.keyring.roster.headHash,
 	});
 }
 

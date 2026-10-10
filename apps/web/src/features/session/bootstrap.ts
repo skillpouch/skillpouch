@@ -30,6 +30,7 @@ import {
 	type StoredBrowserKey,
 } from '../vault/key-store';
 import { fetchMembers, loadVerifiedRoster } from '../vault/roster';
+import { reportingTamper, resetTamperReports } from '../vault/security-report';
 import { readAuthSession } from './auth-session';
 import { getSession, setSession, type SessionState } from './session-store';
 
@@ -43,6 +44,7 @@ async function loadOrCreateKey(userId: string): Promise<StoredBrowserKey> {
 		trusted: true,
 		pinnedGenesisHash: null,
 		pinnedHeadSeq: -1,
+		pinnedHeadHash: null,
 		createdAt: new Date().toISOString(),
 	};
 	await saveBrowserKey(record);
@@ -71,10 +73,8 @@ export async function openBrowserKeyring(
 	const { key_envelopes } = await api.get<{ key_envelopes: KeyEnvelopeRecord[] }>(
 		'/v1/account/key-envelopes',
 	);
-	return openKeyring(
-		{ id: member.id, kind: 'browser', keys: browser.keys },
-		roster,
-		key_envelopes,
+	return reportingTamper({ where: 'key_envelopes' }, () =>
+		openKeyring({ id: member.id, kind: 'browser', keys: browser.keys }, roster, key_envelopes),
 	);
 }
 
@@ -170,6 +170,7 @@ export async function bootstrapSession(options: BootstrapOptions = {}): Promise<
 
 async function signOutQuietly(userId: string): Promise<void> {
 	provenUser = null;
+	resetTamperReports();
 	setDpopKey(null);
 	await deleteBrowserKey(userId);
 	await fetch('/v1/auth/sign-out', {
@@ -198,6 +199,7 @@ export async function endRevokedBrowser(state: SessionState): Promise<void> {
  */
 export async function signOut(state: SessionState): Promise<void> {
 	provenUser = null;
+	resetTamperReports();
 	if ('browser' in state) {
 		const { browser } = state;
 		if (!browser.trusted && browser.memberId) {
