@@ -29,13 +29,8 @@ export default defineConfig({
 			social: [
 				{
 					icon: 'github',
-					label: 'Server and web app on GitHub',
-					href: 'https://github.com/skillpouch/skillpouch',
-				},
-				{
-					icon: 'github',
-					label: 'CLI on GitHub',
-					href: 'https://github.com/skillpouch/skillpouch-cli',
+					label: 'SkillPouch on GitHub',
+					href: 'https://github.com/skillpouch',
 				},
 				{ icon: 'discord', label: 'Discord', href: 'https://discord.gg/u8eEJZEGhc' },
 			],
