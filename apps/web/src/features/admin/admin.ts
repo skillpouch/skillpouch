@@ -228,3 +228,23 @@ export function statusTone(status: string): 'success' | 'warn' | 'danger' | 'neu
 		return 'danger';
 	return 'neutral';
 }
+
+/** How long an admin gives a plan for. */
+export type GrantLength = 'forever' | 'month' | 'year' | 'date';
+
+export const GRANT_LENGTHS: { value: GrantLength; label: string }[] = [
+	{ value: 'forever', label: 'Forever' },
+	{ value: 'month', label: '1 month' },
+	{ value: 'year', label: '1 year' },
+	{ value: 'date', label: 'Until…' },
+];
+
+/** When the grant ends: null never ends; `date` is a `YYYY-MM-DD` (end of that UTC day). */
+export function grantEnd(length: GrantLength, date: string, now = new Date()): string | null {
+	if (length === 'forever') return null;
+	if (length === 'date') return date ? new Date(`${date}T23:59:59Z`).toISOString() : null;
+	const end = new Date(now);
+	if (length === 'month') end.setUTCMonth(end.getUTCMonth() + 1);
+	else end.setUTCFullYear(end.getUTCFullYear() + 1);
+	return end.toISOString();
+}

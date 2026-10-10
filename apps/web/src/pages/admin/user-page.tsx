@@ -13,12 +13,16 @@ import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Segmented } from '@/components/ui/segmented';
 import {
 	adminApi,
+	grantEnd,
+	GRANT_LENGTHS,
 	statusTone,
 	useAdminAction,
 	useAdminPlans,
 	useAdminUser,
+	type GrantLength,
 	type UserDetail,
 } from '@/features/admin/admin';
 import {
@@ -461,6 +465,7 @@ function GrantDialog({
 }: DialogProps & { userId: string; who: string }) {
 	const plans = useAdminPlans();
 	const [slug, setSlug] = useState('');
+	const [length, setLength] = useState<GrantLength>('forever');
 	const [until, setUntil] = useState('');
 	const choices = (plans.data?.plans ?? []).filter((plan) => !plan.is_default && plan.is_active);
 	const chosen = slug || choices[0]?.slug || '';
@@ -470,12 +475,12 @@ function GrantDialog({
 			title={`Give ${who} a plan`}
 			description="No payment needed. A grant wins over a cheaper paid plan while it lasts."
 			confirmLabel="Give plan"
-			ready={Boolean(chosen)}
+			ready={Boolean(chosen) && (length !== 'date' || Boolean(until))}
 			onConfirm={(reason) =>
 				run(() =>
 					adminApi.post(`/users/${userId}/grants`, {
 						plan_slug: chosen,
-						ends_at: until ? new Date(`${until}T23:59:59Z`).toISOString() : null,
+						ends_at: grantEnd(length, until),
 						reason,
 					}),
 				)
@@ -498,16 +503,35 @@ function GrantDialog({
 					</select>
 				)}
 			</Field>
-			<Field label="Until" hint="Leave empty to give it for good.">
-				{(control) => (
-					<Input
-						{...control}
-						type="date"
-						value={until}
-						onChange={(event) => setUntil(event.target.value)}
-					/>
-				)}
-			</Field>
+			<div className="flex flex-col gap-1.5">
+				<span className="text-[13px] font-medium text-fg">For how long</span>
+				<Segmented
+					label="For how long"
+					value={length}
+					onChange={setLength}
+					options={GRANT_LENGTHS}
+				/>
+				<span className="text-xs text-meta">
+					{length === 'forever'
+						? 'Never ends; take it back here whenever you want.'
+						: length === 'date'
+							? 'Ends at the end of that day (UTC).'
+							: `Ends ${formatDate(grantEnd(length, ''))}.`}
+				</span>
+			</div>
+			{length === 'date' ? (
+				<Field label="Until">
+					{(control) => (
+						<Input
+							{...control}
+							type="date"
+							min={new Date().toISOString().slice(0, 10)}
+							value={until}
+							onChange={(event) => setUntil(event.target.value)}
+						/>
+					)}
+				</Field>
+			) : null}
 		</ReasonDialog>
 	);
 }

@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest';
 import { describeDetails } from '@/pages/admin/audit-page';
-import { actorLabel, change, dayLabel, formatChange, isAdmin, statusTone } from '../admin';
+import {
+	actorLabel,
+	change,
+	dayLabel,
+	formatChange,
+	grantEnd,
+	isAdmin,
+	statusTone,
+} from '../admin';
 import { bucket } from '../components/charts';
 
 describe('admin helpers', () => {
@@ -46,5 +54,13 @@ describe('admin helpers', () => {
 			'“beta tester” · role: admin',
 		);
 		expect(describeDetails({ details: {} })).toBe('—');
+	});
+
+	it('works out when a given plan ends', () => {
+		const now = new Date('2026-01-31T10:00:00Z');
+		expect(grantEnd('forever', '', now)).toBeNull();
+		expect(grantEnd('year', '', now)).toBe('2027-01-31T10:00:00.000Z');
+		expect(grantEnd('date', '2026-06-01', now)).toBe('2026-06-01T23:59:59.000Z');
+		expect(grantEnd('date', '', now)).toBeNull();
 	});
 });
