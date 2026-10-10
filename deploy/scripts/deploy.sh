@@ -72,5 +72,5 @@ log "restarting worker"
 "${COMPOSE[@]}" up -d --no-deps worker
 
 log "smoke test"
-curl -fsS "${SMOKE_URL:-https://${PUBLIC_HOST:-skillpouch.net}/readyz}" >/dev/null || { LIVE_BACK=$LIVE; LIVE=$IDLE; IDLE=$LIVE_BACK; rollback; }
+curl -fsS "${SMOKE_URL:-https://${PUBLIC_HOST:-app.skillpouch.net}/readyz}" >/dev/null || { LIVE_BACK=$LIVE; LIVE=$IDLE; IDLE=$LIVE_BACK; rollback; }
 log "done: live=$IDLE"

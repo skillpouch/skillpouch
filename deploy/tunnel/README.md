@@ -1,8 +1,10 @@
 # Self-hosting behind Cloudflare Tunnel
 
 Any Linux machine — a Raspberry Pi at home, an old PC, a VPS — reachable as
-`https://skillpouch.net` through Cloudflare Tunnel: no open router ports, HTTPS by Cloudflare, and every push
-to `main` deploys itself (zero downtime, automatic rollback).
+`https://app.skillpouch.net` (the web app and its API) through Cloudflare Tunnel: no open router
+ports, HTTPS by Cloudflare, and every push to `main` deploys itself (zero downtime, automatic
+rollback). The landing page `skillpouch.net` is not served from here: it is a static site on
+Cloudflare Pages (see `../EXTERNAL-SERVICES.md`).
 
 Needs: Debian, Ubuntu or Raspberry Pi OS, **64-bit** (amd64 or arm64), 4 GB+
 RAM. On a Raspberry Pi, boot from an **SSD** (Postgres wears out SD cards).
@@ -39,7 +41,7 @@ Edit `~/skillpouch/deploy/env/api.env`:
 
 - `ADMIN_EMAILS` — your email
 - GitHub / Google OAuth app ids; callback URLs
-  `https://skillpouch.net/v1/auth/callback/github` and `…/google`
+  `https://app.skillpouch.net/v1/auth/callback/github` and `…/google`
   (secrets go in `deploy/secrets/github_client_secret`, `google_client_secret`)
 - optional Polar keys (sandbox first)
 
@@ -50,9 +52,9 @@ Apply: `~/skillpouch/deploy/tunnel/update.sh --force`
 Cloudflare dashboard → Zero Trust → Networks → **Tunnels** → Create →
 Cloudflared → name it e.g. `skillpouch-home`. Copy the `sudo cloudflared service
 install <token>` command it shows and run it on the server. Then add a
-**Public hostname**: `skillpouch.net` → service `HTTP` → `localhost:80`.
+**Public hostname**: `app.skillpouch.net` → service `HTTP` → `localhost:80`.
 
-Open https://skillpouch.net — done.
+Open https://app.skillpouch.net — done.
 
 ## 5. Deploys from GitHub Actions (self-hosted runner)
 

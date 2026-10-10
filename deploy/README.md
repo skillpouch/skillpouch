@@ -1,6 +1,8 @@
 # Deploying SkillPouch
 
-One host (Hetzner CX32 + volume) runs everything with Docker Compose:
+One host (Hetzner CX32 + volume) runs the app and API (`app.skillpouch.net`)
+with Docker Compose; the landing page (`skillpouch.net`) is a static site on
+Cloudflare Pages (see `EXTERNAL-SERVICES.md`):
 
 ```
 Caddy (TLS, SPA, /v1 → live color) ─┬─ api-blue  ┐  same image,
@@ -51,7 +53,7 @@ every billing route answers `billing_unavailable` and everyone stays on Free.
 
 1. In Polar (start with `POLAR_SERVER=sandbox`), create an organization access
    token and save it as `secrets/polar_access_token`.
-2. Add a webhook endpoint `https://skillpouch.net/v1/billing/webhooks/polar`,
+2. Add a webhook endpoint `https://app.skillpouch.net/v1/billing/webhooks/polar`,
    format **Raw**, events `subscription.created`, `subscription.updated`,
    `subscription.active`, `subscription.canceled`, `subscription.uncanceled`,
    `subscription.revoked`. Save its secret as `secrets/polar_webhook_secret`.

@@ -13,14 +13,11 @@
 		import /etc/caddy/conf.d/upstreams.caddy
 	}
 
-	# The landing page is the static site in the release's _site/ (apps/site);
-	# every other path is the SPA, with index.html as the fallback.
+	# Every other path is the SPA, with index.html as the fallback. The
+	# landing page (skillpouch.net) is the static site on Cloudflare Pages.
 	handle {
 		root * /srv/web/current
-		rewrite / /_site/index.html
-		rewrite /robots.txt /_site/robots.txt
-		rewrite /sitemap.xml /_site/sitemap.xml
-		@assets path /assets/* /_site/_astro/*
+		@assets path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 		header / Cache-Control "no-cache"
 		header /index.html Cache-Control "no-cache"

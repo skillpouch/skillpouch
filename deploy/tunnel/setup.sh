@@ -125,7 +125,7 @@ Next steps
 
 3. Cloudflare Tunnel: Zero Trust -> Networks -> Tunnels -> Create -> Cloudflared,
    run the 'sudo cloudflared service install <token>' command it shows here, and
-   add the public hostname  skillpouch.net -> HTTP -> localhost:80
+   add the public hostname  app.skillpouch.net -> HTTP -> localhost:80
 DONE
 
 if [ "${AUTO_UPDATE:-actions}" = timer ]; then
