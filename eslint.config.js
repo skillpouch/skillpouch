@@ -12,6 +12,8 @@ export default tseslint.config(
 			'**/node_modules/**',
 			'**/.astro/**',
 			'.engram/**',
+			'apps/web/interact.mjs',
+			'apps/web/shot.mjs',
 		],
 	},
 	js.configs.recommended,

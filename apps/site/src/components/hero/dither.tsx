@@ -5,8 +5,7 @@
  * loop can be controlled from outside (the hero pauses the scene while it is
  * off screen or motion is reduced).
  */
-/* eslint-disable react/no-unknown-property */
-import { forwardRef, useEffect, useRef } from 'react';
+import { forwardRef, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, wrapEffect } from '@react-three/postprocessing';
 import { Effect } from 'postprocessing';

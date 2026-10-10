@@ -8,3 +8,5 @@ LICENSE
 docs/errors.md
 packages/contracts/generated/
 tools/load/results/
+apps/web/interact.mjs
+apps/web/shot.mjs
