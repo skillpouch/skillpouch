@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { adminApi, useAdminAction, useAdminPlans, type Plan } from '@/features/admin/admin';
 import {
@@ -104,6 +104,7 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
 	);
 	const [slug, setSlug] = useState('');
 	const [name, setName] = useState(plan?.name ?? '');
+	const [description, setDescription] = useState(plan?.description ?? '');
 	const [price, setPrice] = useState(plan ? String(plan.price_cents / 100) : '0');
 	const [interval, setInterval] = useState<'month' | 'year'>(plan?.interval ?? 'month');
 	const [pouches, setPouches] = useState(String(plan?.pouch_limit ?? 3));
@@ -140,7 +141,7 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
 				save.mutateAsync({
 					...(plan ? {} : { slug }),
 					name: name.trim(),
-					description: plan?.description ?? '',
+					description: description.trim(),
 					price_cents: priceCents,
 					currency: plan?.currency ?? 'usd',
 					interval: priceCents > 0 ? interval : null,
@@ -175,6 +176,25 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
 						value={name}
 						maxLength={100}
 						onChange={(event) => setName(event.target.value)}
+					/>
+				)}
+			</Field>
+			<Field
+				label="Description"
+				aside="optional"
+				hint={
+					plan?.polar_product_id
+						? 'Shown on the pricing page; also saved to the Polar product.'
+						: 'Shown on the pricing page.'
+				}
+			>
+				{(control) => (
+					<Textarea
+						{...control}
+						rows={2}
+						maxLength={1000}
+						value={description}
+						onChange={(event) => setDescription(event.target.value)}
 					/>
 				)}
 			</Field>
