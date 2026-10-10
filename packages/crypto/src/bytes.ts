@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /** Small byte helpers used by every format in this package. */
+import { blake3 } from '@noble/hashes/blake3.js';
 import { fromBase64Url, toBase64Url } from '@skillpouch/contracts';
 
 export { bytesEqual, fromBase64Url as fromB64, toBase64Url as toB64 } from '@skillpouch/contracts';
@@ -9,6 +10,9 @@ const decoder = new TextDecoder('utf-8', { fatal: true });
 
 export const utf8 = (text: string): Uint8Array => encoder.encode(text);
 export const fromUtf8 = (bytes: Uint8Array): string => decoder.decode(bytes);
+
+/** Plain BLAKE3 (32 bytes): roster statement hashes, ciphertext hashes. */
+export const blake3Hash = (bytes: Uint8Array): Uint8Array => blake3(bytes);
 
 /** Concatenates byte arrays; strings are UTF-8 encoded. */
 export function concat(...parts: (Uint8Array | string)[]): Uint8Array {

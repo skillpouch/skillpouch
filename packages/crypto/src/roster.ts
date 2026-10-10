@@ -58,6 +58,8 @@ export interface RosterState {
 	headHash: string;
 	members: Map<string, MemberState>;
 	pouches: Map<string, PouchState>;
+	/** The seq of every statement, by its hash. */
+	heads: Map<string, number>;
 }
 
 export function isActive(member: MemberState): boolean {
@@ -79,6 +81,20 @@ export function activeAt(state: RosterState, memberId: string, seq: number): boo
 	const member = state.members.get(memberId);
 	if (!member) return false;
 	return member.addedSeq < seq && (member.removedSeq === null || member.removedSeq >= seq);
+}
+
+/**
+ * Whether `memberId` may have signed a revision that names `rosterHead` (the
+ * roster its author saw). A removed member's signature only counts on
+ * revisions written before it was removed; a head newer than this roster
+ * only from a current member.
+ */
+export function maySignRevision(state: RosterState, memberId: string, rosterHead: string): boolean {
+	const member = state.members.get(memberId);
+	if (!member) return false;
+	const seq = state.heads.get(rosterHead);
+	if (seq === undefined) return member.removedSeq === null;
+	return member.addedSeq <= seq && (member.removedSeq === null || seq < member.removedSeq);
 }
 
 // ---- writing -------------------------------------------------------------------------
@@ -307,6 +323,7 @@ export async function verifyRoster(
 				headHash: '',
 				members: new Map(),
 				pouches: new Map(),
+				heads: new Map(),
 			};
 			for (const member of body.members ?? []) addMember(state, member, 0);
 			const signer = state.members.get(body.signer_member_id);
@@ -344,6 +361,7 @@ export async function verifyRoster(
 		}
 		state.headSeq = body.seq;
 		state.headHash = hash;
+		state.heads.set(hash, body.seq);
 	}
 
 	if (!state) throw new CryptoError('roster_rollback', 'the roster is empty');
@@ -364,6 +382,7 @@ export function cloneState(state: RosterState): RosterState {
 		...state,
 		members: new Map([...state.members].map(([id, member]) => [id, { ...member }])),
 		pouches: new Map([...state.pouches].map(([id, pouch]) => [id, { ...pouch }])),
+		heads: new Map(state.heads),
 	};
 }
 

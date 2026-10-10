@@ -6,6 +6,7 @@
  * built on it so the browser and test tools share one implementation.
  */
 import type { KeyEnvelopeInput } from '@skillpouch/contracts';
+import { bytesEqual } from './bytes';
 import { CryptoError } from './errors';
 import { openKeyEnvelope, sealKeyEnvelope, type EnvelopeRecipient } from './key-envelopes';
 import type { MemberKeyPair } from './keys';
@@ -31,7 +32,13 @@ export interface Keyring {
 	pouches: Map<string, PouchKeys>;
 }
 
-/** Opens every envelope addressed to `member`; envelopes from non-members are rejected. */
+/**
+ * Opens every envelope addressed to `member`. Pouch keys follow the signed
+ * roster, so an envelope from a non-member, for a generation no
+ * `rotate_keys` announced, or from a removed member for the newest
+ * generation is refused, as are two different keys for one generation and
+ * an active member's pouch whose newest generation was withheld.
+ */
 export async function openKeyring(
 	member: Member,
 	roster: RosterState,
@@ -40,19 +47,52 @@ export async function openKeyring(
 	const material = new Map<string, Map<number, PouchSecretMaterial>>();
 	for (const envelope of envelopes) {
 		if (envelope.member_id !== member.id) continue;
+		const pouch = roster.pouches.get(envelope.pouch_id);
+		if (!pouch || envelope.key_gen < 1 || envelope.key_gen > pouch.keyGen) {
+			throw new CryptoError(
+				'envelope_mismatch',
+				'key envelope for a generation the roster never announced',
+			);
+		}
 		const creator = roster.members.get(envelope.created_by_member);
 		if (!creator) {
 			throw new CryptoError('signature_invalid', 'key envelope from an unknown member');
 		}
+		// Every removal rotates the keys: a removed member never sealed the newest.
+		if (creator.removedSeq !== null && envelope.key_gen >= pouch.keyGen) {
+			throw new CryptoError('signature_invalid', 'key envelope from a removed member');
+		}
 		const opened = await openKeyEnvelope(envelope, member.id, member.keys, creator.signPub);
 		let perPouch = material.get(envelope.pouch_id);
 		if (!perPouch) material.set(envelope.pouch_id, (perPouch = new Map()));
+		const known = perPouch.get(envelope.key_gen);
+		if (known && !sameMaterial(known, opened)) {
+			throw new CryptoError('envelope_mismatch', 'two different keys for one generation');
+		}
 		perPouch.set(envelope.key_gen, opened);
+	}
+	const self = roster.members.get(member.id);
+	for (const [pouchId, generations] of material) {
+		const [first, ...rest] = [...generations.values()];
+		if (rest.some((other) => !bytesEqual(other.pis, first!.pis))) {
+			throw new CryptoError('envelope_mismatch', `pouch ${pouchId} has two identity secrets`);
+		}
+		const announced = roster.pouches.get(pouchId)!.keyGen;
+		if (self?.removedSeq === null && Math.max(...generations.keys()) < announced) {
+			// Writing with an older key would let a removed member read it.
+			throw new CryptoError(
+				'roster_rollback',
+				`the server withheld key generation ${announced} of pouch ${pouchId}`,
+			);
+		}
 	}
 	const keyring: Keyring = { member, roster, material, pouches: new Map() };
 	refreshPouchKeys(keyring);
 	return keyring;
 }
+
+const sameMaterial = (a: PouchSecretMaterial, b: PouchSecretMaterial) =>
+	bytesEqual(a.ps, b.ps) && bytesEqual(a.pis, b.pis);
 
 /** Rebuilds derived pouch keys after `material` changed. */
 export function refreshPouchKeys(keyring: Keyring): void {

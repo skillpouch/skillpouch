@@ -21,6 +21,7 @@ import {
 	generateMemberKeyPair,
 	generateRecoveryKey,
 	jwkThumbprint,
+	maySignRevision,
 	memberEntry,
 	openBlob,
 	openKeyring,
@@ -34,6 +35,7 @@ import {
 	pouchKeys,
 	randomBytes,
 	sealBlob,
+	sealKeyEnvelope,
 	sealRevision,
 	secretMemberKeys,
 	unb64,
@@ -262,6 +264,69 @@ describe('tamper detection', () => {
 			kind: 'signature_invalid',
 		});
 		expect(new TextDecoder().decode(openBlob(keys, blob.id, blob.bytes))).toBe('# Skill');
+	});
+
+	it('takes pouch keys only as the roster announced them', async () => {
+		const ctx = await setup();
+		const keyring = ctx.genesis.keyring;
+		const cli = await generateMemberKeyPair();
+		const cliId = randomUUID();
+		const added = await buildAddMember(keyring, memberEntry(cliId, 'device', cli));
+		ctx.server.append([added.statement.input], added.key_envelopes);
+		const removal = await buildRemoveMember(keyring, cliId);
+		ctx.server.append(removal.statements, removal.key_envelopes);
+		const roster = await verifyRoster(ctx.server.statements, { accountId: ctx.accountId });
+		const me = keyring.member;
+		const mine = ctx.server.envelopes.filter((e) => e.member_id === me.id);
+		const material = keyring.material.get(ctx.ids.pouch)!;
+		const forge = (
+			creator: { id: string; signKey: CryptoKey },
+			keyGen: number,
+			pis?: Uint8Array,
+		) =>
+			sealKeyEnvelope(creator, { id: me.id, encPub: me.keys.encPub }, ctx.ids.pouch, keyGen, {
+				ps: randomBytes(32),
+				pis: pis ?? material.get(1)!.pis,
+			});
+		const self = { id: me.id, signKey: me.keys.signKey };
+		const open = (envelopes: KeyEnvelopeInput[]) => openKeyring(me, roster, envelopes);
+
+		expect(pouchKeys(await open(mine), ctx.ids.pouch).current.keyGen).toBe(2);
+		await expect(open([...mine, await forge(self, 3)])).rejects.toMatchObject({
+			kind: 'envelope_mismatch',
+		});
+		await expect(
+			open([
+				...mine.filter((e) => e.key_gen !== 2),
+				await forge({ id: cliId, signKey: cli.signKey }, 2),
+			]),
+		).rejects.toMatchObject({ kind: 'signature_invalid' });
+		await expect(open([...mine, await forge(self, 2)])).rejects.toMatchObject({
+			kind: 'envelope_mismatch',
+		});
+		await expect(
+			open([...mine.filter((e) => e.key_gen !== 2), await forge(self, 2, randomBytes(32))]),
+		).rejects.toMatchObject({ kind: 'envelope_mismatch' });
+		await expect(open(mine.filter((e) => e.key_gen !== 2))).rejects.toMatchObject({
+			kind: 'roster_rollback',
+		});
+	});
+
+	it('lets a member sign revisions only for the roster heads it was a member at', async () => {
+		const ctx = await setup();
+		const keyring = ctx.genesis.keyring;
+		const before = keyring.roster.headHash;
+		const cliId = randomUUID();
+		await buildAddMember(keyring, memberEntry(cliId, 'device', await generateMemberKeyPair()));
+		const added = keyring.roster.headHash;
+		await buildRemoveMember(keyring, cliId);
+		const roster = keyring.roster;
+		expect(maySignRevision(roster, cliId, added)).toBe(true);
+		expect(maySignRevision(roster, cliId, before)).toBe(false);
+		expect(maySignRevision(roster, cliId, roster.headHash)).toBe(false);
+		expect(maySignRevision(roster, cliId, 'unknown')).toBe(false);
+		expect(maySignRevision(roster, keyring.member.id, 'unknown')).toBe(true);
+		expect(maySignRevision(roster, randomUUID(), added)).toBe(false);
 	});
 });
 
