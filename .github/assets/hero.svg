@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560">
+<defs><radialGradient id="g" cx="78%" cy="45%" r="70%"><stop stop-color="#34204d"/><stop offset="1" stop-color="#050507"/></radialGradient><linearGradient id="l"><stop stop-color="#b98cff"/><stop offset="1" stop-color="#8442D9"/></linearGradient></defs>
+<rect width="1600" height="560" rx="32" fill="url(#g)"/><circle cx="1300" cy="280" r="245" fill="#8442D9" opacity=".08"/><path d="M0 450Q500 380 1000 470T1600 405V560H0Z" fill="#8442D9" opacity=".09"/>
+<image href="logo.svg" x="125" y="147" width="230" height="230"/><text x="405" y="255" fill="#ededed" font-family="Geist,Arial,sans-serif" font-size="82" font-weight="680" letter-spacing="-3">SkillPouch</text><text x="410" y="320" fill="#c3b4d4" font-family="Geist,Arial,sans-serif" font-size="31">Your AI coding setup, on every computer.</text><text x="410" y="388" fill="url(#l)" font-family="Geist Mono,monospace" font-size="18" letter-spacing="3">END-TO-END ENCRYPTED SYNC</text><rect x="410" y="430" width="158" height="4" rx="2" fill="#8442D9"/>
+</svg>
