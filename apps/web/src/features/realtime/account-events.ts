@@ -78,6 +78,11 @@ export async function handleMessage(client: QueryClient, message: SseMessage): P
 		case 'unlock.failed_streak':
 			await client.invalidateQueries({ queryKey: queryKeys.securityEvents });
 			break;
+		case 'passkey.added':
+		case 'passkey.removed':
+			await client.invalidateQueries({ queryKey: queryKeys.unlockParams });
+			await client.invalidateQueries({ queryKey: queryKeys.securityEvents });
+			break;
 		default:
 			break;
 	}

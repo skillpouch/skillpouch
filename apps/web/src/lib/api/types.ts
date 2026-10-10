@@ -15,6 +15,7 @@ import type {
 	MeResponse,
 	Member,
 	OperationResult,
+	PasskeyUnlocker,
 	Plan,
 	Pouch,
 	PouchEvent,
@@ -41,6 +42,7 @@ export type DeviceRecord = z.infer<typeof Device>;
 export type BrowserRecord = z.infer<typeof BrowserMember>;
 export type UnlockParamsRecord = z.infer<typeof UnlockParams>;
 export type UnlockPreparedRecord = z.infer<typeof UnlockPrepared>;
+export type PasskeyRecord = z.infer<typeof PasskeyUnlocker>;
 export type ConnectToken = z.infer<typeof ConnectTokenCreated>;
 export type ConnectTokenState = z.infer<typeof ConnectTokenStatus>;
 export type CliAuthRequest = z.infer<typeof CliAuthRequestView>;

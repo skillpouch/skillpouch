@@ -2,7 +2,8 @@
 /**
  * Unlocking on a browser that isn't a member yet (or whose trust lapsed).
  *
- * The secret — master password or Recovery Key — re-derives a roster member's
+ * The secret — master password or Recovery Key here, a passkey in
+ * `passkeys.ts` — re-derives a roster member's
  * key pair locally. If its public key matches the roster, the member's key
  * envelopes open the pouch keys, and that member signs this browser into the
  * roster (or, after a lapse, re-confirms its trust). The secret itself never
@@ -146,7 +147,15 @@ export async function unlockBrowser(
 	secretText: string,
 	options: { trust: boolean },
 ): Promise<void> {
-	const keyring = await openWithSecret(context, method, secretText);
+	await completeUnlock(context, await openWithSecret(context, method, secretText), options);
+}
+
+/** After any secret member opened the keyring: enroll, renew or keep this browser. */
+export async function completeUnlock(
+	context: UnlockContext,
+	keyring: Keyring,
+	options: { trust: boolean },
+): Promise<void> {
 	let memberId: string;
 	if (context.membership === 'expired') memberId = await renewTrust(keyring, context.browser);
 	else if (context.membership === 'untrusted' && context.browser.memberId)

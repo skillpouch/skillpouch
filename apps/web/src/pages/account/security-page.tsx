@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/account/security` — master password, Recovery Key, how long a
- * trusted browser stays trusted, and the account's security events.
+ * `/app/account/security` — master password, Recovery Key, passkeys, how
+ * long a trusted browser stays trusted, and the account's security events.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
@@ -20,6 +20,7 @@ import {
 	passwordProblem,
 	type NewPasswordValue,
 } from '@/features/vault/components/new-password-fields';
+import { PasskeysSection } from '@/features/vault/components/passkeys-section';
 import { RecoveryKeyCard } from '@/features/vault/components/recovery-key-card';
 import {
 	changeMasterPassword,
@@ -42,6 +43,8 @@ const EVENT_LABELS: Record<string, string> = {
 	'unlock.failed_streak': 'Several wrong master passwords',
 	'browser.enrolled': 'A new browser was trusted',
 	'device.revoked': 'A device was revoked',
+	'passkey.added': 'A passkey was added for unlocking',
+	'passkey.removed': 'A passkey was removed',
 	'refresh.reuse_detected': 'A device token was reused and the device revoked',
 	'client.e2ee_failure': 'A client refused data that didn’t verify',
 };
@@ -106,6 +109,7 @@ export function SecurityPage() {
 					description="12 words that get you back in if you forget your master password."
 					action={<Button onClick={() => setReplacingKey(true)}>Create new key</Button>}
 				/>
+				<PasskeysSection />
 				<Row
 					title="Trusted browsers"
 					description="A trusted browser unlocks on its own until it goes unused this long."
