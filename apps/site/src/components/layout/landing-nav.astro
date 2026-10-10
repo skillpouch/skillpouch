@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import Logo from './logo.astro';
 import { SessionActions } from './session-actions';
+import SocialLinks from './social-links.astro';
 
 const SECTIONS = [
 	{ href: '#how', label: 'How it works' },
@@ -31,6 +32,9 @@ const SECTIONS = [
 				</li>
 			))}
 		</ul>
-		<SessionActions client:load />
+		<div class="flex items-center gap-1">
+			<SocialLinks />
+			<SessionActions client:load />
+		</div>
 	</nav>
 </header>

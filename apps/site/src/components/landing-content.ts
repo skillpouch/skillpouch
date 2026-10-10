@@ -5,6 +5,7 @@ import { formatBytes, plural } from '@/lib/format';
 export const INSTALL_COMMAND = 'npm i -g skillpouch';
 export const CONTACT_EMAIL = 'info@skillpouch.net';
 export const SOURCE_URL = 'https://github.com/skillpouch/skillpouch';
+export const DISCORD_URL = 'https://discord.gg/u8eEJZEGhc';
 
 export interface Assistant {
 	/** Matches `AssistantIcon` ids; assistants without a mark show their name only. */
