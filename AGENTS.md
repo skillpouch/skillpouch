@@ -1,3 +1,126 @@
+# AGENTS.md
+
+Instructions for coding agents working in this repository. Read this first;
+it overrides general habits. The CLI lives in a separate repository,
+[`skillpouch-cli`](https://github.com/skillpouch/skillpouch-cli).
+
+## What this is
+
+SkillPouch syncs a user's AI coding setup (skills, agents, instructions, MCP
+servers, hooks, plugins, marketplaces) across computers and assistants,
+**end-to-end encrypted**: content is encrypted on the user's device and the
+server only stores and relays ciphertext.
+
+| Path                 | What                                                                                   | Served at                        |
+| -------------------- | -------------------------------------------------------------------------------------- | -------------------------------- |
+| `apps/api`           | Fastify API + background worker (`src/modules/<name>/<name>.routes.ts`/`.service.ts`)  | `app.skillpouch.net/v1`          |
+| `apps/web`           | React + Vite dashboard (`src/features`, `src/pages`, `src/components`)                 | `app.skillpouch.net`             |
+| `apps/site`          | Astro landing page, Terms, Privacy                                                     | `skillpouch.net` (CF Pages)      |
+| `apps/docs`          | Astro Starlight documentation                                                          | `docs.skillpouch.net` (CF Pages) |
+| `packages/contracts` | Zod schemas, error codes, generated OpenAPI — the API ↔ client contract                |                                  |
+| `packages/crypto`    | Client-side E2EE formats, keys, roster verification (shared test vectors with Rust)    |                                  |
+| `packages/db`        | Drizzle schema + plain SQL migrations (`migrations/NNNN_name.sql`)                     |                                  |
+| `deploy/`            | Self-hosting: Docker Compose, Caddy, Cloudflare Tunnel, deploy/backup/failover scripts |                                  |
+
+`.engram/GRAPH_REPORT.md` is a code map of the repo; see
+`docs/maintainers/engram.md`.
+
+## Working rules
+
+- **Commit locally; never push** unless the owner says "push". Ask before any
+  outward-facing action (pushing, releases, changing GitHub/Cloudflare settings).
+- **Commit messages:** `<area>: <what changed, in plain words>` in lowercase,
+  e.g. `site: favicons and a web manifest`, `api: passkey unlockers need step-up
+to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,
+  `deploy`, `ci`, `test`. Small, logical commits.
+- **The production machine is "the server".** Never write "Pi" or "Raspberry"
+  in code, comments, docs or commit messages.
+- **Only true claims** in user-facing copy (landing, docs, READMEs): no
+  invented stats, users, testimonials or features. Verify against the code.
+- **Every behavior change gets a test.** Bug fixes get a regression test.
+- **Comments:** match the surrounding density; explain non-obvious _why_.
+  Never reference the planning documents (`plan/…`, "§12") in code.
+- New source files start with `// SPDX-License-Identifier: AGPL-3.0-only`
+  (or the equivalent comment syntax).
+- Leave untracked local helpers you didn't create (e.g. `apps/web/interact.mjs`,
+  `apps/web/shot.mjs`) alone and never stage them. Stage files by name, not
+  `git add -A`.
+- Don't stop or restart the owner's dev servers unless asked.
+
+## Commands
+
+```sh
+pnpm install
+pnpm dev:db            # Postgres for development (Docker)
+pnpm db:migrate
+pnpm dev               # API :8080, web :5173, site :4321
+pnpm --filter @skillpouch/docs dev   # docs :4322
+```
+
+Gates — all must pass before you commit (CI runs the same):
+
+```sh
+pnpm format:check      # Prettier: tabs, width 4, single quotes, printWidth 100
+pnpm lint
+pnpm typecheck         # includes `astro check` for site and docs
+pnpm test              # API integration tests need TEST_DATABASE_URL, see below
+pnpm contracts:generate && git diff --exit-code -- packages/contracts/generated docs/errors.md
+pnpm openapi --check
+```
+
+- API tests run against a real Postgres:
+  `TEST_DATABASE_URL=postgres://postgres:postgres@localhost:55432/postgres`
+  (container `skillpouch-pg-test`). Run one file with
+  `pnpm --filter @skillpouch/api exec vitest run <path>`.
+- Playwright e2e (`pnpm --filter @skillpouch/web e2e`) is **not** in CI and
+  takes several minutes. Run it only when asked or before a big release.
+
+## Security (non-negotiable)
+
+- **E2EE:** the server never receives plaintext pouch content, keys, master
+  passwords, PRF outputs or anything derived from them. Never add a route or
+  log line that would carry them.
+- **Tenant isolation:** tenant data is read and written inside
+  `withTenantTx(deps.db.app, principal.storageAccountId, …)`; get the caller
+  with `principalOf` / `sessionOf`. Never query tenant tables outside it.
+- **Every new tenant table gets row-level security** in its migration, like
+  the existing ones (a missing policy has broken CI before).
+- Sensitive actions require step-up (`config: { stepUp: true }`) and append
+  an audit entry (`appendAudit`); security-relevant changes also raise a
+  security event.
+- Errors go through `AppError` with a code registered in `packages/contracts`
+  (then regenerate contracts).
+- Clients must refuse a lying server: signatures, roster order, blob ids and
+  AEAD are verified client-side. Don't weaken a verification to make a test pass.
+
+## Database and contracts
+
+- Migrations are append-only plain SQL: add the next `NNNN_name.sql`, never
+  edit a released one. Update the Drizzle schema in `packages/db/src/schema`.
+- API request/response shapes live in `packages/contracts`; change them there,
+  then `pnpm contracts:generate` and `pnpm openapi`. Additive changes only
+  within `/v1`.
+
+## Frontend
+
+- Web and site share the brand: pitch black, purple `#8442D9`, text `#ededed`,
+  Geist Sans/Mono (self-hosted). Loading states are page-shaped skeletons.
+- Site islands (`client:load` / `client:visible`) are React; keep heavy code
+  (three.js) out of pages that don't need it.
+- If the Astro dev server shows "Outdated Optimize Dep" or islands stop
+  hydrating, clear `node_modules/.vite` and `.astro` in that app and restart
+  it. New files in `public/` also need a restart.
+
+## Deploys
+
+- `ci.yml` checks everything on every push. Site and docs deploy to Cloudflare
+  Pages from their own path-filtered workflows; app + API deploy to the server
+  via `deploy.yml` (self-hosted runner) after green CI.
+- The self-hosted runner is restricted to `deploy.yml` on `main`. Never add
+  workflows that run on it.
+- Server-side settings live in `deploy/env/*.env` and `deploy/secrets/` on the
+  server, never in the repo or GitHub secrets.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
