@@ -2,7 +2,8 @@
 /**
  * Reading a pouch's contents. The server returns opaque artifacts whose head
  * revision is a sealed, signed envelope; here each one is verified against
- * the signer's roster key, decrypted, and turned into an `Ingredient`.
+ * the signer's roster key, decrypted, and turned into an `Ingredient`. A head
+ * this browser already saw replaced by a newer one is refused (`head-pins`).
  *
  * File contents are fetched separately (and only when needed) in one framed
  * batch request, then decrypted blob by blob.
@@ -24,6 +25,7 @@ import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { ArtifactRecord, RevisionRecord } from '@/lib/api/types';
 import { useUnlocked } from '../session/session-store';
+import { pinHeads } from '../vault/head-pins';
 import { reportTamper } from '../vault/security-report';
 import { asText, describe } from './content';
 import { isIngredientKind, kindDefinition, type IngredientKind } from './kinds';
@@ -134,8 +136,26 @@ export async function loadPouchContents(keyring: Keyring, pouchId: string): Prom
 			}
 		}),
 	);
-	ingredients.sort((a, b) => a.name.localeCompare(b.name));
-	return { ingredients, unreadable };
+	const replayed = await pinHeads(
+		keyring.member.id,
+		pouchId,
+		ingredients.map((ingredient) => ({
+			artifactId: ingredient.id,
+			revisionId: ingredient.revisionId,
+			parents: [ingredient.body.parent_id, ingredient.body.merge_parent_id],
+		})),
+	);
+	const current = ingredients.filter((ingredient) => !replayed.has(ingredient.id));
+	for (const id of replayed) {
+		const error = new CryptoError(
+			'revision_rollback',
+			'the server offered an older version of an item than this browser already saw',
+		);
+		reportTamper(error, { where: 'revision', pouchId });
+		unreadable.push({ id, reason: error.message });
+	}
+	current.sort((a, b) => a.name.localeCompare(b.name));
+	return { ingredients: current, unreadable };
 }
 
 export function usePouchContents(pouchId: string) {

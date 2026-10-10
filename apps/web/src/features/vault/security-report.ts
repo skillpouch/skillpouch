@@ -15,6 +15,7 @@ const REPORTED_KINDS: ReadonlySet<CryptoErrorKind> = new Set([
 	'signature_invalid',
 	'roster_fork',
 	'roster_rollback',
+	'revision_rollback',
 	'aead_failure',
 	'blob_id_mismatch',
 	'envelope_mismatch',
