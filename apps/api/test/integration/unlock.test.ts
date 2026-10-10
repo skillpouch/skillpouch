@@ -378,35 +378,81 @@ describe('unlock', () => {
 		let passkeyMember: MemberHandle;
 		let passkeyId: string;
 
-		it('registers a passkey together with its signed add statement', async () => {
-			authenticator = new SoftAuthenticator(WEB_ORIGIN, 'localhost');
-			const options = await alice.browser.post('/v1/account/passkeys/options');
-			expect(options.body.data.options.extensions).toMatchObject({ prf: {} });
-			passkeyMember = await newMember('passkey');
-			const head = await rosterHead(alice.browser);
-			const add = await statement(alice.browserMember, alice.accountId, head, {
+		const staleStepUp = (account: Account) =>
+			h.owner.query(
+				`UPDATE sessions SET step_up_at = now() - interval '1 hour' WHERE jkt = $1`,
+				[account.browser.key.jkt],
+			);
+		const freshStepUp = (account: Account) =>
+			h.owner.query(`UPDATE sessions SET step_up_at = now() WHERE jkt = $1`, [
+				account.browser.key.jkt,
+			]);
+
+		/** Registration options → soft authenticator → `add(passkey)` + envelopes. */
+		async function registerPasskey(account: Account, device: SoftAuthenticator, label: string) {
+			const options = await account.browser.post('/v1/account/passkeys/options');
+			const member = await newMember('passkey');
+			const head = await rosterHead(account.browser);
+			const add = await statement(account.browserMember, account.accountId, head, {
 				action: 'add',
-				member: memberJson(passkeyMember),
+				member: memberJson(member),
 			});
-			const response = await alice.browser.post('/v1/account/passkeys', {
-				response: authenticator.register(options.body.data.options),
-				label: 'Test key',
+			const response = await account.browser.post('/v1/account/passkeys', {
+				response: device.register(options.body.data.options),
+				label,
 				statement: add,
 				key_envelopes: (
 					await envelopesForAll(
-						alice.browser,
+						account.browser,
 						(pouch) => pouch.key_gen,
-						alice.browserMember.id,
-						[passkeyMember.id],
+						account.browserMember.id,
+						[member.id],
 					)
-				).filter((envelope) => envelope.member_id === passkeyMember.id),
+				).filter((envelope) => envelope.member_id === member.id),
 			});
+			return { options, member, response };
+		}
+
+		it('adding a passkey needs a fresh sign-in (step-up)', async () => {
+			await staleStepUp(alice);
+			const options = await alice.browser.post('/v1/account/passkeys/options');
+			expect(options.body.error.code).toBe('step_up_required');
+			const register = await alice.browser.post('/v1/account/passkeys', {
+				response: {},
+				statement: { statement: 'e30', signature: 'AA' },
+			});
+			expect(register.body.error.code).toBe('step_up_required');
+			await freshStepUp(alice);
+		});
+
+		it('registers a passkey together with its signed add statement', async () => {
+			authenticator = new SoftAuthenticator(WEB_ORIGIN, 'localhost');
+			const { options, member, response } = await registerPasskey(
+				alice,
+				authenticator,
+				'Test key',
+			);
+			expect(options.body.data.options.extensions).toMatchObject({ prf: {} });
 			expect(response.status).toBe(200);
+			passkeyMember = member;
 			passkeyId = response.body.data.id;
 			const params = (await alice.browser.get('/v1/account/unlock/params')).body.data;
 			expect(params.members[0]).toMatchObject({ id: passkeyMember.id, kind: 'passkey' });
 			expect(params.passkeys).toEqual([
 				expect.objectContaining({ id: passkeyId, label: 'Test key' }),
+			]);
+			// The passkey's envelopes are ordinary HPKE envelopes: ciphertext only.
+			const { rows } = await h.owner.query(
+				'SELECT count(*)::int AS n FROM key_envelopes WHERE member_id = $1',
+				[passkeyMember.id],
+			);
+			expect(rows[0].n).toBeGreaterThan(0);
+			const events = await h.owner.query(
+				`SELECT details FROM security_events WHERE storage_account_id = $1 AND kind = 'passkey.added'`,
+				[alice.accountId],
+			);
+			expect(events.rows).toEqual([
+				{ details: { member_id: passkeyMember.id, label: 'Test key' } },
 			]);
 		});
 
@@ -428,6 +474,9 @@ describe('unlock', () => {
 			const url = `/v1/account/unlock/envelopes?member_id=${passkeyMember.id}`;
 			expect((await browser.get(url)).body.error.code).toBe('unlock_grant_required');
 			const options = await browser.post('/v1/account/passkeys/assert-options');
+			expect(options.body.data.options.allowCredentials).toEqual([
+				expect.objectContaining({ id: authenticator.credentialId.toString('base64url') }),
+			]);
 			const assertion = authenticator.assert(options.body.data.options);
 			const verified = await browser.post('/v1/account/passkeys/assert', {
 				response: assertion,
@@ -443,6 +492,19 @@ describe('unlock', () => {
 			expect(response.status).toBe(200);
 		});
 
+		it('refuses an assertion that carries the PRF output', async () => {
+			const browser = await newBrowser(h, alice);
+			const options = await browser.post('/v1/account/passkeys/assert-options');
+			const response = await browser.post('/v1/account/passkeys/assert', {
+				response: authenticator.assert(options.body.data.options, { leakPrf: true }),
+			});
+			expect(response.body.error.code).toBe('webauthn_invalid');
+			expect(
+				(await browser.get(`/v1/account/unlock/envelopes?member_id=${passkeyMember.id}`))
+					.body.error.code,
+			).toBe('unlock_grant_required');
+		});
+
 		it('rejects an assertion from an unknown authenticator', async () => {
 			const browser = await newBrowser(h, alice);
 			const options = await browser.post('/v1/account/passkeys/assert-options');
@@ -453,7 +515,68 @@ describe('unlock', () => {
 			expect(response.body.error.code).toBe('webauthn_invalid');
 		});
 
-		it('removing a passkey requires remove + rotate_keys', async () => {
+		it('renames a passkey (unlocked browsers only)', async () => {
+			const renamed = await alice.browser.patch(`/v1/account/passkeys/${passkeyId}`, {
+				label: '  YubiKey  ',
+			});
+			expect(renamed.body.data).toMatchObject({ id: passkeyId, label: 'YubiKey' });
+			expect(
+				(await alice.browser.patch(`/v1/account/passkeys/${passkeyId}`, { label: '' }))
+					.status,
+			).toBe(400);
+			const locked = await newBrowser(h, alice);
+			expect(
+				(await locked.patch(`/v1/account/passkeys/${passkeyId}`, { label: 'Mine' })).body
+					.error.code,
+			).toBe('member_inactive');
+		});
+
+		it('keeps every account’s passkeys to itself', async () => {
+			const bob = await setupAccount(h, 'bob-passkeys@skillpouch.test');
+			expect((await bob.browser.post('/v1/account/passkeys/assert-options')).status).toBe(
+				404,
+			);
+			expect((await bob.browser.get('/v1/account/unlock/params')).body.data.passkeys).toEqual(
+				[],
+			);
+			expect(
+				(await bob.browser.patch(`/v1/account/passkeys/${passkeyId}`, { label: 'x' }))
+					.status,
+			).toBe(404);
+			expect(
+				(
+					await bob.browser.get(
+						`/v1/account/unlock/envelopes?member_id=${passkeyMember.id}`,
+					)
+				).status,
+			).toBe(404);
+			const bobsHead = await rosterHead(bob.browser);
+			const remove = await statement(bob.browserMember, bob.accountId, bobsHead, {
+				action: 'remove',
+				member_id: passkeyMember.id,
+			});
+			const removal = await bob.browser.delete(`/v1/account/passkeys/${passkeyId}`, {
+				body: { statements: [remove], key_envelopes: [] },
+			});
+			expect(removal.status).toBe(404);
+
+			// Bob's own passkey works for Bob; Alice's authenticator can't answer Bob's challenge.
+			const bobsDevice = new SoftAuthenticator(WEB_ORIGIN, 'localhost');
+			expect((await registerPasskey(bob, bobsDevice, 'Bob key')).response.status).toBe(200);
+			const options = await bob.browser.post('/v1/account/passkeys/assert-options');
+			expect(options.body.data.options.allowCredentials).toEqual([
+				expect.objectContaining({ id: bobsDevice.credentialId.toString('base64url') }),
+			]);
+			const crossed = await bob.browser.post('/v1/account/passkeys/assert', {
+				response: authenticator.assert(options.body.data.options),
+			});
+			expect(crossed.body.error.code).toBe('webauthn_invalid');
+			expect(
+				(await alice.browser.get('/v1/account/unlock/params')).body.data.passkeys,
+			).toHaveLength(1);
+		});
+
+		it('removing a passkey needs step-up and remove + rotate_keys', async () => {
 			const head = await rosterHead(alice.browser);
 			const remove = await statement(
 				alice.browserMember,
@@ -461,6 +584,13 @@ describe('unlock', () => {
 				{ ...head },
 				{ action: 'remove', member_id: passkeyMember.id },
 			);
+			await staleStepUp(alice);
+			const stale = await alice.browser.delete(`/v1/account/passkeys/${passkeyId}`, {
+				body: { statements: [remove], key_envelopes: [] },
+			});
+			expect(stale.body.error.code).toBe('step_up_required');
+			await freshStepUp(alice);
+
 			const without = await alice.browser.delete(`/v1/account/passkeys/${passkeyId}`, {
 				body: { statements: [remove], key_envelopes: [] },
 			});
@@ -488,6 +618,20 @@ describe('unlock', () => {
 			expect(
 				(await alice.browser.get('/v1/account/unlock/params')).body.data.passkeys,
 			).toEqual([]);
+			const { rows } = await h.owner.query(
+				`SELECT
+					(SELECT count(*)::int FROM unlock_grants WHERE member_id = $1) AS grants,
+					(SELECT count(*)::int FROM security_events
+						WHERE storage_account_id = $2 AND kind = 'passkey.removed') AS events`,
+				[passkeyMember.id, alice.accountId],
+			);
+			expect(rows[0]).toEqual({ grants: 0, events: 1 });
+			// The removed member's envelopes open nothing for a new session.
+			const browser = await newBrowser(h, alice);
+			expect(
+				(await browser.get(`/v1/account/unlock/envelopes?member_id=${passkeyMember.id}`))
+					.status,
+			).toBe(404);
 		});
 	});
 

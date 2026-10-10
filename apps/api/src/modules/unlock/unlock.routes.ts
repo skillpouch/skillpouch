@@ -13,6 +13,7 @@ import {
 	PasskeyOptionsResponse,
 	PasskeyRegisterRequest,
 	PasskeyRemoveRequest,
+	PasskeyRename,
 	PasskeyUnlocker,
 	PepperResponse,
 	SecuritySettings,
@@ -36,6 +37,7 @@ import {
 	registerPasskey,
 	registrationOptions,
 	removePasskey,
+	renamePasskey,
 	verifyAssertion,
 } from './passkeys.service';
 import {
@@ -210,7 +212,7 @@ export async function unlockRoutes(app: ZodApp, deps: Deps) {
 	app.post(
 		'/v1/account/passkeys/options',
 		{
-			config: { auth: 'session' },
+			config: { auth: 'session', stepUp: true },
 			schema: {
 				tags: ['unlock'],
 				summary: 'WebAuthn registration options for a PRF unlock passkey',
@@ -227,7 +229,7 @@ export async function unlockRoutes(app: ZodApp, deps: Deps) {
 	app.post(
 		'/v1/account/passkeys',
 		{
-			config: { auth: 'session' },
+			config: { auth: 'session', stepUp: true },
 			schema: {
 				tags: ['unlock'],
 				summary: 'Register a passkey unlocker + its signed add(passkey member) statement',
@@ -238,6 +240,25 @@ export async function unlockRoutes(app: ZodApp, deps: Deps) {
 		async (request) => {
 			const principal = sessionOf(request);
 			return registerPasskey(deps, principal, memberOf(principal), request.body);
+		},
+	);
+
+	app.patch(
+		'/v1/account/passkeys/:id',
+		{
+			config: { auth: 'session' },
+			schema: {
+				tags: ['unlock'],
+				summary: 'Rename a passkey unlocker',
+				params: IdParam,
+				body: PasskeyRename,
+				response: { 200: PasskeyUnlocker },
+			},
+		},
+		async (request) => {
+			const principal = sessionOf(request);
+			memberOf(principal);
+			return renamePasskey(deps, principal, request.params.id, request.body.label);
 		},
 	);
 

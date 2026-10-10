@@ -98,13 +98,17 @@ const WebAuthnJson = z.record(z.string(), z.unknown());
 
 export const PasskeyOptionsResponse = z.object({ options: WebAuthnJson });
 
+const PasskeyLabel = z.string().trim().min(1).max(80);
+
 export const PasskeyRegisterRequest = z.strictObject({
 	response: WebAuthnJson,
-	label: z.string().trim().min(1).max(80).optional(),
+	label: PasskeyLabel.optional(),
 	/** `add(passkey member)` signed by this unlocked browser. */
 	statement: RosterStatementInput,
 	key_envelopes: z.array(KeyEnvelopeInput).max(2000).default([]),
 });
+
+export const PasskeyRename = z.strictObject({ label: PasskeyLabel });
 
 export const PasskeyRemoveRequest = z.strictObject({
 	/** `remove(passkey member)` + `rotate_keys` (it may have been a lost security key). */

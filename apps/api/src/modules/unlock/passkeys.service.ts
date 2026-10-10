@@ -16,7 +16,7 @@ import {
 	type KeyEnvelopeInput,
 	type RosterStatementInput,
 } from '@skillpouch/contracts';
-import { passkeyUnlockers, webauthnChallenges } from '@skillpouch/db';
+import { passkeyUnlockers, securityEvents, unlockGrants, webauthnChallenges } from '@skillpouch/db';
 import {
 	generateAuthenticationOptions,
 	generateRegistrationOptions,
@@ -29,6 +29,7 @@ import {
 import { and, eq, gt } from 'drizzle-orm';
 import type { Deps } from '../../deps';
 import { AppError } from '../../http/app-error';
+import { notifyAccount } from '../../infra/notify';
 import { addSeconds } from '../../lib/dates';
 import { appendAudit } from '../../security/audit';
 import { parseRosterStatement } from '../../security/e2ee-structure';
@@ -91,6 +92,20 @@ async function consumeChallenge(
 	return row.challenge;
 }
 
+/**
+ * The PRF output is the unlock secret. Browsers put it in
+ * `clientExtensionResults`; SkillPouch's client strips it, and a response
+ * that still carries it is refused rather than silently accepted.
+ */
+function refuseLeakedPrf(response: Record<string, unknown>): void {
+	const extensions = response.clientExtensionResults as { prf?: { results?: unknown } } | null;
+	if (extensions?.prf?.results !== undefined) {
+		throw new AppError('webauthn_invalid', {
+			reason: 'the PRF output must stay in the browser',
+		});
+	}
+}
+
 function rp(deps: Deps) {
 	return {
 		rpID: deps.env.WEBAUTHN_RP_ID,
@@ -133,6 +148,7 @@ export async function registerPasskey(
 		throw new AppError('roster_invalid', { reason: 'expected add(passkey member)' });
 	}
 	const memberId = body.member.id;
+	refuseLeakedPrf(input.response);
 	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 		const expectedChallenge = await consumeChallenge(deps, tx, principal, 'register');
 		let verification;
@@ -171,6 +187,15 @@ export async function registerPasskey(
 				label: input.label ?? null,
 			})
 			.returning();
+		await tx.insert(securityEvents).values({
+			storageAccountId: principal.storageAccountId,
+			kind: 'passkey.added',
+			severity: 'info',
+			details: { member_id: memberId, label: row!.label },
+		});
+		await notifyAccount(tx, principal.storageAccountId, 'passkey.added', {
+			member_id: memberId,
+		});
 		await appendAudit(tx, {
 			storageAccountId: principal.storageAccountId,
 			actor: principalLabel(principal),
@@ -178,6 +203,29 @@ export async function registerPasskey(
 			target: memberId,
 		});
 		return passkeyView(row!);
+	});
+}
+
+export async function renamePasskey(
+	deps: Deps,
+	principal: SessionPrincipal,
+	passkeyId: string,
+	label: string,
+) {
+	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
+		const [row] = await tx
+			.update(passkeyUnlockers)
+			.set({ label })
+			.where(eq(passkeyUnlockers.id, passkeyId))
+			.returning();
+		if (!row) throw new AppError('not_found');
+		await appendAudit(tx, {
+			storageAccountId: principal.storageAccountId,
+			actor: principalLabel(principal),
+			action: 'passkey.renamed',
+			target: row.memberId,
+		});
+		return passkeyView(row);
 	});
 }
 
@@ -214,6 +262,16 @@ export async function removePasskey(
 		await insertKeyEnvelopes(tx, principal.storageAccountId, input.key_envelopes);
 		await assertEnvelopeCoverage(tx);
 		await tx.delete(passkeyUnlockers).where(eq(passkeyUnlockers.id, passkey.id));
+		await tx.delete(unlockGrants).where(eq(unlockGrants.memberId, passkey.memberId));
+		await tx.insert(securityEvents).values({
+			storageAccountId: principal.storageAccountId,
+			kind: 'passkey.removed',
+			severity: 'info',
+			details: { member_id: passkey.memberId, label: passkey.label },
+		});
+		await notifyAccount(tx, principal.storageAccountId, 'passkey.removed', {
+			member_id: passkey.memberId,
+		});
 		await appendAudit(tx, {
 			storageAccountId: principal.storageAccountId,
 			actor: principalLabel(principal),
@@ -250,6 +308,7 @@ export async function verifyAssertion(
 	principal: SessionPrincipal,
 	response: Record<string, unknown>,
 ) {
+	refuseLeakedPrf(response);
 	return withTenantTx(deps.db.app, principal.storageAccountId, async (tx) => {
 		const expectedChallenge = await consumeChallenge(deps, tx, principal, 'unlock');
 		const credentialId = String(response.id ?? '');

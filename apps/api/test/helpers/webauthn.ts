@@ -82,8 +82,11 @@ export class SoftAuthenticator {
 		};
 	}
 
-	/** `navigator.credentials.get()` for the given assertion options. */
-	assert(options: { challenge: string }) {
+	/**
+	 * `navigator.credentials.get()` for the given assertion options, as the
+	 * web client sends it: the PRF output stays local unless `leakPrf`.
+	 */
+	assert(options: { challenge: string }, { leakPrf = false } = {}) {
 		this.counter += 1;
 		const clientDataJSON = this.clientData('webauthn.get', options.challenge);
 		const counter = Buffer.alloc(4);
@@ -107,7 +110,9 @@ export class SoftAuthenticator {
 				authenticatorData: b64(authData),
 				signature: b64(signature),
 			},
-			clientExtensionResults: { prf: { results: { first: b64(randomBytes(32)) } } },
+			clientExtensionResults: leakPrf
+				? { prf: { results: { first: b64(randomBytes(32)) } } }
+				: {},
 		};
 	}
 }
