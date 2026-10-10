@@ -67,7 +67,7 @@ export async function openHead(
 	pouchId: string,
 	head: RevisionRecord,
 	updatedAt: string,
-	deleted: boolean,
+	expectedArtifactId?: string,
 ): Promise<Ingredient | null> {
 	const signer = keyring.roster.members.get(head.signer_member_id);
 	if (!signer) throw new CryptoError('signature_invalid', 'revision by an unknown member');
@@ -82,6 +82,9 @@ export async function openHead(
 			'revision by a member removed before it was written',
 		);
 	}
+	if (expectedArtifactId && body.artifact_id !== expectedArtifactId) {
+		throw new CryptoError('envelope_mismatch', 'revision belongs to another item');
+	}
 	const kind = body.kind;
 	if (!isIngredientKind(kind)) return null;
 	return {
@@ -95,18 +98,21 @@ export async function openHead(
 		keyGen: head.key_gen,
 		updatedAt,
 		createdBy: body.author_member_id,
-		deleted: deleted || body.deleted,
+		deleted: body.deleted,
 		body,
 	};
 }
 
-async function fetchAllArtifacts(pouchId: string): Promise<ArtifactRecord[]> {
+async function fetchAllArtifacts(
+	pouchId: string,
+	includeDeleted: boolean,
+): Promise<ArtifactRecord[]> {
 	const all: ArtifactRecord[] = [];
 	let cursor: string | null = null;
 	do {
 		const page: { data: { items: ArtifactRecord[] }; nextCursor: string | null } =
 			await api.page<{ items: ArtifactRecord[] }>(`/v1/pouches/${pouchId}/artifacts`, {
-				query: { limit: Limits.pageMax, cursor },
+				query: { limit: Limits.pageMax, cursor, include_deleted: includeDeleted },
 			});
 		all.push(...page.data.items);
 		cursor = page.nextCursor;
@@ -114,8 +120,12 @@ async function fetchAllArtifacts(pouchId: string): Promise<ArtifactRecord[]> {
 	return all;
 }
 
-export async function loadPouchContents(keyring: Keyring, pouchId: string): Promise<PouchContents> {
-	const artifacts = await fetchAllArtifacts(pouchId);
+export async function loadPouchContents(
+	keyring: Keyring,
+	pouchId: string,
+	includeDeleted = false,
+): Promise<PouchContents> {
+	const artifacts = await fetchAllArtifacts(pouchId, includeDeleted);
 	const ingredients: Ingredient[] = [];
 	const unreadable: UnreadableArtifact[] = [];
 	await Promise.all(
@@ -127,7 +137,7 @@ export async function loadPouchContents(keyring: Keyring, pouchId: string): Prom
 					pouchId,
 					artifact.head,
 					artifact.updated_at,
-					artifact.deleted_at !== null,
+					artifact.id,
 				);
 				if (opened) ingredients.push(opened);
 			} catch (error) {
@@ -136,7 +146,7 @@ export async function loadPouchContents(keyring: Keyring, pouchId: string): Prom
 			}
 		}),
 	);
-	const replayed = await pinHeads(
+	const refused = await pinHeads(
 		keyring.member.id,
 		pouchId,
 		ingredients.map((ingredient) => ({
@@ -145,14 +155,21 @@ export async function loadPouchContents(keyring: Keyring, pouchId: string): Prom
 			parents: [ingredient.body.parent_id, ingredient.body.merge_parent_id],
 		})),
 	);
-	const current = ingredients.filter((ingredient) => !replayed.has(ingredient.id));
-	for (const id of replayed) {
-		const error = new CryptoError(
-			'revision_rollback',
-			'the server offered an older version of an item than this browser already saw',
-		);
-		reportTamper(error, { where: 'revision', pouchId });
-		unreadable.push({ id, reason: error.message });
+	const current = ingredients.filter((ingredient) => !refused.has(ingredient.id));
+	for (const [id, reason] of refused) {
+		if (reason === 'rollback') {
+			const error = new CryptoError(
+				'revision_rollback',
+				'the server offered an older version of an item than this browser already saw',
+			);
+			reportTamper(error, { where: 'revision', pouchId });
+			unreadable.push({ id, reason: error.message });
+		} else {
+			unreadable.push({
+				id,
+				reason: 'Cannot verify this item advances its previously seen revision.',
+			});
+		}
 	}
 	current.sort((a, b) => a.name.localeCompare(b.name));
 	return { ingredients: current, unreadable };

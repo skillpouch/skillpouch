@@ -71,6 +71,13 @@ export async function loadConflictVersions(
 	conflict: ConflictRecord,
 ): Promise<ConflictVersions> {
 	const keyring = currentKeyring();
+	// Historical sides are for display; only the verified listing can authorize
+	// a mutation base. Never promote a conflict record's claimed head directly.
+	const contents = await loadPouchContents(keyring, pouchId, true);
+	const current = contents.ingredients.find((item) => item.id === conflict.artifact_id);
+	if (!current || current.revisionId !== conflict.head_revision_id) {
+		throw new Error('Cannot verify the current version of this conflicted item.');
+	}
 	const ids = [
 		conflict.head_revision_id,
 		conflict.server_revision_id,
@@ -81,7 +88,7 @@ export async function loadConflictVersions(
 	);
 	const open = async (id: string | null): Promise<Ingredient | null> => {
 		const record = id ? records.get(id) : undefined;
-		return record ? openHead(keyring, pouchId, record, record.created_at, false) : null;
+		return record ? openHead(keyring, pouchId, record, record.created_at) : null;
 	};
 	const withFiles = async (revision: Ingredient | null): Promise<ConflictVersion | null> => {
 		if (!revision) return null;
@@ -98,15 +105,16 @@ export async function loadConflictVersions(
 		open(conflict.server_revision_id ?? conflict.head_revision_id),
 		open(conflict.incoming_revision_id),
 	]);
-	if (!head) throw new Error('The item is gone from the pouch.');
+	if (!head || head.id !== conflict.artifact_id)
+		throw new Error('The item is gone from the pouch.');
 
 	let holder: Ingredient | null = null;
 	let pouch = server;
 	if (conflict.type === 'name_collision') {
 		// The item that holds the name now, found by name: the server's
 		// record may point at an older version of it.
-		const contents = await loadPouchContents(keyring, pouchId);
-		holder = nameTaken(contents.ingredients, head.kind, head.name, head.id) ?? null;
+		const visible = await loadPouchContents(keyring, pouchId);
+		holder = nameTaken(visible.ingredients, head.kind, head.name, head.id) ?? null;
 		pouch = holder;
 	}
 	const [pouchSide, incomingSide] = await Promise.all([withFiles(pouch), withFiles(incoming)]);

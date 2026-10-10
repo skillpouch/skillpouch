@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * What this browser remembers about each item's history, per member and
- * pouch: the newest head revision it verified and every revision it knows
- * came before (the previous heads, and the parents their signed bodies
- * name). The server only ever moves a head to a new revision, so offering
- * one of those again is replaying an older version — refused, like a roster
- * rollback.
+ * pouch. A new head is accepted only when its signed parent names the pinned
+ * head; an unseen intermediate revision or fork cannot prove advancement.
  */
 const DB_NAME = 'skillpouch-heads';
 const STORE = 'pouches';
+const MAX_OLDER = 64;
 
 export interface SeenHead {
 	head: string;
@@ -24,7 +22,7 @@ interface PinRecord {
 export interface OfferedHead {
 	artifactId: string;
 	revisionId: string;
-	/** Parent and merge parent from the signed body. */
+	/** Primary parent and merge parent from the signed body, in that order. */
 	parents: (string | null)[];
 }
 
@@ -39,13 +37,12 @@ function openDatabase(): Promise<IDBDatabase> {
 	});
 }
 
-/** The artifacts whose offered head this browser saw replaced. */
-export function replayed(heads: Record<string, SeenHead>, offered: OfferedHead[]): Set<string> {
-	return new Set(
-		offered
-			.filter((head) => heads[head.artifactId]?.older.includes(head.revisionId))
-			.map((head) => head.artifactId),
-	);
+export type HeadRefusal = 'rollback' | 'unknown';
+
+/** Unknown ancestry is not proof of a newer head, even when its signature is valid. */
+export function classify(seen: SeenHead | undefined, offered: OfferedHead): HeadRefusal | null {
+	if (!seen || seen.head === offered.revisionId || offered.parents[0] === seen.head) return null;
+	return seen.older.includes(offered.revisionId) ? 'rollback' : 'unknown';
 }
 
 /** Remembers `head` as the artifact's newest verified head. */
@@ -54,34 +51,40 @@ export function remember(heads: Record<string, SeenHead>, head: OfferedHead): vo
 	const older = new Set(seen.older);
 	if (seen.head && seen.head !== head.revisionId) older.add(seen.head);
 	for (const parent of head.parents) if (parent && parent !== head.revisionId) older.add(parent);
-	heads[head.artifactId] = { head: head.revisionId, older: [...older] };
+	older.delete(head.revisionId);
+	// Evicted ancestors become unknown, never accepted. Bound storage per item.
+	heads[head.artifactId] = { head: head.revisionId, older: [...older].slice(-MAX_OLDER) };
 }
 
 /**
- * Checks the heads a listing offers against what this browser saw before and
- * remembers the accepted ones, in one transaction. Returns the artifact ids
- * whose head is an older version: those must not be used.
+ * Checks and remembers accepted heads atomically. Refused heads must not be used.
  */
 export async function pinHeads(
 	memberId: string,
 	pouchId: string,
 	offered: OfferedHead[],
-): Promise<Set<string>> {
+): Promise<Map<string, HeadRefusal>> {
 	const db = await openDatabase();
 	try {
-		return await new Promise<Set<string>>((resolve, reject) => {
+		return await new Promise<Map<string, HeadRefusal>>((resolve, reject) => {
 			const tx = db.transaction(STORE, 'readwrite');
 			const store = tx.objectStore(STORE);
 			const id = `${memberId}/${pouchId}`;
-			let refused = new Set<string>();
+			const refused = new Map<string, HeadRefusal>();
 			const read = store.get(id);
 			read.onsuccess = () => {
-				const record = (read.result as PinRecord | undefined) ?? { id, heads: {} };
-				refused = replayed(record.heads, offered);
-				for (const head of offered) {
-					if (!refused.has(head.artifactId)) remember(record.heads, head);
+				try {
+					const record = (read.result as PinRecord | undefined) ?? { id, heads: {} };
+					for (const head of offered) {
+						const reason = classify(record.heads[head.artifactId], head);
+						if (reason) refused.set(head.artifactId, reason);
+						else if (!refused.has(head.artifactId)) remember(record.heads, head);
+					}
+					store.put(record);
+				} catch (error) {
+					tx.abort();
+					reject(error);
 				}
-				store.put(record);
 			};
 			tx.oncomplete = () => resolve(refused);
 			tx.onerror = () => reject(tx.error);

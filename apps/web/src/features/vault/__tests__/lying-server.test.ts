@@ -41,8 +41,12 @@ import {
 	type ServedArtifact,
 } from '@/test/evil-server';
 import { fetchBlobs, loadPouchContents } from '../../ingredients/ingredients';
+import { commitIngredient } from '../../ingredients/write';
+import { loadConflictVersions } from '../../conflicts/conflicts';
+import { setSession } from '../../session/session-store';
 import { findBrowserMember, openBrowserKeyring } from '../../session/bootstrap';
 import { saveBrowserKey, type StoredBrowserKey } from '../key-store';
+import { classify, remember, type SeenHead } from '../head-pins';
 import { PasskeyError, openWithPasskey } from '../passkeys';
 import { loadVerifiedRoster } from '../roster';
 import { resetTamperReports } from '../security-report';
@@ -57,6 +61,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+	setSession({ status: 'signed_out' });
 	vi.unstubAllGlobals();
 });
 
@@ -454,6 +459,15 @@ describe('revisions', () => {
 		}, 'signature_invalid');
 	});
 
+	it('refuses a valid head assigned to a different listing item', async () => {
+		const item = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		item.id = crypto.randomUUID();
+		const result = await contents();
+		expect(result.ingredients).toEqual([]);
+		expect(result.unreadable[0]?.id).toBe(item.id);
+		await expectReport('envelope_mismatch', account.pouchId);
+	});
+
 	it('refuses a revision whose artifact column was changed', async () => {
 		await tamperedHead((head) => {
 			head.artifact_id = crypto.randomUUID();
@@ -525,6 +539,270 @@ describe('older versions and missing items', () => {
 		text: string,
 		options?: Parameters<HonestAccount['server']['editItem']>[5],
 	) => account.server.editItem(account.keyring, account.pouchId, artifact, 'pdf', text, options);
+
+	it('bounds remembered ancestors without accepting an evicted replay or a merge-only fork', () => {
+		const heads: Record<string, SeenHead> = {};
+		for (let index = 0; index <= 70; index++) {
+			const head = {
+				artifactId: 'item',
+				revisionId: `r${index}`,
+				parents: [index ? `r${index - 1}` : null, null],
+			};
+			expect(classify(heads.item, head)).toBeNull();
+			remember(heads, head);
+		}
+		expect(heads.item!.older.length).toBeLessThanOrEqual(64);
+		expect(
+			classify(heads.item, { artifactId: 'item', revisionId: 'r0', parents: [null, null] }),
+		).toBe('unknown');
+		expect(
+			classify(heads.item, {
+				artifactId: 'item',
+				revisionId: 'fork',
+				parents: ['r1', 'r70'],
+			}),
+		).toBe('unknown');
+	});
+	function acceptOperations() {
+		const serverFetch = account.server.fetch;
+		vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+			if (new URL(String(input), 'http://localhost').pathname.endsWith('/operations')) {
+				const operation = JSON.parse(String(init?.body)).ops[0] as {
+					artifact_id: string;
+					revision_id: string;
+				};
+				return new Response(
+					JSON.stringify({
+						ok: true,
+						data: {
+							results: [
+								{
+									status: 'applied',
+									artifact_id: operation.artifact_id,
+									revision_id: operation.revision_id,
+									seq: 2,
+								},
+							],
+						},
+					}),
+					{ headers: { 'content-type': 'application/json' } },
+				);
+			}
+			return serverFetch(input, init);
+		});
+	}
+
+	it('does not turn a signed live revision into a deletion from unsigned listing metadata', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		await contents();
+		pdf.deleted_at = '2026-10-11T00:00:00.000Z';
+		const result = await contents();
+		expect(names(result)).toEqual(['pdf']);
+		expect(result.unreadable).toEqual([]);
+		expect(account.server.reports).toEqual([]);
+	});
+
+	it('does not promote a skipped descendant or an intervening older revision', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const r1 = pdf.head!;
+		await contents();
+		await edit(pdf, 'v2');
+		const r2 = pdf.head!;
+		await edit(pdf, 'v3');
+		await edit(pdf, 'v4');
+		const unknown = await contents();
+		expect(names(unknown)).toEqual([]);
+		expect(unknown.unreadable[0]?.reason).toMatch(/Cannot verify/);
+		pdf.head = r2;
+		expect(names(await contents())).toEqual(['pdf']);
+		pdf.head = r1;
+		expect(names(await contents())).toEqual([]);
+		await expectReport('revision_rollback', account.pouchId);
+	});
+
+	it('does not demote r4 when a fresh browser first sees r4, then is offered r2', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		await edit(pdf, 'v2');
+		const r2 = pdf.head!;
+		await edit(pdf, 'v3');
+		await edit(pdf, 'v4');
+		const r4 = pdf.head!;
+		expect(names(await contents())).toEqual(['pdf']);
+		pdf.head = r2;
+		const unknown = await contents();
+		expect(unknown.ingredients).toEqual([]);
+		expect(unknown.unreadable[0]?.reason).toMatch(/Cannot verify/);
+		pdf.head = r4;
+		expect(names(await contents())).toEqual(['pdf']);
+	});
+
+	it('does not promote a signed fork of a pinned revision', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const r1 = pdf.head!;
+		await contents();
+		await edit(pdf, 'v2');
+		await contents();
+		pdf.head = r1;
+		await edit(pdf, 'fork');
+		const result = await contents();
+		expect(result.ingredients).toEqual([]);
+		expect(result.unreadable[0]?.reason).toMatch(/Cannot verify/);
+	});
+
+	it('rejects a conflict record claiming a stale current mutation base', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const r1 = pdf.head!.id;
+		await contents();
+		await edit(pdf, 'v2');
+		await contents();
+		setSession({
+			status: 'unlocked',
+			keyring: account.keyring,
+			me: {} as never,
+			browser: {} as never,
+		});
+		await expect(
+			loadConflictVersions(account.pouchId, {
+				id: crypto.randomUUID(),
+				artifact_id: pdf.id,
+				type: 'update_update',
+				base_revision_id: r1,
+				server_revision_id: r1,
+				incoming_revision_id: null,
+				head_revision_id: r1,
+				device_id: null,
+				state: 'open',
+				created_at: '2026-10-10T00:00:00Z',
+			}),
+		).rejects.toThrow('Cannot verify the current version');
+	});
+
+	it('verifies a hidden collision head without treating its unsigned hidden flag as a signed deletion', async () => {
+		const holder = await account.server.putItem(
+			account.keyring,
+			account.pouchId,
+			'pdf',
+			'held',
+		);
+		const waiting = await account.server.putItem(
+			account.keyring,
+			account.pouchId,
+			'pdf',
+			'waiting',
+		);
+		waiting.deleted_at = '2026-10-10T00:00:00Z';
+		const serverFetch = account.server.fetch;
+		vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = new URL(String(input), 'http://localhost');
+			if (url.pathname.endsWith('/artifacts')) {
+				return new Response(
+					JSON.stringify({
+						ok: true,
+						data: {
+							items: account.server.artifacts.filter(
+								(item) =>
+									url.searchParams.get('include_deleted') === 'true' ||
+									!item.deleted_at,
+							),
+						},
+						meta: { next_cursor: null },
+					}),
+					{ headers: { 'content-type': 'application/json' } },
+				);
+			}
+			if (url.pathname.endsWith('/revisions')) {
+				return new Response(
+					JSON.stringify({
+						ok: true,
+						data: {
+							revisions: [holder.head, waiting.head],
+						},
+					}),
+					{ headers: { 'content-type': 'application/json' } },
+				);
+			}
+			return serverFetch(input, init);
+		});
+		setSession({
+			status: 'unlocked',
+			keyring: account.keyring,
+			me: {} as never,
+			browser: {} as never,
+		});
+		const versions = await loadConflictVersions(account.pouchId, {
+			id: crypto.randomUUID(),
+			artifact_id: waiting.id,
+			type: 'name_collision',
+			base_revision_id: null,
+			server_revision_id: null,
+			incoming_revision_id: null,
+			head_revision_id: waiting.head!.id,
+			device_id: null,
+			state: 'open',
+			created_at: '2026-10-10T00:00:00Z',
+		});
+		expect(versions.head.id).toBe(waiting.id);
+		expect(versions.head.deleted).toBe(false);
+		expect(versions.holder?.id).toBe(holder.id);
+	});
+
+	it('pins a successful local write before returning, rejecting an immediate replay', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const before = (await contents()).ingredients[0]!;
+		acceptOperations();
+		const committed = await commitIngredient({
+			keyring: account.keyring,
+			pouch: { id: account.pouchId, epoch: '1' },
+			type: 'update',
+			artifactId: pdf.id,
+			base: before,
+			kind: before.kind,
+			name: before.name,
+			previousEntries: before.files,
+		});
+		expect(committed.revisionId).not.toBe(before.revisionId);
+		const result = await contents();
+		expect(result.ingredients).toEqual([]);
+		await expectReport('revision_rollback', account.pouchId);
+	});
+
+	it('fails closed if durable head storage is unavailable', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		acceptOperations();
+		const storage = indexedDB;
+		vi.stubGlobal('indexedDB', {
+			open: () => {
+				throw new Error('storage unavailable');
+			},
+		});
+		await expect(contents()).rejects.toThrow('storage unavailable');
+		await expect(
+			commitIngredient({
+				keyring: account.keyring,
+				pouch: { id: account.pouchId, epoch: '1' },
+				type: 'update',
+				artifactId: pdf.id,
+				base: { revisionId: pdf.head!.id },
+				kind: 'skill',
+				name: 'pdf',
+				previousEntries: [],
+			}),
+		).rejects.toThrow('storage unavailable');
+		vi.stubGlobal('indexedDB', storage);
+	});
+
+	it('rejects a listing when persisting its head exceeds storage quota', async () => {
+		await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+			throw new DOMException('quota exhausted', 'QuotaExceededError');
+		});
+		try {
+			await expect(contents()).rejects.toMatchObject({ name: 'QuotaExceededError' });
+		} finally {
+			put.mockRestore();
+		}
+		expect(names(await contents())).toEqual(['pdf']);
+	});
 
 	it('follows honest history: edits, a deliberate restore, a merge, a new browser', async () => {
 		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
