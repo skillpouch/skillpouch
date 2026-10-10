@@ -10,7 +10,7 @@ test.describe('admin dashboard', () => {
 	test('ordinary users get "not found" and no Admin menu item', async ({ page }) => {
 		await createAccount(page, 'not-admin');
 		await page.getByRole('button', { name: 'Account menu' }).click();
-		await expect(page.getByRole('menuitem', { name: 'Admin' })).toHaveCount(0);
+		await expect(page.getByRole('menuitem', { name: 'Admin dashboard' })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 		await page.goto('/admin');
 		await expect(page.getByRole('heading', { name: 'Nothing here' })).toBeVisible();
@@ -26,7 +26,7 @@ test.describe('admin dashboard', () => {
 		await signIn(page, ADMIN);
 		await completeSetup(page);
 		await page.getByRole('button', { name: 'Account menu' }).click();
-		await page.getByRole('menuitem', { name: 'Admin' }).click();
+		await page.getByRole('menuitem', { name: 'Admin dashboard' }).click();
 		await expect(page).toHaveURL(/\/admin$/);
 		await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
 		await expect(page.getByRole('group', { name: 'New users' })).toBeVisible();

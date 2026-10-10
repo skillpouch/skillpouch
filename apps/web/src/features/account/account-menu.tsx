@@ -51,6 +51,14 @@ export function AccountMenu() {
 					<span className="truncate">{user.email}</span>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
+				{isAdmin(session.me) ? (
+					<>
+						<DropdownMenuItem onSelect={() => go('/admin')}>
+							<LayoutDashboard /> Admin dashboard
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+					</>
+				) : null}
 				<DropdownMenuItem onSelect={() => go('/app/account')}>
 					<User /> Account
 				</DropdownMenuItem>
@@ -67,14 +75,6 @@ export function AccountMenu() {
 				<DropdownMenuItem onSelect={() => go('/app/account/billing')}>
 					<CreditCard /> Billing
 				</DropdownMenuItem>
-				{isAdmin(session.me) ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem onSelect={() => go('/admin')}>
-							<LayoutDashboard /> Admin
-						</DropdownMenuItem>
-					</>
-				) : null}
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
 					onSelect={async () => {
