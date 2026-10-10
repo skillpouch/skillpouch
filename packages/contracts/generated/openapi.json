@@ -13723,14 +13723,13 @@
 										]
 									},
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
 								"required": [
-									"role",
-									"reason"
+									"role"
 								],
 								"additionalProperties": false
 							}
@@ -13814,14 +13813,11 @@
 								"type": "object",
 								"properties": {
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
-								"required": [
-									"reason"
-								],
 								"additionalProperties": false
 							}
 						}
@@ -13903,14 +13899,11 @@
 								"type": "object",
 								"properties": {
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
-								"required": [
-									"reason"
-								],
 								"additionalProperties": false
 							}
 						}
@@ -13992,14 +13985,11 @@
 								"type": "object",
 								"properties": {
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
-								"required": [
-									"reason"
-								],
 								"additionalProperties": false
 							}
 						}
@@ -14109,14 +14099,13 @@
 										]
 									},
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
 								"required": [
-									"plan_slug",
-									"reason"
+									"plan_slug"
 								],
 								"additionalProperties": false
 							}
@@ -14208,14 +14197,11 @@
 								"type": "object",
 								"properties": {
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
-								"required": [
-									"reason"
-								],
 								"additionalProperties": false
 							}
 						}
@@ -14340,15 +14326,14 @@
 										"maxLength": 500
 									},
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
 								"required": [
 									"pouch_limit",
-									"storage_bytes",
-									"reason"
+									"storage_bytes"
 								],
 								"additionalProperties": false
 							}
@@ -14429,14 +14414,11 @@
 								"type": "object",
 								"properties": {
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
-								"required": [
-									"reason"
-								],
 								"additionalProperties": false
 							}
 						}
@@ -14519,14 +14501,11 @@
 								"type": "object",
 								"properties": {
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
-								"required": [
-									"reason"
-								],
 								"additionalProperties": false
 							}
 						}
@@ -14830,8 +14809,8 @@
 										"maximum": 9007199254740991
 									},
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
@@ -14840,8 +14819,7 @@
 									"price_cents",
 									"interval",
 									"pouch_limit",
-									"storage_bytes",
-									"reason"
+									"storage_bytes"
 								],
 								"additionalProperties": false
 							}
@@ -15059,8 +15037,8 @@
 										"maximum": 9007199254740991
 									},
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
@@ -15069,8 +15047,7 @@
 									"price_cents",
 									"interval",
 									"pouch_limit",
-									"storage_bytes",
-									"reason"
+									"storage_bytes"
 								],
 								"additionalProperties": false
 							}
@@ -15580,14 +15557,13 @@
 										"type": "boolean"
 									},
 									"reason": {
+										"default": "",
 										"type": "string",
-										"minLength": 3,
 										"maxLength": 500
 									}
 								},
 								"required": [
-									"enabled",
-									"reason"
+									"enabled"
 								],
 								"additionalProperties": false
 							}

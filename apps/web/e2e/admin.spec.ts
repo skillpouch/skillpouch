@@ -39,8 +39,8 @@ test.describe('admin dashboard', () => {
 		await page.getByRole('button', { name: 'Give a plan' }).click();
 		const dialog = page.getByRole('dialog');
 		const confirm = dialog.getByRole('button', { name: 'Give plan' });
-		// No reason, no change.
-		await expect(confirm).toBeDisabled();
+		// The reason is optional, but kept when given.
+		await expect(confirm).toBeEnabled();
 		await dialog.getByLabel('Reason').fill('beta tester');
 		await confirm.click();
 		await expect(dialog).toBeHidden();

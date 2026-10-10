@@ -2,7 +2,7 @@
 /**
  * The admin dashboard's data. The server decides who is an admin and asks
  * for a recent sign-in before any change; this module only reads and sends.
- * Every change carries a reason, which lands in the audit log.
+ * A change may carry a reason, which lands in the audit log.
  */
 import type {
 	AdminAnalytics,
@@ -206,8 +206,6 @@ export function compact(value: number): string {
 export function actorLabel(actor: string): string {
 	return actor.startsWith('user:') ? actor.slice(5) : actor;
 }
-
-export const REASON_MIN = 3;
 
 const DAY_LABEL = new Intl.DateTimeFormat('en', {
 	month: 'short',

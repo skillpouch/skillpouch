@@ -8,7 +8,7 @@ import { Field } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
-import { formatChange, REASON_MIN } from '../admin';
+import { formatChange } from '../admin';
 
 export function Panel({
 	title,
@@ -158,7 +158,7 @@ export function LoadMore({
 }
 
 /**
- * Confirms an admin change and asks why; the reason goes to the audit log.
+ * Confirms an admin change; an optional reason goes to the audit log.
  * `children` holds the change's own fields.
  */
 export function ReasonDialog({
@@ -191,7 +191,7 @@ export function ReasonDialog({
 			setError(null);
 		}
 	}, [open]);
-	const valid = reason.trim().length >= REASON_MIN && ready;
+	const valid = ready;
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
 		if (!valid) return;
@@ -211,7 +211,11 @@ export function ReasonDialog({
 			<DialogContent title={title} description={description} busy={busy}>
 				<form onSubmit={submit} className="flex flex-col gap-4" noValidate>
 					{children}
-					<Field label="Reason" hint="Kept in the audit log with your name.">
+					<Field
+						label="Reason"
+						aside="optional"
+						hint="Kept in the audit log with your name."
+					>
 						{(control) => (
 							<Textarea
 								{...control}

@@ -97,7 +97,7 @@ export function describeDetails(entry: Pick<Audit, 'details'>): string {
 				`${key}: ${typeof value === 'object' ? JSON.stringify(value) : String(value)}`,
 		);
 	return (
-		[typeof reason === 'string' ? `“${reason}”` : null, ...others]
+		[typeof reason === 'string' && reason ? `“${reason}”` : null, ...others]
 			.filter(Boolean)
 			.join(' · ') || '—'
 	);

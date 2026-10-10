@@ -494,10 +494,11 @@ describe('billing and admin', () => {
 		});
 
 		it('requires a reason and a fresh sign-in for mutations', async () => {
-			const noReason = await admin.post(`/v1/admin/users/${alice.browser.userId}/grants`, {
+			const longReason = await admin.post(`/v1/admin/users/${alice.browser.userId}/grants`, {
 				plan_slug: 'supporter',
+				reason: 'x'.repeat(501),
 			});
-			expect(noReason.status).toBe(400);
+			expect(longReason.status).toBe(400);
 			await h.owner.query(
 				`UPDATE sessions SET step_up_at = now() - interval '1 hour' WHERE user_id = $1`,
 				[admin.userId],

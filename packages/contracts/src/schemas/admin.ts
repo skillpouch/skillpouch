@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { Timestamp, Uuid } from './common';
 import { Entitlements } from './account';
 
-/** Every admin mutation carries a reason, written to the audit log. */
-const Reason = z.string().trim().min(3).max(500);
+/** Why an admin made a change, kept in the audit log; optional. */
+const Reason = z.string().trim().max(500).default('');
 
 export const AdminOverview = z.object({
 	users: z.number().int(),

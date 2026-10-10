@@ -54,6 +54,7 @@ describe('admin helpers', () => {
 			'“beta tester” · role: admin',
 		);
 		expect(describeDetails({ details: {} })).toBe('—');
+		expect(describeDetails({ details: { reason: '' } })).toBe('—');
 	});
 
 	it('works out when a given plan ends', () => {
