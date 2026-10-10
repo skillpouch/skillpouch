@@ -33,6 +33,17 @@ const others = ASSISTANTS.filter((assistant) => !FLOW_ASSISTANTS.includes(assist
 				))}
 			</ul>
 
+			{/* On phones the diagram is stacked: short connectors run from the
+			    kinds into the pouch and from the pouch down to the assistants. */}
+			<FlowCanvas
+				client:visible
+				orientation="vertical"
+				fan="in"
+				count={ITEM_KINDS.length}
+				height={96}
+				offset={0}
+			/>
+
 			<FlowCanvas
 				client:visible={{ rootMargin: '400px' }}
 				count={ITEM_KINDS.length}
@@ -60,6 +71,15 @@ const others = ASSISTANTS.filter((assistant) => !FLOW_ASSISTANTS.includes(assist
 				fan="out"
 				height={HEIGHT}
 				offset={1.4}
+			/>
+
+			<FlowCanvas
+				client:visible
+				orientation="vertical"
+				fan="out"
+				count={FLOW_ASSISTANTS.length}
+				height={96}
+				offset={0.7}
 			/>
 
 			<ul class="flex flex-col gap-2 md:h-[336px] md:w-[330px] md:justify-around md:gap-0">

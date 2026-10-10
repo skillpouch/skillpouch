@@ -38,14 +38,14 @@ export default defineConfig({
 			command: 'node --import tsx e2e/stack.ts',
 			url: `http://127.0.0.1:${apiPort}/readyz`,
 			reuseExistingServer: false,
-			timeout: 60_000,
+			timeout: 180_000,
 			env: { E2E_API_PORT: apiPort, E2E_WEB_PORT: webPort },
 		},
 		{
 			command: `vite --port ${webPort} --strictPort`,
 			url: baseURL,
 			reuseExistingServer: false,
-			timeout: 60_000,
+			timeout: 120_000,
 			env: {
 				SKILLPOUCH_API_URL: `http://127.0.0.1:${apiPort}`,
 				SKILLPOUCH_SITE_URL: siteURL,
@@ -57,7 +57,9 @@ export default defineConfig({
 			command: `pnpm --dir ../site exec astro dev --port ${sitePort} --ignore-lock`,
 			url: `${siteURL}/_site/`,
 			reuseExistingServer: false,
-			timeout: 60_000,
+			// A cold CI runner optimizes the site's dependencies (three.js and
+			// friends) on the first request; give it room.
+			timeout: 180_000,
 			env: {
 				SKILLPOUCH_API_URL: `http://127.0.0.1:${apiPort}`,
 				SKILLPOUCH_APP_URL: baseURL,

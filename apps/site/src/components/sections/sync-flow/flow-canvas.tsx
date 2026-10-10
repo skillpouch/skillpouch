@@ -37,16 +37,40 @@ export interface Curve {
 	total: number;
 }
 
+export type Orientation = 'horizontal' | 'vertical';
+
 /** The connectors for `count` rows over a `width` × `height` box. */
-export function curves(count: number, fan: 'in' | 'out', width: number, height: number): Curve[] {
+export function curves(
+	count: number,
+	fan: 'in' | 'out',
+	width: number,
+	height: number,
+	orientation: Orientation = 'horizontal',
+): Curve[] {
 	const mid = height / 2;
 	return Array.from({ length: count }, (_, index) => {
-		const y = ((index + 0.5) / count) * height;
-		const [from, to]: [number, number] = fan === 'in' ? [y, mid] : [mid, y];
-		const p0: Point = [0, from];
-		const p1: Point = [width * 0.55, from];
-		const p2: Point = [width * 0.45, to];
-		const p3: Point = [width, to];
+		// Horizontal: rows spread along the left edge, meeting at the middle of
+		// the right edge. Vertical: points spread along the top edge, meeting at
+		// the centre of the bottom edge (the mobile diagram is stacked).
+		const spread = ((index + 0.5) / count) * (orientation === 'vertical' ? width : height);
+		let p0: Point;
+		let p1: Point;
+		let p2: Point;
+		let p3: Point;
+		if (orientation === 'vertical') {
+			const centre = width / 2;
+			const [from, to]: [number, number] = fan === 'in' ? [spread, centre] : [centre, spread];
+			p0 = [from, 0];
+			p1 = [from, height * 0.45];
+			p2 = [to, height * 0.55];
+			p3 = [to, height];
+		} else {
+			const [from, to]: [number, number] = fan === 'in' ? [spread, mid] : [mid, spread];
+			p0 = [0, from];
+			p1 = [width * 0.55, from];
+			p2 = [width * 0.45, to];
+			p3 = [width, to];
+		}
 		const points: Point[] = [];
 		const lengths: number[] = [];
 		let total = 0;
@@ -89,12 +113,15 @@ export function FlowCanvas({
 	fan,
 	height,
 	offset,
+	orientation = 'horizontal',
 }: {
 	count: number;
 	fan: 'in' | 'out';
 	height: number;
 	/** Seconds this side's dashes start after the other's. */
 	offset: number;
+	/** Vertical fits the stacked mobile diagram; hidden on `md` and up. */
+	orientation?: Orientation;
 }) {
 	const ref = useRef<HTMLCanvasElement>(null);
 
@@ -148,7 +175,7 @@ export function FlowCanvas({
 			canvas.width = Math.round(width * ratio);
 			canvas.height = Math.round(height * ratio);
 			context.setTransform(ratio, 0, 0, ratio, 0, 0);
-			lines = curves(count, fan, width, height);
+			lines = curves(count, fan, width, height, orientation);
 			draw(performance.now());
 		};
 
@@ -165,13 +192,17 @@ export function FlowCanvas({
 			seen.disconnect();
 			cancelAnimationFrame(frame);
 		};
-	}, [count, fan, height, offset]);
+	}, [count, fan, height, offset, orientation]);
 
 	return (
 		<canvas
 			ref={ref}
 			aria-hidden
-			className="hidden min-w-12 flex-1 md:block"
+			className={
+				orientation === 'vertical'
+					? 'block w-full md:hidden'
+					: 'hidden min-w-12 flex-1 md:block'
+			}
 			style={{ height }}
 		/>
 	);

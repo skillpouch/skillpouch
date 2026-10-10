@@ -22,4 +22,14 @@ describe('sync diagram curves', () => {
 		expect(slice(line!, -30, -5)).toEqual([]);
 		expect(slice(line!, line!.total - 5, line!.total + 20).at(-1)).toEqual(line!.points.at(-1));
 	});
+
+	it('vertical curves run top to bottom and meet at the centre', () => {
+		const lines = curves(2, 'in', 300, 100, 'vertical');
+		expect(lines[0]!.points[0]).toEqual([75, 0]);
+		expect(lines[0]!.points.at(-1)).toEqual([150, 100]);
+		// A single vertical curve starts at the centre top.
+		const [out] = curves(1, 'out', 300, 100, 'vertical');
+		expect(out!.points[0]).toEqual([150, 0]);
+		expect(out!.points.at(-1)![0]).toBeCloseTo(150, 5);
+	});
 });
