@@ -612,6 +612,39 @@ describe('billing and admin', () => {
 				reason: 'more pouches',
 			});
 			expect(edited.body.data.pouch_limit).toBe(12);
+
+			// A description edit reaches Polar (plan sync copies Polar's back), without a new price.
+			const productPatches = () =>
+				calls.filter(
+					(call) => call.method === 'PATCH' && call.url.endsWith('/v1/products/prod_new'),
+				);
+			const before = productPatches().length;
+			await admin.put(`/v1/admin/plans/${created.body.data.id}`, {
+				name: 'Supporter+',
+				description: 'For people who sync a lot',
+				price_cents: 1000,
+				interval: 'month',
+				pouch_limit: 12,
+				storage_bytes: 10 * 1024 ** 3,
+				reason: 'copy',
+			});
+			expect(productPatches()).toHaveLength(before + 1);
+			expect(productPatches().at(-1)?.body).toEqual({
+				name: 'Supporter+',
+				description: 'For people who sync a lot',
+			});
+			await admin.put(`/v1/admin/plans/${created.body.data.id}`, {
+				name: 'Supporter+',
+				description: 'For people who sync a lot',
+				price_cents: 1200,
+				interval: 'month',
+				pouch_limit: 12,
+				storage_bytes: 10 * 1024 ** 3,
+				reason: 'price',
+			});
+			expect(productPatches().at(-1)?.body).toMatchObject({
+				prices: [{ price_amount: 1200 }],
+			});
 			const free = (await admin.get('/v1/admin/plans')).body.data.plans.find(
 				(plan: { slug: string }) => plan.slug === 'free',
 			);

@@ -77,6 +77,11 @@ export interface PlanProductInput {
 	priceCents: number;
 	currency: string;
 	interval: 'month' | 'year';
+	/**
+	 * Send the price to an existing product. Polar creates a new price whenever prices are sent,
+	 * so a name or description change leaves it out.
+	 */
+	updatePrice: boolean;
 }
 
 /**
