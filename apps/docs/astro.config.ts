@@ -26,14 +26,6 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { name: 'theme-color', content: '#000000' } },
 			],
 			customCss: ['./src/styles/docs.css'],
-			social: [
-				{
-					icon: 'github',
-					label: 'SkillPouch on GitHub',
-					href: 'https://github.com/skillpouch',
-				},
-				{ icon: 'discord', label: 'Discord', href: 'https://discord.gg/u8eEJZEGhc' },
-			],
 			components: {
 				SocialIcons: './src/components/header-links.astro',
 				ThemeSelect: './src/components/no-theme-select.astro',
