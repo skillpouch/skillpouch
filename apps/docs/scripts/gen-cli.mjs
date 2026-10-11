@@ -47,20 +47,47 @@ export const NOTES = {
 	status: ['Exits with code `3` when this computer is not logged in.'],
 };
 
-/** The subcommands a clap help text lists, without `help`. */
-export function parseCommands(help) {
-	const lines = help.split('\n');
-	const start = lines.findIndex((line) => line.trim() === 'Commands:');
-	if (start === -1) return [];
-	const commands = [];
-	for (const line of lines.slice(start + 1)) {
-		if (!line.startsWith('  ')) break;
-		const match = /^ {2}(\S+)\s+(.*)$/.exec(line);
-		if (match && match[1] !== 'help') {
-			commands.push({ name: match[1], about: match[2] ?? '' });
+/** A clap help text's sections: the about text, usage, and entry lists. */
+export function parseHelp(help) {
+	const blocks = clean(help).split(/\n{2,}/);
+	const parsed = { about: '', usage: '', arguments: [], options: [], commands: [] };
+	const about = [];
+	for (const block of blocks) {
+		const [head, ...rest] = block.split('\n');
+		if (head.startsWith('Usage:')) {
+			parsed.usage = head.slice('Usage:'.length).trim();
+			continue;
+		}
+		const key = { 'Arguments:': 'arguments', 'Options:': 'options', 'Commands:': 'commands' }[
+			head.trim()
+		];
+		if (!key) {
+			about.push(block);
+			continue;
+		}
+		for (const line of rest) {
+			const match = /^\s+(\S.*?)(?:\s{2,}(.*))?$/.exec(line);
+			if (!match) continue;
+			const last = parsed[key].at(-1);
+			// A wrapped description continues on a deeper-indented line.
+			if (last && /^\s{8,}/.test(line) && match[2] === undefined) {
+				last.about = `${last.about} ${match[1]}`.trim();
+			} else {
+				parsed[key].push({ name: match[1], about: match[2] ?? '' });
+			}
 		}
 	}
-	return commands;
+	parsed.about = about.join('\n\n');
+	parsed.commands = parsed.commands.filter((entry) => entry.name !== 'help');
+	parsed.options = parsed.options.filter(
+		(entry) => !/^-h, --help$|^-V, --version$/.test(entry.name),
+	);
+	return parsed;
+}
+
+/** The subcommands a clap help text lists, without `help`. */
+export function parseCommands(help) {
+	return parseHelp(help).commands;
 }
 
 /** Help text without colour codes or trailing spaces. */
@@ -75,42 +102,85 @@ export function clean(text) {
 		.trim();
 }
 
-function fence(text) {
-	return ['```text', text, '```'].join('\n');
+/** A Markdown table cell: no pipes or line breaks. */
+function cell(text) {
+	return String(text).replaceAll('|', '\\|').replaceAll('\n', ' ');
+}
+
+/** A sentence, so table cells and intros end the same way. */
+function sentence(text) {
+	return /[.?!…]$/.test(text) || !text ? text : `${text}.`;
+}
+
+function table(header, entries, name = (entry) => `\`${entry.name}\``) {
+	if (!entries.length) return [];
+	return [
+		`| ${header} | What it does |`,
+		'| --- | --- |',
+		...entries.map((entry) => `| ${cell(name(entry))} | ${cell(sentence(entry.about))} |`),
+		'',
+	];
+}
+
+/** Usage, arguments and options of one command, under headings of `depth`. */
+function reference(parsed, depth) {
+	const h = '#'.repeat(depth);
+	const lines = [];
+	if (parsed.usage) lines.push(`${h} Usage`, '', '```sh', parsed.usage, '```', '');
+	if (parsed.arguments.length) {
+		lines.push(`${h} Arguments`, '', ...table('Argument', parsed.arguments));
+	}
+	if (parsed.options.length) lines.push(`${h} Options`, '', ...table('Option', parsed.options));
+	return lines;
 }
 
 /**
  * One page: `command` is `''` for `skillpouch` itself, `subcommands` the
  * help of each nested command (`daemon start`, …).
  */
-export function renderPage({ command, help, version, subcommands = [] }) {
+export function renderPage({ command, help, subcommands = [] }) {
 	const full = command ? `skillpouch ${command}` : 'skillpouch';
-	const about = clean(help).split('\n')[0] ?? '';
+	const parsed = parseHelp(help);
 	const lines = [
 		'---',
 		`title: ${JSON.stringify(full)}`,
-		`description: ${JSON.stringify(about)}`,
+		`description: ${JSON.stringify(sentence(parsed.about.split('\n')[0] ?? ''))}`,
 		'---',
 		'',
 		NOTICE,
 		'',
-		fence(clean(help)),
+		sentence(parsed.about),
 		'',
 	];
-	for (const sub of subcommands) {
-		lines.push(`## \`${full} ${sub.name}\``, '', fence(clean(sub.help)), '');
-	}
 	const notes = NOTES[command];
 	if (notes) lines.push(...notes, '');
-	if (!command) {
-		lines.push('## Commands', '');
-		for (const sub of parseCommands(help)) {
-			lines.push(`- [\`skillpouch ${sub.name}\`](/cli/${sub.name}/): ${sub.about}`);
-		}
-		lines.push('');
+	if (!command && parsed.commands.length) {
+		lines.push(
+			'## Commands',
+			'',
+			...table(
+				'Command',
+				parsed.commands,
+				(entry) => `[\`skillpouch ${entry.name}\`](/cli/${entry.name}/)`,
+			),
+		);
 	}
-	lines.push(`_Generated from \`${clean(version)}\`._`, '');
-	return lines.join('\n');
+	lines.push(...reference(parsed, 2));
+	if (command && parsed.commands.length) {
+		lines.push(
+			'## Commands',
+			'',
+			...table('Command', parsed.commands, (entry) => `\`${full} ${entry.name}\``),
+		);
+	}
+	for (const sub of subcommands) {
+		const subParsed = parseHelp(sub.help);
+		// The commands table already says what an option-less subcommand does.
+		if (!subParsed.arguments.length && !subParsed.options.length) continue;
+		lines.push(`## \`${full} ${sub.name}\``, '', sentence(subParsed.about), '');
+		lines.push(...reference(subParsed, 3));
+	}
+	return lines.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
 function main() {
@@ -125,14 +195,14 @@ function main() {
 	const version = run(['--version']);
 	const rootHelp = run(['--help']);
 	mkdirSync(OUT_DIR, { recursive: true });
-	const pages = { 'index.md': renderPage({ command: '', help: rootHelp, version }) };
+	const pages = { 'index.md': renderPage({ command: '', help: rootHelp }) };
 	for (const { name } of parseCommands(rootHelp)) {
 		const help = run([name, '--help']);
 		const subcommands = parseCommands(help).map((sub) => ({
 			name: sub.name,
 			help: run([name, sub.name, '--help']),
 		}));
-		pages[`${name}.md`] = renderPage({ command: name, help, version, subcommands });
+		pages[`${name}.md`] = renderPage({ command: name, help, subcommands });
 	}
 	for (const [file, content] of Object.entries(pages)) {
 		writeFileSync(join(OUT_DIR, file), content);
