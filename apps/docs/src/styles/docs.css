@@ -156,3 +156,34 @@
 		width: 8rem;
 	}
 }
+
+/* Thin dark scrollbars instead of the native ones. */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #2a2a2a transparent;
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #2a2a2a;
+	border: 2px solid transparent;
+	border-radius: 999px;
+	background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: #3d3d3d;
+	background-clip: padding-box;
+}
+
+::-webkit-scrollbar-button {
+	display: none;
+}
