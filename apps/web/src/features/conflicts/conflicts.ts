@@ -88,7 +88,35 @@ export async function loadConflictVersions(
 	);
 	const open = async (id: string | null): Promise<Ingredient | null> => {
 		const record = id ? records.get(id) : undefined;
-		return record ? openHead(keyring, pouchId, record, record.created_at) : null;
+		return record
+			? openHead(
+					keyring,
+					pouchId,
+					record,
+					record.created_at,
+					conflict.artifact_id ?? undefined,
+				)
+			: null;
+	};
+	const ancestorOf = async (descendant: Ingredient, target: string): Promise<boolean> => {
+		const visited = new Set<string>();
+		let parent = descendant.body.parent_id;
+		for (let depth = 0; parent && depth < 64 && !visited.has(parent); depth++) {
+			if (parent === target) return true;
+			visited.add(parent);
+			const [record] = await fetchRevisions(pouchId, [parent]);
+			if (!record || record.id !== parent) return false;
+			const opened = await openHead(
+				keyring,
+				pouchId,
+				record,
+				record.created_at,
+				conflict.artifact_id ?? undefined,
+			);
+			if (!opened) return false;
+			parent = opened.body.parent_id;
+		}
+		return false;
 	};
 	const withFiles = async (revision: Ingredient | null): Promise<ConflictVersion | null> => {
 		if (!revision) return null;
@@ -102,18 +130,46 @@ export async function loadConflictVersions(
 	};
 	const [head, server, incoming] = await Promise.all([
 		open(conflict.head_revision_id),
-		open(conflict.server_revision_id ?? conflict.head_revision_id),
+		open(
+			conflict.type === 'name_collision'
+				? null
+				: (conflict.server_revision_id ?? conflict.head_revision_id),
+		),
 		open(conflict.incoming_revision_id),
 	]);
 	if (!head || head.id !== conflict.artifact_id)
 		throw new Error('The item is gone from the pouch.');
+	if (
+		(conflict.type !== 'name_collision' && conflict.server_revision_id && !server) ||
+		(conflict.incoming_revision_id && !incoming)
+	)
+		throw new Error('A signed conflict side is unavailable; cannot resolve it.');
+	if (head.revisionId !== current.revisionId)
+		throw new Error('Conflict head does not match the verified item.');
+	if (conflict.type !== 'name_collision') {
+		if (
+			server &&
+			server.revisionId !== head.revisionId &&
+			!(await ancestorOf(head, server.revisionId))
+		)
+			throw new Error('Conflict pouch side is not in the verified item history.');
+		if (
+			incoming &&
+			incoming.revisionId !== head.revisionId &&
+			(!incoming.body.parent_id ||
+				(incoming.body.parent_id !== head.revisionId &&
+					incoming.body.parent_id !== server?.revisionId &&
+					!(await ancestorOf(head, incoming.body.parent_id))))
+		)
+			throw new Error('Conflict incoming side has no shared signed history.');
+	}
 
 	let holder: Ingredient | null = null;
 	let pouch = server;
 	if (conflict.type === 'name_collision') {
 		// The item that holds the name now, found by name: the server's
 		// record may point at an older version of it.
-		const visible = await loadPouchContents(keyring, pouchId);
+		const visible = await loadPouchContents(keyring, pouchId, false);
 		holder = nameTaken(visible.ingredients, head.kind, head.name, head.id) ?? null;
 		pouch = holder;
 	}
@@ -184,7 +240,11 @@ export function useResolveConflict(pouch: Pick<PouchRecord, 'id' | 'epoch'>) {
 			}
 
 			const other =
-				keep === 'pouch' ? conflict.incoming_revision_id : conflict.server_revision_id;
+				conflict.type === 'name_collision'
+					? null
+					: keep === 'pouch'
+						? versions.incoming?.revision.revisionId
+						: versions.pouch?.revision.revisionId;
 			const { revisionId } = await commitIngredient({
 				keyring,
 				pouch,

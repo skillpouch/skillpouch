@@ -26,7 +26,7 @@ import {
 import { Limits } from '@skillpouch/contracts';
 import { api } from '@/lib/api/client';
 import type { OperationResultRecord, PouchRecord } from '@/lib/api/types';
-import { pinHeads } from '../vault/head-pins';
+import { releaseHead, reserveHead, settleHead } from '../vault/head-pins';
 import type { Ingredient } from './ingredients';
 import type { IngredientKind } from './kinds';
 
@@ -117,7 +117,34 @@ export async function commitIngredient(input: CommitInput): Promise<{ revisionId
 	const keys = pouchKeys(input.keyring, input.pouch.id);
 	const scope = input.scope ?? 'global';
 	const revisionId = crypto.randomUUID();
+	const memberId = input.keyring.member.id;
+	// Checked against the pinned head before anything is signed or sent; the
+	// reservation also keeps another tab from writing the same item meanwhile.
+	await reserveHead(
+		memberId,
+		input.pouch.id,
+		input.artifactId,
+		input.base?.revisionId ?? null,
+		revisionId,
+	);
+	try {
+		await submit(input, keys, scope, revisionId);
+	} catch (error) {
+		await releaseHead(memberId, input.pouch.id, input.artifactId, revisionId).catch(() => {});
+		throw error;
+	}
+	// The write was applied: a failure to record it locally isn't reported as a
+	// failed save. The next read accepts it, as it follows the pinned head.
+	await settleHead(memberId, input.pouch.id, input.artifactId, revisionId).catch(() => {});
+	return { revisionId };
+}
 
+async function submit(
+	input: CommitInput,
+	keys: ReturnType<typeof pouchKeys>,
+	scope: string,
+	revisionId: string,
+): Promise<void> {
 	let entries: ManifestEntry[] = input.previousEntries ?? [];
 	let sealed: SealedBlob[] = [];
 	if (input.files) {
@@ -170,16 +197,8 @@ export async function commitIngredient(input: CommitInput): Promise<{ revisionId
 	const result = results[0]!;
 	if (result.status === 'conflict') throw new CommitConflictError(result);
 	if (result.status === 'rejected') throw new CommitRejectedError(result);
-	const refused = await pinHeads(input.keyring.member.id, input.pouch.id, [
-		{
-			artifactId: input.artifactId,
-			revisionId,
-			parents: [body.parent_id, body.merge_parent_id],
-		},
-	]);
-	if (refused.size)
-		throw new Error('Committed item could not be verified against its local head.');
-	return { revisionId };
+	if (result.artifact_id !== input.artifactId || result.revision_id !== revisionId)
+		throw new Error('The server answered for a different write.');
 }
 
 const encoder = new TextEncoder();

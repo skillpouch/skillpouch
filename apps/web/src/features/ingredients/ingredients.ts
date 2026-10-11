@@ -25,7 +25,14 @@ import { api } from '@/lib/api/client';
 import { queryKeys } from '@/lib/api/query-keys';
 import type { ArtifactRecord, RevisionRecord } from '@/lib/api/types';
 import { useUnlocked } from '../session/session-store';
-import { pinHeads } from '../vault/head-pins';
+import {
+	classify,
+	pinHeads,
+	pinnedHeads,
+	type OfferedHead,
+	type SeenHead,
+	trustedHeads,
+} from '../vault/head-pins';
 import { reportTamper } from '../vault/security-report';
 import { asText, describe } from './content';
 import { isIngredientKind, kindDefinition, type IngredientKind } from './kinds';
@@ -125,7 +132,26 @@ export async function loadPouchContents(
 	pouchId: string,
 	includeDeleted = false,
 ): Promise<PouchContents> {
-	const artifacts = await fetchAllArtifacts(pouchId, includeDeleted);
+	// Deleted items and hidden name collisions are always read so their signed
+	// heads stay pinned; `includeDeleted` only decides what is returned.
+	const artifacts = await fetchAllArtifacts(pouchId, true);
+	const shown = new Set(
+		artifacts
+			.filter((artifact) => includeDeleted || artifact.deleted_at === null)
+			.map((artifact) => artifact.id),
+	);
+	const ids = new Set<string>();
+	for (const artifact of artifacts) {
+		if (ids.has(artifact.id)) {
+			const error = new CryptoError(
+				'envelope_mismatch',
+				'duplicate item in artifact listing',
+			);
+			reportTamper(error, { where: 'revision', pouchId });
+			throw error;
+		}
+		ids.add(artifact.id);
+	}
 	const ingredients: Ingredient[] = [];
 	const unreadable: UnreadableArtifact[] = [];
 	await Promise.all(
@@ -146,16 +172,53 @@ export async function loadPouchContents(
 			}
 		}),
 	);
-	const refused = await pinHeads(
-		keyring.member.id,
-		pouchId,
-		ingredients.map((ingredient) => ({
-			artifactId: ingredient.id,
-			revisionId: ingredient.revisionId,
-			parents: [ingredient.body.parent_id, ingredient.body.merge_parent_id],
-		})),
+	const pins = await pinnedHeads(keyring.member.id, pouchId);
+	const offered = await Promise.all(
+		ingredients.map(async (ingredient): Promise<OfferedHead> => {
+			const head: OfferedHead = {
+				artifactId: ingredient.id,
+				revisionId: ingredient.revisionId,
+				parents: [ingredient.body.parent_id, ingredient.body.merge_parent_id],
+			};
+			const seen: SeenHead | undefined = pins[ingredient.id];
+			if (!seen || classify(seen, head) !== 'unknown') return head;
+			const trusted = trustedHeads(seen);
+			const visited = new Set([head.revisionId]);
+			const ancestors: string[] = [];
+			let parent = ingredient.body.parent_id;
+			for (let depth = 0; parent && depth < 64 && !visited.has(parent); depth++) {
+				ancestors.push(parent);
+				if (trusted.includes(parent))
+					return { ...head, verifiedFrom: parent, verifiedAncestors: ancestors };
+				visited.add(parent);
+				try {
+					const { revisions } = await api.get<{ revisions: RevisionRecord[] }>(
+						`/v1/pouches/${pouchId}/revisions`,
+						{ query: { ids: parent } },
+					);
+					const record = revisions.find((revision) => revision.id === parent);
+					if (!record) break;
+					const opened = await openHead(
+						keyring,
+						pouchId,
+						record,
+						record.created_at,
+						ingredient.id,
+					);
+					if (!opened) break;
+					parent = opened.body.parent_id;
+				} catch (error) {
+					reportTamper(error, { where: 'revision', pouchId });
+					break;
+				}
+			}
+			return head;
+		}),
 	);
-	const current = ingredients.filter((ingredient) => !refused.has(ingredient.id));
+	const refused = await pinHeads(keyring.member.id, pouchId, offered);
+	const current = ingredients.filter(
+		(ingredient) => !refused.has(ingredient.id) && shown.has(ingredient.id),
+	);
 	for (const [id, reason] of refused) {
 		if (reason === 'rollback') {
 			const error = new CryptoError(
@@ -167,7 +230,7 @@ export async function loadPouchContents(
 		} else {
 			unreadable.push({
 				id,
-				reason: 'Cannot verify this item advances its previously seen revision.',
+				reason: 'Cannot verify that this version follows the one this browser last saw.',
 			});
 		}
 	}

@@ -85,6 +85,7 @@ export class EvilServer {
 	statements: RosterStatementWire[] = [];
 	envelopes: KeyEnvelopeInput[] = [];
 	artifacts: ServedArtifact[] = [];
+	revisions = new Map<string, ServedRevision>();
 	blobs = new Map<string, Uint8Array>();
 	passkeys: ServedPasskey[] = [];
 	/** Security reports the client sent, as the API validated them. */
@@ -192,7 +193,19 @@ export class EvilServer {
 			case 'POST /v1/account/unlock/failed':
 				return this.answer(route, {});
 			case 'GET /v1/pouches/:id/artifacts':
-				return this.answer(route, { items: this.artifacts });
+				return this.answer(route, {
+					items:
+						url.searchParams.get('include_deleted') === 'true'
+							? this.artifacts
+							: this.artifacts.filter((artifact) => artifact.deleted_at === null),
+				});
+			case 'GET /v1/pouches/:id/revisions':
+				return this.answer(route, {
+					revisions: (url.searchParams.get('ids') ?? '')
+						.split(',')
+						.map((id) => this.revisions.get(id))
+						.filter((revision) => revision !== undefined),
+				});
 			case 'POST /v1/pouches/:id/blobs/fetch': {
 				const ids = (body as { ids: string[] }).ids;
 				const parts: number[] = [];
@@ -302,7 +315,7 @@ export class EvilServer {
 		};
 		const sealed = await sealRevision(keys, keyring.member.keys, body);
 		this.blobs.set(blob.id, blob.bytes);
-		return {
+		const revision: ServedRevision = {
 			id: body.revision_id,
 			artifact_id: body.artifact_id,
 			parent_id: body.parent_id,
@@ -318,6 +331,8 @@ export class EvilServer {
 			blob_ids: [blob.id],
 			created_at: NOW,
 		};
+		this.revisions.set(revision.id, revision);
+		return revision;
 	}
 }
 
