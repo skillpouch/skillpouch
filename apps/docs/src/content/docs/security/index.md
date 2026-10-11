@@ -20,7 +20,10 @@ description: How SkillPouch protects your content, what the service can see, and
 - **Unlock secrets stay with you.** The master password, Recovery Key and
   passkeys derive keys on your device. The per-account pepper mixed into
   the password derivation is stored only sealed with a server key that is
-  kept out of the database and its backups.
+  kept out of the database and its backups. A passkey can unlock only if
+  it supports the WebAuthn PRF extension. Password-manager extensions such
+  as Bitwarden don't support it yet, so SkillPouch skips them and opens
+  your browser's own passkey prompt (device, phone or security key).
 - **Device keys never leave the computer.** `skillpouch login` creates a
   signing and an encryption key pair on the computer; a signed-in browser
   approves it, and pouch keys arrive sealed to that device. Every request

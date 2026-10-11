@@ -268,11 +268,33 @@ function asPasskeyError(error: unknown): unknown {
 	return error;
 }
 
+/**
+ * The browser's own WebAuthn calls. Password-manager extensions (Bitwarden,
+ * 1Password, …) replace `navigator.credentials.create/get` on the page, and
+ * none of them evaluate PRF yet, so their prompt can only end in
+ * `prf_unsupported`. Calling the prototype skips them and opens the browser's
+ * prompt directly. Drop this once an extension we want to offer supports PRF.
+ */
+function browserCredentials(): Pick<CredentialsContainer, 'create' | 'get'> {
+	const container = navigator.credentials;
+	if (
+		typeof CredentialsContainer === 'undefined' ||
+		!(container instanceof CredentialsContainer)
+	) {
+		return container;
+	}
+	const native = CredentialsContainer.prototype;
+	return {
+		create: (options) => native.create.call(container, options),
+		get: (options) => native.get.call(container, options),
+	};
+}
+
 async function createCredential(
 	options: PublicKeyCredentialCreationOptions,
 ): Promise<PublicKeyCredential> {
 	try {
-		const credential = await navigator.credentials.create({ publicKey: options });
+		const credential = await browserCredentials().create({ publicKey: options });
 		if (!credential) throw new PasskeyError('cancelled');
 		return credential as PublicKeyCredential;
 	} catch (error) {
@@ -284,7 +306,7 @@ async function getCredential(
 	options: PublicKeyCredentialRequestOptions,
 ): Promise<PublicKeyCredential> {
 	try {
-		const credential = await navigator.credentials.get({ publicKey: options });
+		const credential = await browserCredentials().get({ publicKey: options });
 		if (!credential) throw new PasskeyError('cancelled');
 		return credential as PublicKeyCredential;
 	} catch (error) {
