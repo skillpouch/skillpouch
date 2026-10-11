@@ -29,6 +29,10 @@ server only stores and relays ciphertext.
 
 - **Commit locally; never push** unless the owner says "push". Ask before any
   outward-facing action (pushing, releases, changing GitHub/Cloudflare settings).
+- **Work goes through pull requests, never straight to `main`.** Start each
+  feature or fix on its own branch (`feat/…`, `fix/…`, `docs/…`); "push" means
+  push that branch and open a PR with `gh pr create`. Pull requests only run
+  checks; the server and Cloudflare deploy only from `main` after merge.
 - **Commit messages:** `<area>: <what changed, in plain words>` in lowercase,
   e.g. `site: favicons and a web manifest`, `api: passkey unlockers need step-up
 to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,

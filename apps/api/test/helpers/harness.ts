@@ -13,6 +13,7 @@ import pg from 'pg';
 import pino from 'pino';
 import { loadEnv, type Env } from '../../src/config/env';
 import { closeDeps, createDeps, type Deps } from '../../src/deps';
+import { endPool } from '../../src/infra/db';
 import { buildServer } from '../../src/server';
 import type { ZodApp } from '../../src/http/zod-app';
 import type { HealthState } from '../../src/modules/health/health.routes';
@@ -86,7 +87,7 @@ export async function createHarness(
 		close: async () => {
 			await app.close();
 			await closeDeps(deps);
-			await owner.end();
+			await endPool(owner);
 			await database.drop();
 			rmSync(blobRoot, { recursive: true, force: true });
 		},
