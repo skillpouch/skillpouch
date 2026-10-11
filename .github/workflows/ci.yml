@@ -36,7 +36,7 @@ jobs:
       - name: Generated contracts are up to date
         run: |
           pnpm contracts:generate
-          git diff --exit-code -- packages/contracts/generated docs/errors.md
+          git diff --exit-code -- packages/contracts/generated
       - name: OpenAPI spec is up to date
         run: pnpm openapi --check
 

@@ -3,7 +3,6 @@
  * Generates the artifacts other repositories consume:
  *   generated/errors.json — the error registry (the CLI generates its Rust enum from it)
  *   generated/limits.json — protocol limits (compared with the CLI's `limits.rs`)
- *   ../../docs/errors.md  — human-readable error reference
  *
  * Run: `pnpm contracts:generate`. CI fails when the committed files are stale.
  */

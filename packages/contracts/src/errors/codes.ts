@@ -9,8 +9,8 @@
  * - `message` is a short default text — clients branch on `code`, never on it.
  *
  * Adding a code: add it here (grouped by module), give it a `details` schema in
- * `details.ts` if it carries details, and document it in `docs/errors.md`
- * (the docs test fails otherwise).
+ * `details.ts` if it carries details, and add a hint in
+ * `apps/docs/scripts/gen-errors.mjs` if people need to act on it.
  */
 export interface ErrorDef {
 	readonly status: number;

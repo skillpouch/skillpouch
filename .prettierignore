@@ -5,7 +5,6 @@ dist/
 coverage/
 packages/db/migrations/
 LICENSE
-docs/errors.md
 packages/contracts/generated/
 apps/docs/src/content/docs/errors/
 tools/load/results/
