@@ -157,7 +157,7 @@ main() {
 [migrate-host] Done: this server serves $(public_host).
   $PEER no longer serves; its database is untouched (write pause on), as a fallback.
   Next:
-  1. Deploys: install the GitHub Actions runner here (deploy/tunnel/README.md §5)
+  1. Deploys: install the GitHub Actions runner here (docs.skillpouch.net/self-hosting/tunnel)
      and remove $PEER's runner, or set up the update timer here.
   2. If cloudflared should run as a system service here instead of the
      container: sudo cloudflared service install <token>, then

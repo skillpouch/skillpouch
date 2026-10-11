@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Deploys to the self-hosted server (runner label `skillpouch-server`, see
-# deploy/tunnel/README.md):
+# docs.skillpouch.net/self-hosting/tunnel):
 #   - automatically, when CI passes for a push to main;
 #   - by hand (Actions → deploy → Run workflow): a specific commit of main,
 #     or a rollback to the previous API color.

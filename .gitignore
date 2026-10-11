@@ -9,7 +9,7 @@ coverage/
 !.env.example
 !.env.example
 data/
-# engram: only the portable graph + report are committed (docs/maintainers/engram.md)
+# engram: only the portable graph + report are committed (docs.skillpouch.net/development/code-map)
 .engram/*
 !.engram/graph.json
 !.engram/GRAPH_REPORT.md

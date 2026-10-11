@@ -95,7 +95,7 @@ UNIT
 	sudo systemctl enable --now skillpouch-update.timer
 else
 	sudo systemctl disable --now skillpouch-update.timer 2>/dev/null || true
-	echo "  → deploys come from GitHub Actions: install the runner (deploy/tunnel/README.md)"
+	echo "  → deploys come from GitHub Actions: install the runner (docs.skillpouch.net/self-hosting/tunnel)"
 fi
 
 RUNNER_DIR="$HOME/actions-runner"

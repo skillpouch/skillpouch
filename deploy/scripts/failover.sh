@@ -227,7 +227,7 @@ cmd_promote() {
      or as soon as SSH works: deploy/scripts/failover.sh fence --host $PEER
      The surest fence: create a new tunnel in Cloudflare, move the public
      hostname to it and put its token in deploy/env/tunnel.env here.
-  2. Deploys: install the GitHub Actions runner here (deploy/tunnel/README.md §5)
+  2. Deploys: install the GitHub Actions runner here (docs.skillpouch.net/self-hosting/tunnel)
      and remove the old server's runner.
   3. Set up a new standby, e.g. the old server once repaired:
      there: deploy/scripts/failover.sh setup --primary <this server>

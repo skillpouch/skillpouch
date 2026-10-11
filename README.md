@@ -3,7 +3,7 @@
 
   <p><strong>Your AI coding setup, on every computer.</strong><br />End-to-end encrypted sync for the tools and context that make your AI assistants yours.</p>
 
-  <p><a href="https://skillpouch.net">Website</a> · <a href="https://app.skillpouch.net">Open the app</a> · <a href="https://discord.gg/u8eEJZEGhc">Discord</a> · <a href="https://github.com/skillpouch/skillpouch-cli">CLI repository</a></p>
+  <p><a href="https://skillpouch.net">Website</a> · <a href="https://docs.skillpouch.net">Docs</a> · <a href="https://app.skillpouch.net">Open the app</a> · <a href="https://discord.gg/u8eEJZEGhc">Discord</a> · <a href="https://github.com/skillpouch/skillpouch-cli">CLI repository</a></p>
 
   <p>
     <a href="https://github.com/skillpouch/skillpouch/blob/main/LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-8442D9?style=flat-square"></a>
@@ -80,7 +80,7 @@ Useful scripts: `pnpm dev:api`, `pnpm dev:web`, `pnpm dev:site`, `pnpm build`, `
 
 ## Self-hosting
 
-The production stack and its operational requirements are documented in [`deploy/README.md`](deploy/README.md). It describes the Docker-based API, worker and PostgreSQL setup, secrets, backups and deployment flow. For external services see [`deploy/EXTERNAL-SERVICES.md`](deploy/EXTERNAL-SERVICES.md); Cloudflare Tunnel has a separate [guide](deploy/tunnel/README.md). Review the security and backup requirements before exposing an instance publicly.
+SkillPouch runs on any 64-bit Linux machine with Docker. The [self-hosting guide](https://docs.skillpouch.net/self-hosting/) covers installing behind Cloudflare Tunnel or on a VPS, configuration and secrets, sign-in and billing services, backups, deploys and failover. Review the security and backup requirements before exposing an instance publicly.
 
 ## FAQ
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Overrides for a server behind Cloudflare Tunnel (see tunnel/README.md).
+# Overrides for a server behind Cloudflare Tunnel (docs.skillpouch.net/self-hosting/tunnel).
 services:
   caddy:
     ports: !override ['127.0.0.1:80:80']

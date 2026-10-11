@@ -23,7 +23,7 @@ server only stores and relays ciphertext.
 | `deploy/`            | Self-hosting: Docker Compose, Caddy, Cloudflare Tunnel, deploy/backup/failover scripts |                                  |
 
 `.engram/GRAPH_REPORT.md` is a code map of the repo; see
-`docs/maintainers/engram.md`.
+[Code map](https://docs.skillpouch.net/development/code-map/).
 
 ## Working rules
 
@@ -44,6 +44,11 @@ to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,
   reference are generated, but a new code that users can hit needs a hint. If
   nothing in the docs changes, say why in the commit body. A task isn't done
   until its docs are.
+- **All documentation lives in `apps/docs`.** No other Markdown files in the
+  repo besides `README.md`, `AGENTS.md` and `SECURITY.md` (and generated
+  output like `.engram/`). Self-hosting, operations, services setup,
+  architecture and maintainer notes are docs pages; link to them from code
+  comments and scripts as `docs.skillpouch.net/<path>`.
 - **Comments:** match the surrounding density; explain non-obvious _why_.
   Never reference the planning documents (`plan/…`, "§12") in code.
 - New source files start with `// SPDX-License-Identifier: AGPL-3.0-only`
@@ -70,7 +75,7 @@ pnpm format:check      # Prettier: tabs, width 4, single quotes, printWidth 100
 pnpm lint
 pnpm typecheck         # includes `astro check` for site and docs
 pnpm test              # API integration tests need TEST_DATABASE_URL, see below
-pnpm contracts:generate && git diff --exit-code -- packages/contracts/generated docs/errors.md
+pnpm contracts:generate && git diff --exit-code -- packages/contracts/generated
 pnpm openapi --check
 ```
 
