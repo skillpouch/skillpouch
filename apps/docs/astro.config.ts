@@ -31,7 +31,31 @@ export default defineConfig({
 				ThemeSelect: './src/components/no-theme-select.astro',
 				ThemeProvider: './src/components/dark-theme.astro',
 			},
-			expressiveCode: { themes: ['starlight-dark'] },
+			expressiveCode: {
+				themes: ['github-dark-default'],
+				// Plain code frames, no terminal title bar, on the site's black.
+				defaultProps: { frame: 'code' },
+				styleOverrides: {
+					codeBackground: '#0a0a0a',
+					borderColor: '#1f1f1f',
+					borderRadius: '0.5rem',
+					codeFontFamily: 'var(--sl-font-mono)',
+					uiFontFamily: 'var(--sl-font)',
+					frames: {
+						frameBoxShadowCssValue: 'none',
+						editorTabBarBackground: '#0a0a0a',
+						editorActiveTabBackground: '#0a0a0a',
+						editorActiveTabIndicatorTopColor: 'transparent',
+						editorTabBarBorderBottomColor: '#1f1f1f',
+						terminalBackground: '#0a0a0a',
+						terminalTitlebarBackground: '#0a0a0a',
+						terminalTitlebarBorderBottomColor: '#1f1f1f',
+						inlineButtonBorder: '#262626',
+						inlineButtonForeground: '#c7c7c7',
+						tooltipSuccessBackground: '#8442d9',
+					},
+				},
+			},
 			editLink: {
 				baseUrl: 'https://github.com/skillpouch/skillpouch/edit/main/apps/docs/',
 			},

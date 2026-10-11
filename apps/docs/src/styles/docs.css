@@ -72,3 +72,77 @@
 	background: #9254e6;
 	border-color: #9254e6;
 }
+
+/* No theme switcher, so no divider after the social icons. */
+.social-icons::after {
+	display: none;
+}
+
+/* The current page: a quiet purple tint instead of a solid block. */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+	background: color-mix(in oklab, #8442d9 22%, transparent);
+	color: var(--sl-color-white);
+	font-weight: 500;
+}
+
+/* Hero: text only, left-aligned like the site. */
+.hero {
+	padding-block: clamp(3rem, 10vw, 6rem) 2rem;
+}
+
+.hero h1 {
+	letter-spacing: -0.03em;
+}
+
+/* Tables: muted headers, no zebra noise, compact code. */
+.sl-markdown-content table {
+	font-size: var(--sl-text-sm);
+}
+
+.sl-markdown-content th {
+	color: var(--sl-color-gray-3);
+	font-weight: 500;
+	text-transform: none;
+}
+
+.sl-markdown-content tr:nth-child(2n) {
+	background: transparent;
+}
+
+/* Asides: dark cards with an accent edge, not tinted slabs. */
+.starlight-aside {
+	background: #0a0a0a;
+	border: 1px solid var(--sl-color-hairline-light);
+	border-inline-start: 3px solid var(--sl-color-asides-border);
+	border-radius: 0.5rem;
+}
+
+.sl-markdown-content :not(pre) > code {
+	border-radius: 0.25rem;
+	padding: 0.1em 0.35em;
+}
+
+/* Cards on the home page: the site's hairline panels. */
+.sl-link-card {
+	background: #0a0a0a;
+	border-color: var(--sl-color-hairline-light);
+	border-radius: 0.75rem;
+}
+
+.sl-link-card:hover {
+	border-color: color-mix(in oklab, #8442d9 60%, black);
+	background: #0f0f0f;
+}
+
+/* Section headings a step smaller than Starlight's, closer to the site. */
+.sl-markdown-content h2 {
+	font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
+	letter-spacing: -0.02em;
+}
+
+.sl-markdown-content h3 {
+	font-size: 1.25rem;
+	letter-spacing: -0.01em;
+}
