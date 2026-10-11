@@ -45,7 +45,28 @@ export function createDatabases(env: Env, applicationName: string): Databases {
 		admin: createDatabase(adminPool),
 		pools,
 		close: async () => {
-			await Promise.all(pools.map((pool) => pool.end()));
+			await Promise.all(pools.map((pool) => endPool(pool)));
 		},
 	};
+}
+
+/**
+ * `pool.end()` resolves once idle clients are told to disconnect, not once they have. Wait for
+ * each client's `remove` event too, so nothing is still talking to Postgres after close. Bounded,
+ * so a stuck socket can't hold up shutdown.
+ */
+export async function endPool(pool: pg.Pool, timeoutMs = 5_000): Promise<void> {
+	let pending = pool.totalCount;
+	let timer: NodeJS.Timeout | undefined;
+	const disconnected = new Promise<void>((resolve) => {
+		if (pending === 0) return resolve();
+		pool.on('remove', () => {
+			if (--pending <= 0) resolve();
+		});
+		timer = setTimeout(resolve, timeoutMs);
+		timer.unref();
+	});
+	await pool.end();
+	await disconnected;
+	clearTimeout(timer);
 }
