@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { Toaster } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAccountEvents } from '@/features/realtime/account-events';
+import { StepUpDialog } from '@/features/session/step-up-dialog';
 import { useMeSync } from '@/features/session/use-me-sync';
 import { queryClient } from '@/lib/query-client';
 
@@ -17,6 +18,7 @@ export function RootLayout() {
 		<QueryClientProvider client={queryClient}>
 			<TooltipProvider>
 				<Outlet />
+				<StepUpDialog />
 				<Toaster />
 			</TooltipProvider>
 		</QueryClientProvider>

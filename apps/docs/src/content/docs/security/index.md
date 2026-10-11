@@ -27,6 +27,13 @@ description: How SkillPouch protects your content, what the service can see, and
   proves possession of the signing key (DPoP).
 - **Account data is isolated in the database** with row-level security per
   account.
+- **Sensitive actions need a fresh sign-in.** Revoking a device, deleting a
+  pouch, changing passkeys, unlock secrets or security settings and deleting
+  the account ask you to sign in again if your last sign-in is older than 10
+  minutes. The web app opens a small sign-in window for GitHub or Google and
+  waits; once you're done it carries on with the action, without reloading
+  the page. If your browser blocks the window, allow pop-ups for the site or
+  sign in in the same tab instead.
 
 ### What the service can see
 

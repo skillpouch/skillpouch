@@ -15,18 +15,33 @@ async function authPost(path: string, body: unknown): Promise<Response> {
 	});
 }
 
-/** Starts the OAuth redirect. `redirect` is an in-app path to return to. */
-export async function startOAuth(provider: OAuthProvider, redirect: string): Promise<void> {
-	const origin = location.origin;
+/** The provider's sign-in URL; the provider sends the user back to `callbackURL`. */
+export async function oauthUrl(
+	provider: OAuthProvider,
+	callbackURL: string,
+	errorCallbackURL: string,
+): Promise<string> {
 	const response = await authPost('sign-in/social', {
 		provider,
-		callbackURL: `${origin}${safeRedirect(redirect)}`,
-		errorCallbackURL: `${origin}/sign-in?error=cancelled`,
+		callbackURL,
+		errorCallbackURL,
 		disableRedirect: true,
 	});
 	const body = (await response.json().catch(() => null)) as { url?: string } | null;
 	if (!response.ok || !body?.url) throw new Error('Sign-in isn’t available right now.');
-	location.assign(body.url);
+	return body.url;
+}
+
+/** Starts the OAuth redirect. `redirect` is an in-app path to return to. */
+export async function startOAuth(provider: OAuthProvider, redirect: string): Promise<void> {
+	const origin = location.origin;
+	location.assign(
+		await oauthUrl(
+			provider,
+			`${origin}${safeRedirect(redirect)}`,
+			`${origin}/sign-in?error=cancelled`,
+		),
+	);
 }
 
 /** Links another provider to the signed-in user, so either one signs in. */
@@ -75,23 +90,27 @@ export async function devSignIn(email: string): Promise<void> {
 }
 
 /**
- * A fresh OAuth round trip, required before sensitive actions (revoking a
- * device, deleting a pouch now). Returns to the current page afterwards.
+ * A fresh OAuth round trip in this tab, for when the browser blocks the
+ * sign-in window. Returns to the current page afterwards.
  */
 export async function reauthenticate(): Promise<void> {
-	const last = localStorage.getItem(PROVIDER_KEY);
-	if (last?.startsWith('dev:')) {
-		await devSignIn(last.slice(4));
+	const last = lastProvider();
+	if (typeof last === 'object') {
+		await devSignIn(last.dev);
 		location.reload();
 		return;
 	}
-	await startOAuth(
-		last === 'google' ? 'google' : 'github',
-		`${location.pathname}${location.search}`,
-	);
+	await startOAuth(last, `${location.pathname}${location.search}`);
 }
 
 const PROVIDER_KEY = 'skillpouch.provider';
+
+/** How the user last signed in: an OAuth provider (GitHub by default) or a dev email. */
+export function lastProvider(): OAuthProvider | { dev: string } {
+	const last = localStorage.getItem(PROVIDER_KEY);
+	if (last?.startsWith('dev:')) return { dev: last.slice(4) };
+	return last === 'google' ? 'google' : 'github';
+}
 
 /** Remembers how the user signed in, so a re-authentication uses the same provider. */
 export function rememberProvider(provider: OAuthProvider | `dev:${string}`): void {
