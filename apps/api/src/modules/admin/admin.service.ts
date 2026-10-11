@@ -558,6 +558,7 @@ async function syncProduct(
 	slug: string,
 	input: PlanInput,
 	productId: string | null,
+	updatePrice = true,
 ): Promise<string | null> {
 	if (input.price_cents === 0 || !input.interval) return productId;
 	if (!deps.billing) return productId;
@@ -569,6 +570,7 @@ async function syncProduct(
 		priceCents: input.price_cents,
 		currency: input.currency,
 		interval: input.interval,
+		updatePrice,
 	});
 }
 
@@ -628,10 +630,19 @@ export async function updatePlan(
 	}
 	const priceChanged =
 		current.priceCents !== input.price_cents ||
-		current.interval !== input.interval ||
-		current.name !== input.name;
-	const polarProductId = priceChanged
-		? await syncProduct(deps, current.slug, input, current.polarProductId)
+		current.currency !== input.currency ||
+		current.interval !== input.interval;
+	// Plan sync copies Polar's name and description back every hour, so they must reach Polar too.
+	const productChanged =
+		priceChanged || current.name !== input.name || current.description !== input.description;
+	const polarProductId = productChanged
+		? await syncProduct(
+				deps,
+				current.slug,
+				input,
+				current.polarProductId,
+				priceChanged || !current.polarProductId,
+			)
 		: current.polarProductId;
 	const [plan] = await deps.db.admin
 		.update(plans)

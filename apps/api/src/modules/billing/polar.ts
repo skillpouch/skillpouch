@@ -429,7 +429,7 @@ export class PolarProvider implements BillingProvider {
 				{
 					name: input.name,
 					description: input.description,
-					prices,
+					...(input.updatePrice ? { prices } : {}),
 				},
 			);
 			return updated.id;

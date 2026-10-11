@@ -79,8 +79,9 @@ finds no product for its plan. For each product it:
   `storage_bytes`
 - shows or hides the plan according to `visible`
 
-Editing a plan in the admin dashboard pushes its name and price to Polar,
-so the two stay the same either way.
+Editing a plan in the admin dashboard pushes its name, description and price
+to Polar, so the two stay the same either way. Polar creates a new price only
+when the price or interval changes; existing subscribers keep theirs.
 
 ### Hidden plans
 
