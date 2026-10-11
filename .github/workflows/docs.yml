@@ -44,7 +44,12 @@ jobs:
         run: pnpm --filter @skillpouch/docs typecheck
       - if: github.event_name != 'push'
         run: pnpm --filter @skillpouch/docs test
-      - run: pnpm --filter @skillpouch/docs build
+      - name: Build and verify llms.txt
+        run: |
+          pnpm --filter @skillpouch/docs build
+          grep -q '^# SkillPouch' apps/docs/dist/llms.txt
+          grep -q 'https://docs.skillpouch.net/llms-full.txt' apps/docs/dist/llms.txt
+          grep -q '# skillpouch login' apps/docs/dist/llms-full.txt
       # Pull requests only build and test; deploys happen from main.
       - name: Cloudflare credentials
         if: github.event_name != 'pull_request' && (env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '')

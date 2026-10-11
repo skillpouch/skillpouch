@@ -7,6 +7,7 @@
 import { fileURLToPath } from 'node:url';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import starlightLlmsTxt from 'starlight-llms-txt';
 import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 
 export default defineConfig({
@@ -61,6 +62,38 @@ export default defineConfig({
 			},
 			lastUpdated: false,
 			plugins: [
+				// `llms.txt`, `llms-full.txt` and `llms-small.txt` for AI tools.
+				starlightLlmsTxt({
+					projectName: 'SkillPouch',
+					description:
+						'SkillPouch syncs your AI coding setup (skills, agents, commands, MCP servers, hooks, plugins, settings and instructions) across every computer and every assistant, end-to-end encrypted. It is open source (AGPL) and can be self-hosted.',
+					details: [
+						'- The `skillpouch` CLI runs a background sync on each computer and writes every item in each assistant’s own format and folder.',
+						'- The web app at https://app.skillpouch.net is for browsing, editing and sharing items and resolving conflicts.',
+						'- Files and item names are encrypted on the computer or in the browser before upload. The server cannot read or recover them.',
+					].join('\n'),
+					optionalLinks: [
+						{
+							label: 'Source code',
+							url: 'https://github.com/skillpouch/skillpouch',
+							description: 'Server, web app and these docs',
+						},
+					],
+					customSets: [
+						{
+							label: 'Self-hosting',
+							description: 'running your own SkillPouch server',
+							paths: ['self-hosting/**'],
+						},
+						{
+							label: 'Development',
+							description: 'architecture and contributing to SkillPouch',
+							paths: ['development/**'],
+						},
+					],
+					demote: ['self-hosting/**', 'development/**'],
+					exclude: ['self-hosting/**', 'development/**'],
+				}),
 				starlightOpenAPI([
 					{
 						base: 'api',
