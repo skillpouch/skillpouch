@@ -7,7 +7,7 @@ description: Zero-downtime deploys, rollbacks, database migrations and everyday 
 
 |                               | How                                                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Deploy                        | Push or merge to `main`; it's deployed right after CI passes                                                |
+| Deploy                        | Merge a pull request into `main`; CI runs on the pull request and the merge deploys                         |
 | Watch a deploy                | GitHub → Actions → deploy                                                                                   |
 | Deploy now, or a given commit | Actions → deploy → Run workflow → `deploy` (optionally with a commit), or `deploy/tunnel/update.sh --force` |
 | Roll back the API             | Actions → deploy → Run workflow → `rollback`, or `deploy/scripts/rollback.sh`                               |

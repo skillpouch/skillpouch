@@ -39,8 +39,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @skillpouch/site typecheck
-      - run: pnpm --filter @skillpouch/site test
+      # Checks run on the pull request; main only builds and deploys.
+      - if: github.event_name != 'push'
+        run: pnpm --filter @skillpouch/site typecheck
+      - if: github.event_name != 'push'
+        run: pnpm --filter @skillpouch/site test
       - name: Build and verify static pages
         run: |
           pnpm --filter @skillpouch/site build
