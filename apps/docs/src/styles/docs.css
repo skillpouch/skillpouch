@@ -146,3 +146,13 @@
 	font-size: 1.25rem;
 	letter-spacing: -0.01em;
 }
+
+.hero > img {
+	width: min(14rem, 60vw);
+}
+
+@media (max-width: 50rem) {
+	.hero > img {
+		width: 8rem;
+	}
+}
