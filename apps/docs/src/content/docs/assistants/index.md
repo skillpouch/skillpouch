@@ -23,6 +23,43 @@ counts as installed when its folder exists; nothing needs to be configured.
 The id is what [`skillpouch select`](/cli/select/) and
 [`skillpouch unlink`](/cli/unlink/) take.
 
+## Settings sync
+
+The CLI keeps one **Settings** item per supported assistant. It syncs these
+assistant settings files:
+
+| Assistant     | Synced settings                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenCode      | OpenCode 2: `opencode.json` (providers, model, default agent, agents, permissions, sharing, username, compaction, tool output, web search, experimental options) and `cli.json` (theme, keybinds, leader key, scrolling, diffs, prompt, mouse, cursor, animations, attention, session, terminal, tabs). OpenCode 1: the same in its own names, in `opencode.json` and `tui.json`. |
+| Claude Code   | `~/.claude/settings.json`: environment, model, model overrides, fallback and advisor models, effort level, extended thinking, fast mode, permissions, API key helper, status line, output style, language, theme and other display preferences, co-author attribution, update channel, cleanup period.                                                                            |
+| Codex         | `~/.codex/config.toml`: model and providers, profiles, approval and sandbox policies, reasoning effort/summary, verbosity, OpenAI base URL, TUI, features and web search.                                                                                                                                                                                                         |
+| Gemini CLI    | `~/.gemini/settings.json` (general, UI, model, tools, privacy, security auth type) and `~/.gemini/.env`.                                                                                                                                                                                                                                                                          |
+| Qwen Code     | `~/.qwen/settings.json`: model providers/protocol, environment, auth, model, general, UI, tools and proxy.                                                                                                                                                                                                                                                                        |
+| Copilot CLI   | `~/.copilot/settings.json`: model, theme and display preferences, notifications, allowed and denied URLs, permission mode, status line, updates and experimental options. Not trusted folders, hooks, the proxy or IDE settings. Copilot's own model provider (BYOK) is set with environment variables, which aren't synced.                                                      |
+| Crush         | `crush.json`: providers, models, options (not `data_directory`), permissions and tools.                                                                                                                                                                                                                                                                                           |
+| Factory Droid | `~/.factory/settings.json`: model, reasoning effort, custom models and session defaults.                                                                                                                                                                                                                                                                                          |
+
+Cursor, Windsurf and Antigravity settings are not supported. MCP servers,
+hooks and plugins are synced as their own item kinds, not as settings. Credential
+files such as `auth.json`, `.credentials.json` and `oauth_creds.json` are never
+synced.
+
+OpenCode 1 and 2 computers share providers, models, agents, permissions and
+terminal preferences; keybinds, and options only one version has, stay on the
+computers of that version. When a computer meets an assistant's settings for
+the first time (a new computer, or an assistant installed again), the pouch's
+values replace its defaults; after that, the last edit wins.
+
+Settings are synced end-to-end encrypted. Secret values remain in your pouch,
+but are removed from share links; recipients fill them in when importing.
+Deleting a setting or entry locally stops it on that computer but keeps it in
+the pouch. Use [`skillpouch settings`](/cli/settings/) to list entries, bring one back
+(`include <assistant> <entry>`) or stop syncing one (`exclude`). Uninstalling
+and later reinstalling an assistant syncs its settings again. A newly installed
+assistant gets your settings automatically; turn settings off on a computer with
+`skillpouch select --off settings`, or one assistant with
+`skillpouch select --off <id>`.
+
 ## What goes where
 
 Paths are relative to the assistant's folder unless they start with `~`. A

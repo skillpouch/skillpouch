@@ -102,8 +102,12 @@ export async function buildBundle(
 		files: ingredient.files.map((entry) => {
 			let bytes = files.get(entry.path)!;
 			const text = asText(bytes);
-			if (text !== null && secretKeys.length > 0 && entry.path.endsWith('.json')) {
-				const cleaned = stripSecrets(text, secretKeys);
+			if (
+				text !== null &&
+				(secretKeys.length > 0 || ingredient.kind === 'setting') &&
+				entry.path.endsWith('.json')
+			) {
+				const cleaned = stripSecrets(text, secretKeys, ingredient.kind === 'setting');
 				stripped.push(...cleaned.stripped.map((key) => `${entry.path}:${key}`));
 				bytes = encoder.encode(cleaned.text);
 			}

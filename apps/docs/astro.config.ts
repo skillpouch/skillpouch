@@ -99,6 +99,7 @@ export default defineConfig({
 								'cli/sync',
 								'cli/conflicts',
 								'cli/select',
+								'cli/settings',
 								'cli/unlink',
 								'cli/daemon',
 							],

@@ -13,13 +13,14 @@ import {
 	Layers,
 	Package,
 	Server,
+	SlidersHorizontal,
 	SquareTerminal,
 	Webhook,
 	type LucideIcon,
 } from 'lucide-react';
 
 export type IngredientKind =
-	'skill' | 'instructions' | 'agent' | 'command' | 'mcp_server' | 'hook' | 'plugin';
+	'skill' | 'instructions' | 'agent' | 'command' | 'mcp_server' | 'hook' | 'plugin' | 'setting';
 
 export interface KindDefinition {
 	kind: IngredientKind;
@@ -123,6 +124,17 @@ export const KINDS: readonly KindDefinition[] = [
 		mainFile: 'plugin.json',
 		blurb: 'Plugin and marketplace references, installed by each assistant.',
 		template: (name) => json({ name, description: '', source: '' }),
+	},
+	{
+		kind: 'setting',
+		// `/settings` is the pouch's own settings page.
+		slug: 'assistant-settings',
+		label: 'Settings',
+		singular: 'Settings',
+		icon: SlidersHorizontal,
+		mainFile: 'setting.json',
+		blurb: "One assistant's settings, including custom providers and API keys, synced by the CLI.",
+		template: (name) => json({ harness: name, files: {} }),
 	},
 ];
 

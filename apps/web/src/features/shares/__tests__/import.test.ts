@@ -44,6 +44,35 @@ describe('bundleFiles', () => {
 		expect(JSON.parse(decode(files[0]!.bytes)).env.URL).toBe('postgres://x');
 		expect(decode(files[1]!.bytes)).toBe('hi');
 	});
+
+	it('imports a setting bundle with its encoded dotted provider secret restored', () => {
+		const encode = (text: string) => b64(new TextEncoder().encode(text));
+		const file = bundleFiles(
+			{
+				format: 1,
+				kind: 'setting',
+				name: 'opencode',
+				description: '',
+				files: [
+					{
+						path: 'setting.json',
+						content: encode(
+							'{"harness":"opencode","files":{"opencode.json":{"providers":{"a.b":{"apiKey":""}}}}}',
+						),
+						mode: 'file',
+					},
+				],
+				stripped: ['setting.json:@setting:/files/opencode.json/providers/a.b/apiKey'],
+				shared_at: '2026-10-06T00:00:00Z',
+			},
+			{ 'setting.json:@setting:/files/opencode.json/providers/a.b/apiKey': 'recipient-key' },
+		);
+		expect(
+			JSON.parse(new TextDecoder().decode(file[0]!.bytes)).files['opencode.json'].providers[
+				'a.b'
+			].apiKey,
+		).toBe('recipient-key');
+	});
 });
 
 describe('appendFiles', () => {

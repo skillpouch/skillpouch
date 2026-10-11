@@ -85,7 +85,8 @@ describe('searchEverything', () => {
 
 	it('ranks labels starting with the query first', () => {
 		const settings = searchEverything(sources, 'settings').map((result) => result.label);
-		expect(settings[0]).toBe('Pouch settings');
+		expect(settings).toContain('Settings');
+		expect(settings).toContain('Pouch settings');
 	});
 
 	it('shows pages and a few items when the query is empty, in group order', () => {

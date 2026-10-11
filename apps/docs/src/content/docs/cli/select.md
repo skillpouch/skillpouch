@@ -7,7 +7,7 @@ description: 'Choose what this computer syncs: assistants and kinds, on or off. 
 
 Choose what this computer syncs: assistants and kinds, on or off. Without options, lists the current choice.
 
-Names are assistant ids (`claude-code`, `codex`, `opencode`, `gemini-cli`, `antigravity`, `copilot`, `cursor`, `windsurf`, `qwen-code`, `factory`, `crush`) or kinds (`instructions`, `skills`, `agents`, `commands`, `mcp`, `hooks`, `plugins`). Repeat `--on` and `--off` as often as needed. The choice is saved in [`config.toml`](/cli/configuration/) and applies only to this computer.
+Names are assistant ids (`claude-code`, `codex`, `opencode`, `gemini-cli`, `antigravity`, `copilot`, `cursor`, `windsurf`, `qwen-code`, `factory`, `crush`) or kinds (`instructions`, `skills`, `agents`, `commands`, `mcp`, `hooks`, `plugins`, `settings`). Repeat `--on` and `--off` as often as needed. The choice is saved in [`config.toml`](/cli/configuration/) and applies only to this computer.
 
 Turning something off hands its items back right away: SkillPouch's links become real files, so the assistant keeps working.
 
