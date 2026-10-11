@@ -14,6 +14,7 @@ import { ErrorMessage } from '@/components/ui/error-message';
 import { Segmented } from '@/components/ui/segmented';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toast';
+import { describeSecurityEvent } from '@/features/account/security-events';
 import { useUnlocked } from '@/features/session/session-store';
 import {
 	NewPasswordFields,
@@ -37,17 +38,6 @@ const TRUST_OPTIONS = [7, 14, 30, 60, 90].map((days) => ({
 	value: String(days),
 	label: `${days}d`,
 }));
-
-const EVENT_LABELS: Record<string, string> = {
-	'cli.authorized': 'A computer was connected',
-	'unlock.failed_streak': 'Several wrong master passwords',
-	'browser.enrolled': 'A new browser was trusted',
-	'device.revoked': 'A device was revoked',
-	'passkey.added': 'A passkey was added for unlocking',
-	'passkey.removed': 'A passkey was removed',
-	'refresh.reuse_detected': 'A device token was reused and the device revoked',
-	'client.e2ee_failure': 'A client refused data that didn’t verify',
-};
 
 export function SecurityPage() {
 	const client = useQueryClient();
@@ -154,7 +144,7 @@ export function SecurityPage() {
 									/>
 								)}
 								<div className="flex-1">
-									<p>{EVENT_LABELS[event.kind] ?? event.kind}</p>
+									<p>{describeSecurityEvent(event.kind)}</p>
 									<p className="text-xs text-meta">
 										{formatRelative(event.created_at)}
 									</p>
