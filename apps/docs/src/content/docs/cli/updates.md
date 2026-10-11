@@ -18,7 +18,8 @@ manager you used.
 Commands run from a script or a pipe, `skillpouch status --json`,
 `skillpouch logout`, `skillpouch unlink` and the `daemon` commands never
 update. Pre-releases are never installed. A version that failed to install
-is tried again a day later.
+is tried again a day later; until then the dashboard says it's out and shows
+the command to install it by hand.
 
 ## What's never updated
 
