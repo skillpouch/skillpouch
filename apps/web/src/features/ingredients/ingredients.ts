@@ -382,6 +382,7 @@ export function countByKind(ingredients: Ingredient[]): Record<IngredientKind, n
 		mcp_server: 0,
 		hook: 0,
 		plugin: 0,
+		setting: 0,
 	} satisfies Record<IngredientKind, number>;
 	for (const ingredient of inScope(ingredients)) counts[ingredient.kind]++;
 	return counts;

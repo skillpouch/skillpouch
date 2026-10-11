@@ -36,12 +36,15 @@ export const NOTES = {
 		'In an interactive terminal, a successful login goes straight on to the dashboard to choose a pouch and assistants. Once the computer is set up, the [background sync](/cli/background-sync/) starts.',
 	],
 	select: [
-		'Names are assistant ids (`claude-code`, `codex`, `opencode`, `gemini-cli`, `antigravity`, `copilot`, `cursor`, `windsurf`, `qwen-code`, `factory`, `crush`) or kinds (`instructions`, `skills`, `agents`, `commands`, `mcp`, `hooks`, `plugins`). Repeat `--on` and `--off` as often as needed. The choice is saved in [`config.toml`](/cli/configuration/) and applies only to this computer.',
+		'Names are assistant ids (`claude-code`, `codex`, `opencode`, `gemini-cli`, `antigravity`, `copilot`, `cursor`, `windsurf`, `qwen-code`, `factory`, `crush`) or kinds (`instructions`, `skills`, `agents`, `commands`, `mcp`, `hooks`, `plugins`, `settings`). Repeat `--on` and `--off` as often as needed. The choice is saved in [`config.toml`](/cli/configuration/) and applies only to this computer.',
 		'',
 		"Turning something off hands its items back right away: SkillPouch's links become real files, so the assistant keeps working.",
 	],
 	unlink: [
 		'Without `--assistant`, the whole computer stops syncing; your pouch stays on the server, and running `skillpouch` sets the computer up again. Link an assistant again with `skillpouch select --on <id>`.',
+	],
+	settings: [
+		"Entries are named `<file>:<key>`, for example `opencode.json:providers.vultr` or `settings.json:env.ANTHROPIC_BASE_URL`; `skillpouch settings list` shows them. Deleting an entry from an assistant's settings file excludes it on this computer only: the pouch and your other computers keep it. See [Settings sync](/assistants/#settings-sync) for what each assistant syncs.",
 	],
 	daemon: ['See [Background sync](/cli/background-sync/) for how it runs on each system.'],
 	status: ['Exits with code `3` when this computer is not logged in.'],

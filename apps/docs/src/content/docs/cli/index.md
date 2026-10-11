@@ -19,6 +19,7 @@ Exit codes: `0` success, `1` error, `2` wrong usage, `3` not logged in, `130` ca
 | [`skillpouch logout`](/cli/logout/)       | Forget this computer's keys and tokens.                                                                      |
 | [`skillpouch status`](/cli/status/)       | Show the account and device this computer is connected to.                                                   |
 | [`skillpouch sync`](/cli/sync/)           | Sync this computer's pouch now.                                                                              |
+| [`skillpouch settings`](/cli/settings/)   | List or control the preferences synced for each assistant.                                                   |
 | [`skillpouch conflicts`](/cli/conflicts/) | Open the web app to pick versions of items changed in two places.                                            |
 | [`skillpouch select`](/cli/select/)       | Choose what this computer syncs: assistants and kinds, on or off. Without options, lists the current choice. |
 | [`skillpouch unlink`](/cli/unlink/)       | Stop syncing one assistant, or this whole computer. Every file stays, as a real file instead of a link.      |

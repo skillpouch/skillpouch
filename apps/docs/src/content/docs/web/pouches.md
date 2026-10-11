@@ -26,7 +26,7 @@ dashboard (`skillpouch`) on its **Pouches** tab.
 
 The sidebar has the pouch's **Overview** (computers, last sync, recently
 added), one page per kind (Instructions, Skills, Agents, Commands, MCP
-Servers, Hooks, Plugins), Conflicts, Shared links and Pouch settings.
+Servers, Hooks, Plugins, Settings), Conflicts, Shared links and Pouch settings.
 
 ## Adding an item
 
@@ -34,7 +34,8 @@ On a kind's page, add an item:
 
 - **Write it yourself**: starts from a template for that kind (a `SKILL.md`
   with `name` and `description` for a skill, front matter for an agent or
-  command, a JSON definition for an MCP server, hook or plugin).
+  command, a JSON definition for an MCP server, hook, plugin or assistant
+  settings item).
 - **From a marketplace**: browse available items in the app.
 - **From GitHub**: a repository that is one item is added straight away; a
   repository that holds several is offered as a marketplace to browse.
@@ -59,8 +60,8 @@ syncs it, on their next sync.
 later edits aren't shared. The item is encrypted in your browser with a new
 key that exists only in the link itself (after the `#`, which browsers don't
 send to servers), so SkillPouch can't read what you share. Secret values in
-MCP server and hook configs (`env` and `headers`) are left out; whoever
-imports it fills them in.
+MCP server and hook configs (`env` and `headers`) and assistant settings are
+left out; whoever imports them fills them in.
 
 A link expires after 1, 7 or 30 days, or never, and can be limited to one
 import. Copy it when it's made: it can't be shown again later. Whoever opens

@@ -56,13 +56,14 @@ export function describe(path: string, text: string | null): string {
 }
 
 /**
- * Removes secret values (`env`, `headers`) from JSON files before sharing.
+ * Removes secret values from JSON files before sharing.
  * Returns the cleaned text and the dotted keys that were emptied so the
  * recipient can be asked to fill them in.
  */
 export function stripSecrets(
 	text: string,
 	secretKeys: readonly string[],
+	setting = false,
 ): { text: string; stripped: string[] } {
 	let parsed: unknown;
 	try {
@@ -71,13 +72,42 @@ export function stripSecrets(
 		return { text, stripped: [] };
 	}
 	const stripped: string[] = [];
-	const walk = (value: unknown, path: string[]): unknown => {
+	const wholeMaps = new Set(['env', 'headers', 'http_headers', 'extra_headers', 'customheaders']);
+	const sensitiveName =
+		/^(?:apiKey|api_key|apikey|key|token|access_token|refresh_token|secret|client_secret|password|passwd|bearer|experimental_bearer_token|authorization|auth_token|credentials?|private_key)$/i;
+	const sensitivePattern =
+		/(api[_-]?key|token|secret|passw(or)?d|bearer|credential|private[_-]?key)/i;
+	const pointer = (parts: string[]) =>
+		`@setting:/${parts.map((part) => part.replace(/~/g, '~0').replace(/\//g, '~1')).join('/')}`;
+	const proxyAuth = /^\w+:\/\/[^/@\s]+@/i;
+	const likelySecret = (value: string) =>
+		/^(?:sk-|sk_|ghp_|gho_|ghu_|github_pat_|xox|AIza|glpat-|Bearer )/.test(value) ||
+		/^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value) ||
+		proxyAuth.test(value) ||
+		(value.length >= 32 &&
+			/[A-Za-z]/.test(value) &&
+			/\d/.test(value) &&
+			!/\s|[/:\\]/.test(value));
+	const walk = (value: unknown, path: string[], forceMap = false): unknown => {
 		if (Array.isArray(value))
-			return value.map((item, index) => walk(item, [...path, String(index)]));
+			return value.map((item, index) => walk(item, [...path, String(index)], forceMap));
+		if (typeof value === 'string') {
+			const key = path.at(-1) ?? '';
+			const isSecret = setting
+				? forceMap ||
+					sensitiveName.test(key) ||
+					sensitivePattern.test(key) ||
+					likelySecret(value)
+				: false;
+			if (isSecret && value !== '') stripped.push(setting ? pointer(path) : path.join('.'));
+			return isSecret ? '' : value;
+		}
 		if (!value || typeof value !== 'object') return value;
 		const result: Record<string, unknown> = {};
 		for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+			const settingMap = setting && (wholeMaps.has(key.toLowerCase()) || key === '.env');
 			if (
+				!setting &&
 				secretKeys.includes(key) &&
 				child &&
 				typeof child === 'object' &&
@@ -90,7 +120,7 @@ export function stripSecrets(
 					}),
 				);
 			} else {
-				result[key] = walk(child, [...path, key]);
+				result[key] = walk(child, [...path, key], forceMap || settingMap);
 			}
 		}
 		return result;
@@ -108,7 +138,12 @@ export function fillSecrets(text: string, values: Record<string, string>): strin
 		return text;
 	}
 	for (const [dotted, value] of Object.entries(values)) {
-		const parts = dotted.split('.');
+		const parts = dotted.startsWith('@setting:/')
+			? dotted
+					.slice('@setting:/'.length)
+					.split('/')
+					.map((part) => part.replace(/~1/g, '/').replace(/~0/g, '~'))
+			: dotted.split('.');
 		let node = parsed as Record<string, unknown>;
 		for (const part of parts.slice(0, -1)) {
 			const next = node?.[part];

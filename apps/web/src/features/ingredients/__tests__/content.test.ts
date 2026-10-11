@@ -54,12 +54,110 @@ describe('secret stripping', () => {
 		expect(stripSecrets('not json', ['env'])).toEqual({ text: 'not json', stripped: [] });
 		expect(fillSecrets('not json', { a: 'b' })).toBe('not json');
 	});
+
+	it('strips setting secrets by names, maps, token heuristics, proxy auth, and dotted identifiers', () => {
+		const source = JSON.stringify({
+			harness: 'opencode',
+			files: {
+				'opencode.json': {
+					providers: {
+						'company.internal': {
+							settings: { apiKey: 'literal', baseURL: 'https://host' },
+						},
+					},
+					proxy: 'http://user:pass@proxy.example',
+					header: 'Bearer abc',
+					ordinary: 'ghp_abcdef',
+				},
+				'tui.json': { headers: { 'X-Auth': 'anything', nested: { value: 'also secret' } } },
+				'.env': { GEMINI_API_KEY: 'AIzaabc', OTHER: 'private-value' },
+			},
+		});
+		const { text, stripped } = stripSecrets(source, [], true);
+		const clean = JSON.parse(text);
+		expect(clean.files['opencode.json'].providers['company.internal'].settings.apiKey).toBe('');
+		expect(clean.files['opencode.json'].proxy).toBe('');
+		expect(clean.files['opencode.json'].header).toBe('');
+		expect(clean.files['opencode.json'].ordinary).toBe('');
+		expect(clean.files['opencode.json'].baseURL).toBeUndefined();
+		expect(clean.files['tui.json'].headers.nested.value).toBe('');
+		expect(clean.files['.env'].GEMINI_API_KEY).toBe('');
+		expect(stripped).toContain(
+			'@setting:/files/opencode.json/providers/company.internal/settings/apiKey',
+		);
+		expect(stripped).toContain('@setting:/files/.env/OTHER');
+		const filled = JSON.parse(
+			fillSecrets(text, {
+				'@setting:/files/opencode.json/providers/company.internal/settings/apiKey':
+					'restored',
+			}),
+		);
+		expect(filled.files['opencode.json'].providers['company.internal'].settings.apiKey).toBe(
+			'restored',
+		);
+	});
+
+	it('keeps legacy dotted MCP secret paths working', () => {
+		const filled = JSON.parse(
+			fillSecrets('{"env":{"API_KEY":""}}', { 'env.API_KEY': 'legacy' }),
+		);
+		expect(filled.env.API_KEY).toBe('legacy');
+	});
+
+	it('recognizes credential key variants and common token formats', () => {
+		const keys = [
+			'apiKey',
+			'api_key',
+			'apikey',
+			'key',
+			'token',
+			'access_token',
+			'refresh_token',
+			'secret',
+			'client_secret',
+			'password',
+			'passwd',
+			'bearer',
+			'experimental_bearer_token',
+			'authorization',
+			'auth_token',
+			'credential',
+			'credentials',
+			'private_key',
+			'customApiKey',
+		];
+		const values = Object.fromEntries(keys.map((key) => [key, 'value']));
+		Object.assign(values, {
+			a: 'sk-live',
+			b: 'sk_live',
+			c: 'gho_live',
+			d: 'ghu_live',
+			e: 'github_pat_live',
+			f: 'xoxb-live',
+			g: 'glpat-live',
+			h: 'AIza-live',
+			i: `eyJ${'a'.repeat(8)}.${'b'.repeat(8)}.${'c'.repeat(8)}`,
+			j: 'a1'.repeat(16),
+			keep: 'https://example.com/path',
+		});
+		const cleaned = JSON.parse(
+			stripSecrets(JSON.stringify({ files: { config: values } }), [], true).text,
+		);
+		for (const key of [...keys, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']) {
+			expect(cleaned.files.config[key], key).toBe('');
+		}
+		expect(cleaned.files.config.keep).toBe('https://example.com/path');
+	});
 });
 
 describe('kinds', () => {
 	it('every kind has a unique slug, and a template that names the item unless the name is fixed', () => {
 		const slugs = new Set(KINDS.map((kind) => kind.slug));
 		expect(slugs.size).toBe(KINDS.length);
+		// The pouch's fixed pages would win over a kind list with the same path.
+		for (const page of ['shared', 'conflicts', 'settings', 'marketplaces']) {
+			expect(slugs.has(page), page).toBe(false);
+		}
 		for (const kind of KINDS) {
 			expect(kindBySlug(kind.slug)).toBe(kind);
 			if (!kind.single) expect(kind.template('zz-name')).toContain('zz-name');
