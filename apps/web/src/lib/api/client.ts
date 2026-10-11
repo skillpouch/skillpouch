@@ -115,7 +115,19 @@ async function readError(response: Response): Promise<ApiError> {
 	return new ApiError('internal_error', response.status, response.statusText || 'Request failed');
 }
 
-/** Sends a request, retrying once when the server asks for a fresh DPoP nonce. */
+/** Resolves true once the user signed in again (see `features/session/step-up`). */
+type StepUpHandler = () => Promise<boolean>;
+let stepUpHandler: StepUpHandler | null = null;
+
+export function setStepUpHandler(handler: StepUpHandler | null): void {
+	stepUpHandler = handler;
+}
+
+/**
+ * Sends a request, retrying once when the server asks for a fresh DPoP nonce,
+ * and once more after a fresh sign-in when the action needs one. Step-up is
+ * checked before any handler runs, so the retry never repeats a side effect.
+ */
 export async function fetchApi(
 	method: string,
 	path: string,
@@ -126,6 +138,12 @@ export async function fetchApi(
 	if (!response.ok) {
 		const error = await readError(response.clone());
 		if (error.code === 'dpop_nonce_required') response = await send(method, url, options);
+	}
+	if (!response.ok && stepUpHandler) {
+		const error = await readError(response.clone());
+		if (error.code === 'step_up_required' && (await stepUpHandler())) {
+			response = await send(method, url, options);
+		}
 	}
 	if (!response.ok) throw await readError(response);
 	return response;

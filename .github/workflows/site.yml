@@ -50,6 +50,8 @@ jobs:
           grep -q 'Your AI coding setup, on every computer.' apps/site/dist/index.html
           grep -q '"/_astro/' apps/site/dist/index.html
           grep -q 'https://app.skillpouch.net/sign-in' apps/site/dist/index.html
+          grep -q 'https://docs.skillpouch.net' apps/site/dist/index.html
+          test -f apps/site/dist/video/skillpouch-promo.mp4
           grep -q 'Terms of Service' apps/site/dist/terms/index.html
           grep -q 'Privacy Policy' apps/site/dist/privacy/index.html
       # Pull requests only build and test; deploys happen from main.

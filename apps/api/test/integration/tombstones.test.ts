@@ -9,6 +9,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { gcBlobs } from '../../src/jobs/gc';
 import { expireRevisions, purgeEvents } from '../../src/jobs/retention';
+import { emptyTrash } from '../../src/jobs/trash';
 import type { CliClient } from '../helpers/clients';
 import { authorizeCli, newId, setupAccount, type Account } from '../helpers/flows';
 import { createHarness, type Harness } from '../helpers/harness';
@@ -201,6 +202,53 @@ describe('signed deletes are kept', () => {
 			h.owner.query('DELETE FROM revisions WHERE id = $1', [item.tombstone]),
 		).rejects.toThrow(/foreign key/);
 		expect(await revisionIds(item.id)).toContain(item.tombstone);
+	});
+
+	it('the trash keeps a deleted item restorable for 7 days, then removes its files', async () => {
+		const item = await deletedItem();
+		const live = await liveItem();
+		const before = await listed(item.id);
+
+		expect(await emptyTrash(h.deps)).toBe(0);
+		expect(await revisionIds(item.id)).toHaveLength(3);
+		for (const blob of item.blobs) expect(await blobStatus(blob)).toBe(200);
+
+		await h.owner.query(
+			`UPDATE artifacts SET deleted_at = now() - interval '7 days 1 minute' WHERE id = $1`,
+			[item.id],
+		);
+		expect(await emptyTrash(h.deps)).toBe(1);
+
+		const after = await listed(item.id);
+		expectTombstone(after, before, item.tombstone);
+		expect(after?.head?.blob_ids).toEqual([]);
+		expect(await revisionIds(item.id)).toEqual([item.tombstone]);
+		for (const blob of item.blobs) expect(await blobStatus(blob)).toBe(404);
+		expect(await blobStatus(live.blob)).toBe(200);
+		const { rows } = await h.owner.query<{ action: string; actor: string }>(
+			`SELECT action, actor FROM audit_log WHERE action = 'trash.emptied'`,
+		);
+		expect(rows).toEqual([{ action: 'trash.emptied', actor: 'system' }]);
+		// Nothing left to remove: the next run leaves it alone.
+		expect(await emptyTrash(h.deps)).toBe(0);
+	});
+
+	it('the trash waits while an open conflict pins a deleted item', async () => {
+		const item = await deletedItem();
+		await h.owner.query(
+			`UPDATE artifacts SET deleted_at = now() - interval '8 days' WHERE id = $1`,
+			[item.id],
+		);
+		const { rows } = await h.owner.query<{ id: string }>(
+			`INSERT INTO conflicts (id, storage_account_id, pouch_id, artifact_id, type, server_revision_id, state)
+			 SELECT gen_random_uuid(), storage_account_id, pouch_id, id, 'edit_delete', head_revision_id, 'open'
+			 FROM artifacts WHERE id = $1 RETURNING id`,
+			[item.id],
+		);
+		expect(await emptyTrash(h.deps)).toBe(0);
+		expect(await blobStatus(item.blobs[1]!)).toBe(200);
+		await h.owner.query(`UPDATE conflicts SET state = 'resolved' WHERE id = $1`, [rows[0]!.id]);
+		expect(await emptyTrash(h.deps)).toBe(1);
 	});
 
 	it('a freed item can still come back, with new files', async () => {

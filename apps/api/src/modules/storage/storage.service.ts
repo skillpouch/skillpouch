@@ -6,8 +6,8 @@
  * opaque artifact ID and the browser joins them with the names it decrypts.
  * The server never chooses what to delete: items are removed by signed
  * `delete` operations from the browser, and this module only frees the bytes
- * their older versions still hold — immediately, instead of after the 30-day
- * retention window.
+ * their older versions and deleted items still hold — immediately, instead of
+ * after the 30-day retention window or the 7 days in the trash.
  */
 import { Limits, toHex } from '@skillpouch/contracts';
 import { artifacts, storageAccounts } from '@skillpouch/db';
@@ -201,6 +201,38 @@ export async function freeSpace(
 		return account?.used ?? 0;
 	});
 
+	await releaseFiles(deps, { ...input, action: 'storage.freed' });
+
+	return withTenantTx(deps.db.app, input.storageAccountId, async (tx) => {
+		const [account] = await tx
+			.select({ used: storageAccounts.usedBytes, quota: storageAccounts.quotaBytes })
+			.from(storageAccounts)
+			.where(eq(storageAccounts.id, input.storageAccountId));
+		const used = account?.used ?? 0;
+		const quota = account?.quota ?? 0;
+		return {
+			freed_bytes: Math.max(0, before - used),
+			used_bytes: used,
+			quota_bytes: quota,
+			over_quota: used > quota,
+		};
+	});
+}
+
+/**
+ * The purge behind `freeSpace` and `trash.empty`, on the maintenance pool:
+ * callers have checked ownership and that `artifactIds` are deleted.
+ */
+export async function releaseFiles(
+	deps: Deps,
+	input: {
+		storageAccountId: string;
+		pouchId: string;
+		artifactIds?: string[] | undefined;
+		actor: string;
+		action: string;
+	},
+): Promise<void> {
 	const artifactFilter = input.artifactIds
 		? sql`AND r.artifact_id = ANY(${sql.param(input.artifactIds)}::uuid[])`
 		: sql``;
@@ -262,7 +294,7 @@ export async function freeSpace(
 		await appendAudit(tx, {
 			storageAccountId: input.storageAccountId,
 			actor: input.actor,
-			action: 'storage.freed',
+			action: input.action,
 			target: `pouch:${input.pouchId}`,
 			details: {
 				revisions: ids.length,
@@ -281,19 +313,4 @@ export async function freeSpace(
 			blobIdHex: toHex(blob.blob_id),
 		});
 	}
-
-	return withTenantTx(deps.db.app, input.storageAccountId, async (tx) => {
-		const [account] = await tx
-			.select({ used: storageAccounts.usedBytes, quota: storageAccounts.quotaBytes })
-			.from(storageAccounts)
-			.where(eq(storageAccounts.id, input.storageAccountId));
-		const used = account?.used ?? 0;
-		const quota = account?.quota ?? 0;
-		return {
-			freed_bytes: Math.max(0, before - used),
-			used_bytes: used,
-			quota_bytes: quota,
-			over_quota: used > quota,
-		};
-	});
 }

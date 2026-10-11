@@ -275,6 +275,29 @@ describe('addPasskey', () => {
 		expect(registered()).toBeUndefined();
 	});
 
+	it('skips a password-manager extension that replaced navigator.credentials', async () => {
+		await unlockedAccount();
+		answer();
+		// Like Bitwarden: own properties shadowing the browser's prototype methods.
+		class CredentialsContainer {
+			create = vi.fn(async () => {
+				throw new Error('extension prompt');
+			});
+			get = vi.fn();
+		}
+		Object.assign(CredentialsContainer.prototype, { create, get: assertWith });
+		vi.stubGlobal('CredentialsContainer', CredentialsContainer);
+		const patched = new CredentialsContainer();
+		Object.defineProperty(navigator, 'credentials', { configurable: true, value: patched });
+		create.mockResolvedValue(credential('create', { prf: randomBytes(32), enabled: true }));
+
+		await addPasskey('Laptop');
+
+		expect(patched.create).not.toHaveBeenCalled();
+		expect(create.mock.contexts[0]).toBe(patched);
+		expect(registered()).toBeDefined();
+	});
+
 	it('treats a closed prompt as a cancel and an existing credential as already added', async () => {
 		await unlockedAccount();
 		answer();

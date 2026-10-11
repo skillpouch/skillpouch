@@ -24,6 +24,7 @@ import {
 } from './housekeeping';
 import { purgeDeletedAccounts, purgeDeletedPouches, resetEncryptedAccounts } from './purge';
 import { expireRevisions, purgeEvents, purgeReceipts } from './retention';
+import { emptyTrash } from './trash';
 
 export interface JobDefinition {
 	name: string;
@@ -36,6 +37,7 @@ export const JOBS: JobDefinition[] = [
 	{ name: 'retention.revisions', cron: '7 * * * *', run: expireRevisions },
 	{ name: 'retention.events', cron: '17 3 * * *', run: purgeEvents },
 	{ name: 'retention.receipts', cron: '27 3 * * *', run: purgeReceipts },
+	{ name: 'trash.empty', cron: '57 * * * *', run: emptyTrash },
 	{ name: 'gc.blobs', cron: '37 * * * *', run: gcBlobs },
 	{ name: 'gc.pending', cron: '47 * * * *', run: gcPending },
 	{ name: 'usage.recalc', cron: '15 4 * * *', run: recalcUsage },

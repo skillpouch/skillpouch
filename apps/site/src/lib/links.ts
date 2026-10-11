@@ -16,5 +16,6 @@ export function resolveAppUrl(configured: string | undefined, dev: boolean): str
 
 export const APP_URL = resolveAppUrl(import.meta.env.PUBLIC_APP_URL, import.meta.env.DEV);
 export const SIGN_IN_URL = `${APP_URL}/sign-in`;
+export const DOCS_URL = 'https://docs.skillpouch.net';
 /** Public pricing, read from the app's API. */
 export const PLANS_URL = `${APP_URL}/v1/plans`;

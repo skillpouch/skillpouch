@@ -185,13 +185,13 @@ export function IngredientList({
 				open={deleting !== null}
 				onOpenChange={(open) => !open && setDeleting(null)}
 				title={`Delete ${deleting?.name ?? ''}?`}
-				description="It will be removed from this pouch and from all connected computers on next sync. Older versions are kept for 30 days."
-				confirmLabel="Delete"
+				description="It moves to the trash and is removed from all connected computers on next sync. You can restore it from the trash for 7 days."
+				confirmLabel="Move to trash"
 				onConfirm={async () => {
 					if (!deleting) return;
 					await remove.mutateAsync(deleting);
 					if (search.item === deleting.id) onPanel({});
-					toast.success(`${deleting.name} deleted`);
+					toast.success(`${deleting.name} moved to trash`);
 				}}
 			/>
 		</>

@@ -26,7 +26,8 @@ dashboard (`skillpouch`) on its **Pouches** tab.
 
 The sidebar has the pouch's **Overview** (computers, last sync, recently
 added), one page per kind (Instructions, Skills, Agents, Commands, MCP
-Servers, Hooks, Plugins, Settings), Conflicts, Shared links and Pouch settings.
+Servers, Hooks, Plugins, Settings), Marketplaces, Trash, Conflicts, Shared
+links and Pouch settings.
 
 ## Adding an item
 
@@ -51,8 +52,22 @@ An edit in an assistant on a computer ends up in the same place: the
 assistants' folders link to the pouch, so a change there is synced like
 one made here.
 
-**Delete** removes the item from the pouch and from every computer that
-syncs it, on their next sync.
+**Delete** moves the item to the trash and removes it from every computer
+that syncs it, on their next sync.
+
+## Trash
+
+**Trash** (below Marketplaces in the sidebar) lists deleted items. Each one
+stays there for 7 days; after that its files are removed for good. The ⋯
+menu on an item has:
+
+- **Restore**: brings the item back, and your computers get it on their
+  next sync. If another item of the same kind has taken its name in the
+  meantime, you pick a new name first.
+- **Delete permanently**: removes its files now. It can't be restored
+  afterwards.
+
+**Empty trash** deletes everything in it permanently.
 
 ## Sharing an item
 

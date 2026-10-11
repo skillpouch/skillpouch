@@ -11,6 +11,7 @@
  *   /app/p/:pouchId          overview, /:kind lists, /shared, /conflicts, /settings
  *   /app/account             profile, /devices, /usage, /security, /billing
  *   /app/p/:pouchId/marketplaces  skills.sh, MCP Registry, GitHub repositories
+ *   /app/p/:pouchId/trash    deleted items, restorable for 7 days
  *   /cli/authorize           approve a `skillpouch login`
  *   /github/connected        return from installing the GitHub App
  *   /s/:shareId              public share link
@@ -119,6 +120,7 @@ const MarketplacesPage = lazyPage(
 	'MarketplacesPage',
 	list,
 );
+const TrashPage = lazyPage(() => import('@/pages/pouch/trash-page'), 'TrashPage', list);
 const GithubConnectedPage = lazyPage(
 	() => import('@/pages/github/github-connected-page'),
 	'GithubConnectedPage',
@@ -314,6 +316,12 @@ const marketplacesRoute = createRoute({
 	component: MarketplacesPage,
 });
 
+const trashRoute = createRoute({
+	getParentRoute: () => pouchRoute,
+	path: '/trash',
+	component: TrashPage,
+});
+
 const panelSearch = (search: Record<string, unknown>): IngredientsSearch => {
 	const item = optionalString(search.item);
 	return {
@@ -443,6 +451,7 @@ const routeTree = rootRoute.addChildren([
 			conflictsRoute,
 			pouchSettingsRoute,
 			marketplacesRoute,
+			trashRoute,
 			kindRoute,
 		]),
 		accountRoute.addChildren([

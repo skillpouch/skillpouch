@@ -25,7 +25,8 @@ export const HINTS = {
 	refresh_invalid: `This computer's sign-in is no longer valid. ${RECONNECT}`,
 	refresh_reused: `A refresh token was used twice, so the server revoked the device to be safe. ${RECONNECT}`,
 	member_inactive: `The key this computer signs with is no longer part of your account. ${RECONNECT}`,
-	step_up_required: 'Sign in again with GitHub or Google, then repeat what you were doing.',
+	step_up_required:
+		'The web app asks you to sign in again in a small window and then finishes the action. If you closed that window or your browser blocked it, choose **Sign in again**, then repeat what you were doing.',
 	cli_auth_expired:
 		'The approval link from `skillpouch login` timed out. Run `skillpouch login` again.',
 	cli_auth_denied: 'The login request was denied in the browser. Run `skillpouch login` again.',
