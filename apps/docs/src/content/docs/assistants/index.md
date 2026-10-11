@@ -28,19 +28,39 @@ The id is what [`skillpouch select`](/cli/select/) and
 Paths are relative to the assistant's folder unless they start with `~`. A
 dash means SkillPouch doesn't put that kind into the assistant.
 
-| Assistant     | Instructions               | Skills              | Agents    | Commands            |
-| ------------- | -------------------------- | ------------------- | --------- | ------------------- |
-| Claude Code   | `CLAUDE.md`                | `skills/`           | `agents/` | `commands/`         |
-| Codex         | `AGENTS.md`                | `~/.agents/skills/` | –         | `prompts/`          |
-| OpenCode      | `AGENTS.md`                | `skills/`           | `agents/` | `commands/`         |
-| Gemini CLI    | `GEMINI.md`                | `skills/`           | `agents/` | `commands/` (TOML)  |
-| Antigravity   | `~/.gemini/GEMINI.md`      | `skills/`           | `agents/` | –                   |
-| Copilot CLI   | `copilot-instructions.md`  | `skills/`           | `agents/` | –                   |
-| Cursor        | –                          | `skills/`           | –         | `commands/`         |
-| Windsurf      | `memories/global_rules.md` | –                   | –         | `global_workflows/` |
-| Qwen Code     | `QWEN.md`                  | –                   | `agents/` | `commands/` (TOML)  |
-| Factory Droid | –                          | `skills/`           | `droids/` | `commands/`         |
-| Crush         | `CRUSH.md`                 | `skills/`           | –         | –                   |
+### Instructions and skills
+
+| Assistant     | Instructions               | Skills              |
+| ------------- | -------------------------- | ------------------- |
+| Claude Code   | `CLAUDE.md`                | `skills/`           |
+| Codex         | `AGENTS.md`                | `~/.agents/skills/` |
+| OpenCode      | `AGENTS.md`                | `skills/`           |
+| Gemini CLI    | `GEMINI.md`                | `skills/`           |
+| Antigravity   | `~/.gemini/GEMINI.md`      | `skills/`           |
+| Copilot CLI   | `copilot-instructions.md`  | `skills/`           |
+| Cursor        | –                          | `skills/`           |
+| Windsurf      | `memories/global_rules.md` | –                   |
+| Qwen Code     | `QWEN.md`                  | –                   |
+| Factory Droid | –                          | `skills/`           |
+| Crush         | `CRUSH.md`                 | `skills/`           |
+
+### Agents and commands
+
+| Assistant     | Agents    | Commands            |
+| ------------- | --------- | ------------------- |
+| Claude Code   | `agents/` | `commands/`         |
+| Codex         | –         | `prompts/`          |
+| OpenCode      | `agents/` | `commands/`         |
+| Gemini CLI    | `agents/` | `commands/` (TOML)  |
+| Antigravity   | `agents/` | –                   |
+| Copilot CLI   | `agents/` | –                   |
+| Cursor        | –         | `commands/`         |
+| Windsurf      | –         | `global_workflows/` |
+| Qwen Code     | `agents/` | `commands/` (TOML)  |
+| Factory Droid | `droids/` | `commands/`         |
+| Crush         | –         | –                   |
+
+### MCP servers, hooks and plugins
 
 | Assistant     | MCP servers                         | Hooks                                           | Plugins                              |
 | ------------- | ----------------------------------- | ----------------------------------------------- | ------------------------------------ |
