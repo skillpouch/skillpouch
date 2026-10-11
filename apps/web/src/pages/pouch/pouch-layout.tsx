@@ -13,6 +13,7 @@ import {
 	Share2,
 	Store,
 	TerminalSquare,
+	Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/app-shell';
@@ -58,6 +59,13 @@ export function PouchLayout() {
 					params,
 					label: 'Marketplaces',
 					icon: Store,
+				},
+				{
+					to: '/app/p/$pouchId/trash',
+					params,
+					label: 'Trash',
+					icon: Trash2,
+					...(contents.data?.trash.length ? { count: contents.data.trash.length } : {}),
 				},
 				// Only while something waits to be resolved.
 				...(conflicts.data?.length

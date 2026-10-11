@@ -37,6 +37,7 @@
 	"revisionRetentionDays": 30,
 	"eventRetentionDays": 90,
 	"receiptRetentionDays": 30,
+	"trashRetentionDays": 7,
 	"blobGcGraceHours": 24,
 	"pendingBlobTtlMinutes": 60,
 	"undoWindowDays": 7

@@ -53,6 +53,13 @@ export interface Ingredient {
 	updatedAt: string;
 	createdBy: string;
 	deleted: boolean;
+	/** When it was moved to the trash (from the artifact listing). */
+	deletedAt?: string | null;
+	/**
+	 * A deleted item whose files were removed ("Delete permanently", "Free up
+	 * space", or 7 days in the trash): only its signed delete is left.
+	 */
+	filesRemoved: boolean;
 	/** The decrypted revision body, needed to build the next revision. */
 	body: RevisionBody;
 }
@@ -66,6 +73,8 @@ export interface UnreadableArtifact {
 export interface PouchContents {
 	/** Items of every scope; `inScope` keeps the global ones. */
 	ingredients: Ingredient[];
+	/** Deleted global items that can still be restored, most recently deleted first. */
+	trash: Ingredient[];
 	unreadable: UnreadableArtifact[];
 }
 
@@ -106,6 +115,7 @@ export async function openHead(
 		updatedAt,
 		createdBy: body.author_member_id,
 		deleted: body.deleted,
+		filesRemoved: body.deleted && body.entries.length > 0 && head.blob_ids.length === 0,
 		body,
 	};
 }
@@ -165,7 +175,7 @@ export async function loadPouchContents(
 					artifact.updated_at,
 					artifact.id,
 				);
-				if (opened) ingredients.push(opened);
+				if (opened) ingredients.push({ ...opened, deletedAt: artifact.deleted_at });
 			} catch (error) {
 				reportTamper(error, { where: 'revision', pouchId });
 				unreadable.push({ id: artifact.id, reason: (error as Error).message });
@@ -219,6 +229,16 @@ export async function loadPouchContents(
 	const current = ingredients.filter(
 		(ingredient) => !refused.has(ingredient.id) && shown.has(ingredient.id),
 	);
+	const trash = ingredients
+		.filter(
+			(ingredient) =>
+				!refused.has(ingredient.id) &&
+				ingredient.deleted &&
+				ingredient.deletedAt &&
+				!ingredient.filesRemoved &&
+				ingredient.scope === GLOBAL_SCOPE,
+		)
+		.sort((a, b) => b.deletedAt!.localeCompare(a.deletedAt!));
 	for (const [id, reason] of refused) {
 		if (reason === 'rollback') {
 			const error = new CryptoError(
@@ -235,7 +255,7 @@ export async function loadPouchContents(
 		}
 	}
 	current.sort((a, b) => a.name.localeCompare(b.name));
-	return { ingredients: current, unreadable };
+	return { ingredients: current, trash, unreadable };
 }
 
 export function usePouchContents(pouchId: string) {

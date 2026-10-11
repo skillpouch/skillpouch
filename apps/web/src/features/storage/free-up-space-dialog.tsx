@@ -301,8 +301,8 @@ export function FreeUpSpaceDialog({
 										Old versions & trash
 									</span>
 									<span className="text-xs text-muted">
-										Removes previous versions and deleted items kept for 30
-										days.
+										Removes previous versions (kept for 30 days) and the trash
+										(kept for 7 days).
 									</span>
 								</span>
 								<span className="font-mono text-xs">

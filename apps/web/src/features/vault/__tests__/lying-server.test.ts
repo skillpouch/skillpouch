@@ -692,6 +692,23 @@ describe('older versions and missing items', () => {
 		expect((await contents()).ingredients).toEqual([]);
 	});
 
+	it('lists deleted items in the trash until their files are removed', async () => {
+		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
+		const live = await account.server.putItem(account.keyring, account.pouchId, 'live', 'x');
+		await contents();
+		await edit(pdf, 'v1', { deleted: true });
+		const result = await contents();
+		expect(names(result)).toEqual(['live']);
+		expect(result.trash.map((item) => [item.name, item.deletedAt])).toEqual([
+			['pdf', pdf.deleted_at],
+		]);
+		expect(result.trash[0]?.filesRemoved).toBe(false);
+		expect(result.trash.some((item) => item.id === live.id)).toBe(false);
+		// "Delete permanently" or 7 days later: the signed delete stays, its files don't.
+		pdf.head = { ...pdf.head!, blob_ids: [] };
+		expect((await contents()).trash).toEqual([]);
+	});
+
 	it('rejects duplicate listing identities across pages in either order before any pin advances', async () => {
 		const pdf = await account.server.putItem(account.keyring, account.pouchId, 'pdf', 'v1');
 		const r1 = pdf.head!;

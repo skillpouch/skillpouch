@@ -87,6 +87,8 @@ export const Limits = {
 	revisionRetentionDays: 30,
 	eventRetentionDays: 90,
 	receiptRetentionDays: 30,
+	/** A deleted item can be restored this long; then its files are removed. */
+	trashRetentionDays: 7,
 	blobGcGraceHours: 24,
 	pendingBlobTtlMinutes: 60,
 	/** Pouch delete / account reset undo window. */
