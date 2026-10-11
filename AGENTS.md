@@ -38,6 +38,12 @@ to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,
 - **Only true claims** in user-facing copy (landing, docs, READMEs): no
   invented stats, users, testimonials or features. Verify against the code.
 - **Every behavior change gets a test.** Bug fixes get a regression test.
+- **Every user-visible change updates `apps/docs` in the same commit.** New or
+  changed features, web app screens, settings, assistants, limits, env vars
+  and error hints (`apps/docs/scripts/gen-errors.mjs`). Error codes and the API
+  reference are generated, but a new code that users can hit needs a hint. If
+  nothing in the docs changes, say why in the commit body. A task isn't done
+  until its docs are.
 - **Comments:** match the surrounding density; explain non-obvious _why_.
   Never reference the planning documents (`plan/…`, "§12") in code.
 - New source files start with `// SPDX-License-Identifier: AGPL-3.0-only`
