@@ -1,16 +1,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Deploys to the self-hosted server (runner label `skillpouch-server`, see
 # docs.skillpouch.net/self-hosting/tunnel):
-#   - automatically, when CI passes for a push to main;
+#   - automatically, on every push to main (the pull request already passed CI);
 #   - by hand (Actions → deploy → Run workflow): a specific commit of main,
 #     or a rollback to the previous API color.
 # Only main is ever deployed and pull requests never reach the runner.
 name: deploy
 
 on:
-  workflow_run:
-    workflows: [ci]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -37,22 +35,19 @@ env:
 jobs:
   deploy:
     if: >-
-      (github.event_name == 'workflow_run'
-        && github.event.workflow_run.conclusion == 'success'
-        && github.event.workflow_run.event == 'push'
-        && github.event.workflow_run.head_branch == 'main')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
       || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy')
     runs-on: [self-hosted, skillpouch-server]
     timeout-minutes: 60
     steps:
       - name: Build and deploy
         env:
-          REF: ${{ github.event.workflow_run.head_sha || inputs.ref || 'origin/main' }}
+          REF: ${{ github.event_name == 'push' && github.sha || inputs.ref || 'origin/main' }}
         run: |
           if ! [[ "$REF" =~ ^([0-9a-f]{7,40}|origin/main)$ ]]; then echo "bad ref: $REF"; exit 1; fi
           # Pushes that only touch the site (Cloudflare Pages), CI or docs leave the
           # server alone; a manual deploy always runs.
-          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
             deployed=$(cat "$SKILLPOUCH_DIR/deploy/caddy/.deployed" 2>/dev/null || true)
             git -C "$SKILLPOUCH_DIR" fetch --quiet origin main
             if [ -n "$deployed" ] && git -C "$SKILLPOUCH_DIR" cat-file -e "$deployed^{commit}" 2>/dev/null; then

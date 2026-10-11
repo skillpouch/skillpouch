@@ -39,8 +39,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @skillpouch/docs typecheck
-      - run: pnpm --filter @skillpouch/docs test
+      # Checks run on the pull request; main only builds and deploys.
+      - if: github.event_name != 'push'
+        run: pnpm --filter @skillpouch/docs typecheck
+      - if: github.event_name != 'push'
+        run: pnpm --filter @skillpouch/docs test
       - run: pnpm --filter @skillpouch/docs build
       # Pull requests only build and test; deploys happen from main.
       - name: Cloudflare credentials
