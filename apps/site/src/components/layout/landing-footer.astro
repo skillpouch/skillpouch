@@ -1,6 +1,7 @@
 ---
 // SPDX-License-Identifier: AGPL-3.0-only
 import { CONTACT_EMAIL } from '@/components/landing-content';
+import { DOCS_URL } from '@/lib/links';
 import Logo from './logo.astro';
 import SocialLinks from './social-links.astro';
 ---
@@ -18,6 +19,9 @@ import SocialLinks from './social-links.astro';
 			class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted"
 		>
 			<SocialLinks />
+			<a class="hover:text-fg" href={DOCS_URL}>
+				Docs
+			</a>
 			<a class="hover:text-fg" href="/terms">
 				Terms
 			</a>
