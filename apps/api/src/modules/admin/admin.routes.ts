@@ -429,7 +429,8 @@ export async function adminRoutes(app: ZodApp, deps: Deps) {
 					200: z.object({
 						version: z.string(),
 						write_pause: z.boolean(),
-						failed_jobs_24h: z.number().int(),
+						/** Null while the worker hasn't set up (and granted read on) its job tables. */
+						failed_jobs_24h: z.number().int().nullable(),
 					}),
 				},
 			},

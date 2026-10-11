@@ -676,6 +676,26 @@ describe('billing and admin', () => {
 			expect((await admin.get('/v1/admin/system')).body.data.write_pause).toBe(false);
 		});
 
+		it('reports failed jobs only once the worker has granted read on pg-boss', async () => {
+			const before = await admin.get('/v1/admin/system');
+			expect(before.status).toBe(200);
+			expect(before.body.data.failed_jobs_24h).toBeNull();
+			// Created as the owner, like pg-boss does: sp_maintenance can't read it yet.
+			await h.owner.query(`CREATE SCHEMA pgboss`);
+			await h.owner.query(
+				`CREATE TABLE pgboss.job (state text, created_on timestamptz DEFAULT now())`,
+			);
+			await h.owner.query(`INSERT INTO pgboss.job (state) VALUES ('failed'), ('completed')`);
+			const ungranted = await admin.get('/v1/admin/system');
+			expect(ungranted.status).toBe(200);
+			expect(ungranted.body.data.failed_jobs_24h).toBeNull();
+			await h.owner.query(
+				`GRANT USAGE ON SCHEMA pgboss TO sp_maintenance; GRANT SELECT ON pgboss.job TO sp_maintenance`,
+			);
+			expect((await admin.get('/v1/admin/system')).body.data.failed_jobs_24h).toBe(1);
+			await h.owner.query(`DROP SCHEMA pgboss CASCADE`);
+		});
+
 		it('records every admin action in the audit log', async () => {
 			const audit = await admin.get('/v1/admin/audit?limit=100');
 			const actions = audit.body.data.items.map((entry: { action: string }) => entry.action);

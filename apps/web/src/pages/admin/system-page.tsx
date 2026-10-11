@@ -26,8 +26,14 @@ export function AdminSystemPage() {
 					<Figure label="Version" value={system.data?.version} loading={!system.data} />
 					<Figure
 						label="Failed jobs, 24 hours"
-						value={system.data?.failed_jobs_24h}
-						hint={system.data?.failed_jobs_24h ? 'see the worker log' : 'all good'}
+						value={system.data?.failed_jobs_24h ?? '—'}
+						hint={
+							system.data?.failed_jobs_24h === null
+								? 'worker not started yet'
+								: system.data?.failed_jobs_24h
+									? 'see the worker log'
+									: 'all good'
+						}
 						loading={!system.data}
 					/>
 					<Figure

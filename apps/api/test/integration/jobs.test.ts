@@ -371,6 +371,12 @@ describe('background jobs', () => {
 				expect(schedules.map((s) => s.name).sort()).toEqual(
 					JOBS.map((job) => job.name).sort(),
 				);
+				// The admin system page counts failed jobs as sp_maintenance.
+				expect(
+					await one(
+						`SELECT has_table_privilege('sp_maintenance', 'pgboss.job', 'SELECT') AS ok`,
+					),
+				).toEqual({ ok: true });
 			} finally {
 				await boss.stop({ graceful: false });
 			}

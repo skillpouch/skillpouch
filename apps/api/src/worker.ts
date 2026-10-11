@@ -28,7 +28,20 @@ export async function runJob(deps: Deps, job: JobDefinition, metrics?: Metrics):
 	}
 }
 
+/**
+ * pg-boss creates its schema as the worker's login role, so no migration can
+ * grant on it. The admin system page counts failed jobs as `sp_maintenance`.
+ */
+async function grantJobsRead(boss: PgBoss): Promise<void> {
+	await boss
+		.getDb()
+		.executeSql(
+			'GRANT USAGE ON SCHEMA pgboss TO sp_maintenance; GRANT SELECT ON pgboss.job TO sp_maintenance',
+		);
+}
+
 export async function startScheduler(deps: Deps, boss: PgBoss, metrics?: Metrics): Promise<void> {
+	await grantJobsRead(boss);
 	for (const job of JOBS) {
 		await boss.createQueue(job.name);
 		await boss.schedule(job.name, job.cron, null, { tz: 'UTC' });

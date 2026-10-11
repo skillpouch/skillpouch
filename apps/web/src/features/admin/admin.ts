@@ -80,7 +80,7 @@ export interface AdminSubscription {
 export interface SystemStatus {
 	version: string;
 	write_pause: boolean;
-	failed_jobs_24h: number;
+	failed_jobs_24h: number | null;
 }
 
 export const ADMIN_KEY = ['admin'] as const;
