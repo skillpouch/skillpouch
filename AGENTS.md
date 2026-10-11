@@ -57,9 +57,8 @@ to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,
   Never reference the planning documents (`plan/…`, "§12") in code.
 - New source files start with `// SPDX-License-Identifier: AGPL-3.0-only`
   (or the equivalent comment syntax).
-- Leave untracked local helpers you didn't create (e.g. `apps/web/interact.mjs`,
-  `apps/web/shot.mjs`) alone and never stage them. Stage files by name, not
-  `git add -A`.
+- Leave untracked files you didn't create alone and never stage them. Stage
+  files by name, not `git add -A`.
 - Don't stop or restart the owner's dev servers unless asked.
 
 ## Commands
