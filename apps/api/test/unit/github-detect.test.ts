@@ -39,4 +39,14 @@ describe('detectItems', () => {
 			}),
 		]);
 	});
+
+	it('names an item at the repository root after the repository', () => {
+		const tree = [blob('.claude-plugin/plugin.json'), blob('skills/lazy/SKILL.md')];
+		expect(detectItems(tree, 'dietrichgebert/ponytail')).toEqual([
+			expect.objectContaining({ kind: 'plugin', path: '.', name: 'ponytail' }),
+		]);
+		expect(detectItems(tree)).toEqual([
+			expect.objectContaining({ kind: 'plugin', name: 'repository' }),
+		]);
+	});
 });
