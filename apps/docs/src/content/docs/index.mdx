@@ -2,6 +2,9 @@
 title: SkillPouch documentation
 description: Sync your AI assistant skills, agents, MCP servers and instructions across every computer, end-to-end encrypted.
 template: splash
+head:
+    - tag: title
+      content: Sync AI coding assistant config across computers | SkillPouch Docs
 editUrl: false
 hero:
     image:
@@ -32,6 +35,21 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 		title="CLI reference"
 		href="/cli/"
 		description="Every command, configuration, updates and the background sync."
+	/>
+	<LinkCard
+		title="A second computer"
+		href="/getting-started/second-computer/"
+		description="Connect another computer to the same pouch and keep both in sync."
+	/>
+	<LinkCard
+		title="Security"
+		href="/security/"
+		description="What is encrypted on your devices, what the server can see, and how to report a vulnerability."
+	/>
+	<LinkCard
+		title="Self-hosting"
+		href="/self-hosting/"
+		description="Run the same open source stack on your own server."
 	/>
 	<LinkCard
 		title="Web app guides"
