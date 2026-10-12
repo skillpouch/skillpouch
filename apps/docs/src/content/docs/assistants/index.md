@@ -14,7 +14,7 @@ counts as installed when its folder exists; nothing needs to be configured.
 | Gemini CLI    | `gemini-cli`  | `~/.gemini`                                           |
 | Antigravity   | `antigravity` | `~/.gemini/config`                                    |
 | Copilot CLI   | `copilot`     | `~/.copilot` (or `$COPILOT_HOME`)                     |
-| Cursor        | `cursor`      | `~/.cursor`                                           |
+| Cursor        | `cursor`      | `~/.cursor` (or `$CURSOR_CONFIG_DIR`)                 |
 | Windsurf      | `windsurf`    | `~/.codeium/windsurf`                                 |
 | Qwen Code     | `qwen-code`   | `~/.qwen`                                             |
 | Factory Droid | `factory`     | `~/.factory`                                          |
@@ -38,8 +38,11 @@ assistant settings files:
 | Copilot CLI   | `~/.copilot/settings.json`: model, theme and display preferences, notifications, allowed and denied URLs, permission mode, status line, updates and experimental options. Not trusted folders, hooks, the proxy or IDE settings. Copilot's own model provider (BYOK) is set with environment variables, which aren't synced.                                                      |
 | Crush         | `crush.json`: providers, models, options (not `data_directory`), permissions and tools.                                                                                                                                                                                                                                                                                           |
 | Factory Droid | `~/.factory/settings.json`: model, reasoning effort, custom models and session defaults.                                                                                                                                                                                                                                                                                          |
+| Cursor        | The Cursor CLI's `cli-config.json` (in `~/.cursor`, `$CURSOR_CONFIG_DIR`, or `$XDG_CONFIG_HOME/cursor` on Linux): model, max mode, approval mode, permissions, sandbox, editor and display preferences, notifications, hints, steering, rewind and attribution. Not `version`, network options, or the editor's own settings.                                                     |
+| Antigravity   | The Antigravity CLI's `~/.gemini/antigravity-cli/settings.json`: color scheme, tool permission, artifact review policy, agent mode, notifications, tips, editor mode, terminal sandbox, telemetry, verbosity, status line, title and permissions. Not trusted workspaces or credit use.                                                                                           |
 
-Cursor, Windsurf and Antigravity settings are not supported. MCP servers,
+Windsurf settings are not supported: Windsurf keeps its preferences in a
+binary file, not a text config. MCP servers,
 hooks and plugins are synced as their own item kinds, not as settings. Credential
 files such as `auth.json`, `.credentials.json` and `oauth_creds.json` are never
 synced.
@@ -77,7 +80,7 @@ dash means SkillPouch doesn't put that kind into the assistant.
 | Copilot CLI   | `copilot-instructions.md`  | `skills/`           |
 | Cursor        | –                          | `skills/`           |
 | Windsurf      | `memories/global_rules.md` | –                   |
-| Qwen Code     | `QWEN.md`                  | –                   |
+| Qwen Code     | `QWEN.md`                  | `~/.agents/skills/` |
 | Factory Droid | –                          | `skills/`           |
 | Crush         | `CRUSH.md`                 | `skills/`           |
 
@@ -99,24 +102,47 @@ dash means SkillPouch doesn't put that kind into the assistant.
 
 ### MCP servers, hooks and plugins
 
-| Assistant     | MCP servers                         | Hooks                                           | Plugins                              |
-| ------------- | ----------------------------------- | ----------------------------------------------- | ------------------------------------ |
-| Claude Code   | `~/.claude.json`                    | `settings.json`                                 | `settings.json`                      |
-| Codex         | `config.toml`                       | `hooks.json`                                    | –                                    |
-| OpenCode      | `opencode.json` or `opencode.jsonc` | –                                               | the `plugin` list in `opencode.json` |
-| Gemini CLI    | `settings.json`                     | `settings.json`                                 | –                                    |
-| Antigravity   | `mcp_config.json`                   | –                                               | –                                    |
-| Copilot CLI   | `mcp-config.json`                   | `hooks/skillpouch.json`                         | –                                    |
-| Cursor        | `mcp.json`                          | `hooks.json`                                    | –                                    |
-| Windsurf      | `mcp_config.json`                   | `hooks.json`                                    | –                                    |
-| Qwen Code     | `settings.json`                     | `settings.json`                                 | –                                    |
-| Factory Droid | `mcp.json`                          | `hooks.json` if it exists, else `settings.json` | `settings.json`                      |
-| Crush         | –                                   | –                                               | –                                    |
+| Assistant     | MCP servers                         | Hooks                                           | Plugins                                                        |
+| ------------- | ----------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| Claude Code   | `~/.claude.json`                    | `settings.json`                                 | `settings.json`                                                |
+| Codex         | `config.toml`                       | `hooks.json`                                    | –                                                              |
+| OpenCode      | `opencode.json` or `opencode.jsonc` | –                                               | the `plugins` list in `opencode.json` (`plugin` in OpenCode 1) |
+| Gemini CLI    | `settings.json`                     | `settings.json`                                 | –                                                              |
+| Antigravity   | `mcp_config.json`                   | –                                               | –                                                              |
+| Copilot CLI   | `mcp-config.json`                   | `hooks/skillpouch.json`                         | –                                                              |
+| Cursor        | `mcp.json`                          | `hooks.json`                                    | –                                                              |
+| Windsurf      | `mcp_config.json`                   | `hooks.json`                                    | –                                                              |
+| Qwen Code     | `settings.json`                     | `settings.json`                                 | –                                                              |
+| Factory Droid | `mcp.json`                          | `hooks.json` if it exists, else `settings.json` | `settings.json`                                                |
+| Crush         | `crush.json`                        | –                                               | –                                                              |
+
+### Plugin folders
+
+A plugin added as a folder (a Claude Code plugin, for example from GitHub or
+a marketplace) is stored once, in `~/.skillpouch/current/plugins/<name>`.
+Claude Code installs it as a plugin. Every other assistant gets its parts
+instead, each where the tables above put that kind: its skills, agents,
+commands, hooks and MCP servers. An assistant without a place for a kind
+doesn't get those parts.
+
+- Hooks and MCP servers get `CLAUDE_PLUGIN_ROOT` set to the plugin's folder,
+  so the scripts they run are found. On Windows, hooks get the folder
+  written into their command instead, without the variable.
+- If a part has the same name as another item, or as a part of another
+  plugin, the other one stays and the sync reports the part it left out.
+- Edits to a skill, agent or command part go back into the plugin. A plugin's
+  hook or MCP server edited in an assistant's config is put back as the
+  plugin has it. To stop using a part, remove the plugin; a part deleted from
+  one assistant is put back by the next sync.
+- Factory Droid only loads plugins it installed itself, so it gets the parts
+  too.
+- Codex asks you to trust new hooks before it runs them.
 
 ## Notes per assistant
 
 - **Codex** reads skills from the shared `~/.agents/skills/` folder as well
-  as `~/.codex/skills/`; SkillPouch links them into the shared one.
+  as `~/.codex/skills/`; SkillPouch links them into the shared one. **Qwen
+  Code** reads the shared folder too.
 - **OpenCode** also reads the older singular folders (`skill/`, `agent/`,
   `command/`); SkillPouch finds items there too.
 - **Antigravity** shares its global rules file with Gemini CLI
