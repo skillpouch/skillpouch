@@ -730,10 +730,15 @@ export async function systemStatus(deps: Deps) {
 		.select()
 		.from(systemSettings)
 		.where(eq(systemSettings.key, WRITE_PAUSE_KEY));
-	const jobs = await deps.db.admin.execute(sql`
-		SELECT to_regclass('pgboss.job') IS NOT NULL AS installed`);
-	let failedJobs = 0;
-	if ((jobs.rows[0] as { installed?: boolean } | undefined)?.installed) {
+	// Unknown (null) until the worker has created pg-boss and granted read on it.
+	const jobs = await deps.db.maintenance.execute(sql`
+		SELECT coalesce((
+			SELECT has_schema_privilege(n.oid, 'USAGE') AND has_table_privilege(c.oid, 'SELECT')
+			FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+			WHERE n.nspname = 'pgboss' AND c.relname = 'job'
+		), false) AS readable`);
+	let failedJobs: number | null = null;
+	if ((jobs.rows[0] as { readable?: boolean } | undefined)?.readable) {
 		const failed = await deps.db.maintenance.execute(
 			sql`SELECT count(*)::int AS n FROM pgboss.job WHERE state = 'failed' AND created_on > now() - interval '1 day'`,
 		);
