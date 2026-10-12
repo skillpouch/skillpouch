@@ -16,6 +16,7 @@
 		"gen:errors": "node scripts/gen-errors.mjs"
 	},
 	"dependencies": {
+		"@astrojs/sitemap": "^3.7.4",
 		"@astrojs/starlight": "^0.42.6",
 		"astro": "^7.3.8",
 		"geist": "^1.7.2",

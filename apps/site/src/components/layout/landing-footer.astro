@@ -1,7 +1,7 @@
 ---
 // SPDX-License-Identifier: AGPL-3.0-only
-import { CONTACT_EMAIL } from '@/components/landing-content';
-import { DOCS_URL } from '@/lib/links';
+import { CONTACT_EMAIL, SOURCE_URL } from '@/components/landing-content';
+import { DOCS_PAGES, DOCS_URL } from '@/lib/links';
 import Logo from './logo.astro';
 import SocialLinks from './social-links.astro';
 ---
@@ -21,6 +21,15 @@ import SocialLinks from './social-links.astro';
 			<SocialLinks />
 			<a class="hover:text-fg" href={DOCS_URL}>
 				Docs
+			</a>
+			<a class="hover:text-fg" href={DOCS_PAGES.security}>
+				Security
+			</a>
+			<a class="hover:text-fg" href={DOCS_PAGES.selfHosting}>
+				Self-hosting
+			</a>
+			<a class="hover:text-fg" href={SOURCE_URL}>
+				GitHub
 			</a>
 			<a class="hover:text-fg" href="/terms">
 				Terms

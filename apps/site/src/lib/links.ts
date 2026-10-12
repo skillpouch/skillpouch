@@ -17,5 +17,13 @@ export function resolveAppUrl(configured: string | undefined, dev: boolean): str
 export const APP_URL = resolveAppUrl(import.meta.env.PUBLIC_APP_URL, import.meta.env.DEV);
 export const SIGN_IN_URL = `${APP_URL}/sign-in`;
 export const DOCS_URL = 'https://docs.skillpouch.net';
+/** Docs pages the landing page points readers at. */
+export const DOCS_PAGES = {
+	assistants: `${DOCS_URL}/assistants/`,
+	install: `${DOCS_URL}/getting-started/install/`,
+	secondComputer: `${DOCS_URL}/getting-started/second-computer/`,
+	security: `${DOCS_URL}/security/`,
+	selfHosting: `${DOCS_URL}/self-hosting/`,
+} as const;
 /** Public pricing, read from the app's API. */
 export const PLANS_URL = `${APP_URL}/v1/plans`;
