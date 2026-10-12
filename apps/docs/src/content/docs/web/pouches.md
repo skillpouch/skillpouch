@@ -38,7 +38,8 @@ On a kind's page, add an item:
   settings item).
 - **From a marketplace**: browse available items in the app.
 - **From GitHub**: a repository that is one item is added straight away; a
-  repository that holds several is offered as a marketplace to browse.
+  repository that holds several is offered as a marketplace to browse. An
+  item at the top of a repository takes the repository's name.
 
 A plugin brings only the files a Claude Code plugin is made of:
 `.claude-plugin/`, `skills/`, `hooks/`, markdown in `commands/` and

@@ -204,13 +204,16 @@ function validateRef(ref: string | undefined): void {
 	}
 }
 
-/** Pure detection over a repository tree; unit-tested. */
-export function detectItems(tree: TreeEntry[]): DetectedItem[] {
+/**
+ * Pure detection over a repository tree; unit-tested. An item at the root of
+ * `repo` (owner/name) is named after the repository.
+ */
+export function detectItems(tree: TreeEntry[], repo?: string): DetectedItem[] {
 	const blobs = tree.filter((entry) => entry.type === 'blob');
 	const found: DetectedItem[] = [];
 	const under = (root: string) =>
 		blobs.filter((entry) => (root === '' ? true : entry.path.startsWith(`${root}/`)));
-	const repoName = 'repository';
+	const repoName = repo?.split('/')[1] || 'repository';
 
 	for (const entry of blobs) {
 		const name = basename(entry.path);
@@ -449,7 +452,7 @@ export class GithubImporter {
 			sha: head.sha,
 			private: head.private,
 			truncated: tree.truncated === true,
-			items: detectItems(tree.tree),
+			items: detectItems(tree.tree, repo),
 		};
 		this.snapshots.delete(key);
 		this.snapshots.set(key, { expires: Date.now() + CACHE_TTL_MS, snapshot });
@@ -546,7 +549,7 @@ export class GithubImporter {
 			`${API}/repos/${repo}/git/trees/${commit.sha}?recursive=1`,
 		);
 		const scanBudget = { files: MAX_TOTAL_FILES, bytes: MAX_SCAN_BYTES };
-		const picks = detectItems(tree.tree).map((item) => {
+		const picks = detectItems(tree.tree, repo).map((item) => {
 			const budgets = [itemBudget(), scanBudget];
 			return { item, budgets, picked: pickFiles(item.files, ...budgets) };
 		});
