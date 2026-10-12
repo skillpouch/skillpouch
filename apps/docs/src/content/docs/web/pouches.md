@@ -40,6 +40,14 @@ On a kind's page, add an item:
 - **From GitHub**: a repository that is one item is added straight away; a
   repository that holds several is offered as a marketplace to browse.
 
+A plugin brings only the files a Claude Code plugin is made of:
+`.claude-plugin/`, `skills/`, `hooks/`, markdown in `commands/` and
+`agents/`, the other standard plugin folders, `.mcp.json`, `.lsp.json`,
+`settings.json`, and its README and license, plus any file its
+`plugin.json` or hooks point at. Copies kept in the same repository for
+other assistants (`.cursor/`, `.opencode/`, `commands/*.toml`, …), docs,
+tests and images stay behind.
+
 ## Editing
 
 Open an item to see its files. **Edit** opens an editor where you can

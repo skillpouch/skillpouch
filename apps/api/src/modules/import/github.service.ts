@@ -84,6 +84,11 @@ export interface DetectedItem {
 	path: string;
 	name: string;
 	files: TreeEntry[];
+	/**
+	 * A plugin's other files: taken only when its manifest or hook files point
+	 * at them, so other assistants' copies, docs and tests stay behind.
+	 */
+	extra?: TreeEntry[];
 }
 
 /** One commit of a repository: its tree and what was detected in it. */
@@ -114,6 +119,69 @@ const INSTRUCTION_FILES = new Set([
 const MCP_FILES = new Set(['.mcp.json', 'mcp.json']);
 /** Folders whose markdown files are one agent / one command each (Claude Code layout). */
 const SINGLE_FILE_FOLDERS: Record<string, ImportKind> = { agents: 'agent', commands: 'command' };
+/**
+ * What a Claude Code plugin is made of (code.claude.com/docs/en/plugins-reference).
+ * Hook scripts elsewhere, such as `scripts/`, come in when a hook points at them.
+ */
+const PLUGIN_FOLDERS = new Set([
+	'.claude-plugin',
+	'skills',
+	'hooks',
+	'monitors',
+	'output-styles',
+	'themes',
+	'workflows',
+	'bin',
+]);
+/** Only markdown in these: other assistants' command formats (`*.toml`) stay behind. */
+const PLUGIN_MARKDOWN_FOLDERS = new Set(['agents', 'commands']);
+const PLUGIN_FILES = new Set(['settings.json', '.mcp.json', '.lsp.json', 'SKILL.md']);
+const PLUGIN_NOTICES = /^(?:readme|license|licence|copying|notice)(?:\.[a-z]+)?$/i;
+const PLUGIN_ROOT_REFERENCE =
+	/CLAUDE_PLUGIN_ROOT\}?["']*[/\\]+([A-Za-z0-9._@+-]+(?:\/[A-Za-z0-9._@+-]+)*)/g;
+
+/** Whether a path inside a plugin (relative to its root) is part of the plugin itself. */
+export function inPluginLayout(path: string): boolean {
+	const [top, ...rest] = path.split('/');
+	if (rest.length === 0) return PLUGIN_FILES.has(top!) || PLUGIN_NOTICES.test(top!);
+	if (PLUGIN_MARKDOWN_FOLDERS.has(top!)) return path.toLowerCase().endsWith('.md');
+	return PLUGIN_FOLDERS.has(top!);
+}
+
+/**
+ * Paths (relative to the plugin root) that a plugin's own JSON files point
+ * at: custom component paths in `plugin.json` (`"./…"`) and the files that
+ * hook or server commands run from `${CLAUDE_PLUGIN_ROOT}`, with their folder.
+ */
+export function pluginReferences(files: readonly { path: string; content: string }[]): string[] {
+	const found = new Set<string>();
+	const add = (path: string) => {
+		const clean = path.replace(/^\.\//, '').replace(/\/+$/, '');
+		if (clean && clean !== '.' && !clean.split('/').includes('..')) found.add(clean);
+	};
+	const walk = (value: unknown): void => {
+		if (typeof value === 'string') {
+			if (value.startsWith('./')) add(value);
+			for (const match of value.matchAll(PLUGIN_ROOT_REFERENCE)) {
+				const path = match[1]!;
+				add(path.includes('/') ? dirname(path) : path);
+			}
+		} else if (Array.isArray(value)) {
+			value.forEach(walk);
+		} else if (value && typeof value === 'object') {
+			Object.values(value).forEach(walk);
+		}
+	};
+	for (const file of files) {
+		if (!file.path.endsWith('.json')) continue;
+		try {
+			walk(JSON.parse(file.content));
+		} catch {
+			// Not JSON after all: it points at nothing we can trust.
+		}
+	}
+	return [...found].sort();
+}
 
 function basename(path: string): string {
 	return path.split('/').at(-1) ?? path;
@@ -157,11 +225,15 @@ export function detectItems(tree: TreeEntry[]): DetectedItem[] {
 			});
 		} else if (entry.path.endsWith('.claude-plugin/plugin.json')) {
 			const root = dirname(dirname(entry.path));
+			const item = { path: root || '.' };
+			const files = under(root);
+			const isLayout = (file: TreeEntry) => inPluginLayout(itemRelativePath(item, file.path));
 			found.push({
 				kind: 'plugin',
-				path: root || '.',
+				path: item.path,
 				name: basename(root) || repoName,
-				files: under(root),
+				files: files.filter(isLayout),
+				extra: files.filter((file) => !isLayout(file)),
 			});
 		} else if (entry.path.endsWith('.claude-plugin/marketplace.json')) {
 			found.push({
@@ -225,31 +297,37 @@ export function itemRelativePath(item: Pick<DetectedItem, 'path'>, path: string)
  */
 function pickFiles(
 	entries: readonly TreeEntry[],
-	budget?: { files: number; bytes: number },
+	...budgets: Budget[]
 ): { entries: TreeEntry[]; truncated: boolean } {
 	const picked: TreeEntry[] = [];
-	let bytes = 0;
 	let truncated = false;
 	for (const entry of entries) {
 		const size = entry.size ?? 0;
 		if (
 			size > MAX_FILE_BYTES ||
-			bytes + size > MAX_ARTIFACT_BYTES ||
-			picked.length >= MAX_ARTIFACT_FILES ||
-			(budget && (budget.files <= 0 || size > budget.bytes))
+			budgets.some((budget) => budget.files <= 0 || size > budget.bytes)
 		) {
 			truncated = true;
 			continue;
 		}
 		picked.push(entry);
-		bytes += size;
-		if (budget) {
+		for (const budget of budgets) {
 			budget.files -= 1;
 			budget.bytes -= size;
 		}
 	}
 	return { entries: picked, truncated };
 }
+
+interface Budget {
+	files: number;
+	bytes: number;
+}
+
+const itemBudget = (): Budget => ({ files: MAX_ARTIFACT_FILES, bytes: MAX_ARTIFACT_BYTES });
+
+/** Rounds of following references: a manifest can name a hook file that names a script. */
+const REFERENCE_ROUNDS = 3;
 
 export class GithubImporter {
 	/** Insertion order is recency order: a hit re-inserts the entry. */
@@ -388,12 +466,60 @@ export class GithubImporter {
 		item: DetectedItem,
 		auth?: GithubAuth,
 	): Promise<{ files: ScannedFile[]; truncated: boolean }> {
-		const picked = pickFiles(item.files);
-		const files = await this.download(snapshot.repo, snapshot.sha, picked.entries, auth);
+		const { files, truncated } = await this.fetchItem(snapshot.repo, snapshot.sha, item, auth);
 		return {
 			files: files.map((file) => ({ ...file, path: itemRelativePath(item, file.path) })),
-			truncated: snapshot.truncated || picked.truncated,
+			truncated: snapshot.truncated || truncated,
 		};
+	}
+
+	/** An item's files (repository paths), and for a plugin the extra files it points at. */
+	private async fetchItem(
+		repo: string,
+		sha: string,
+		item: DetectedItem,
+		auth?: GithubAuth,
+		scanBudget?: Budget,
+	): Promise<{ files: ScannedFile[]; truncated: boolean }> {
+		const budgets = [itemBudget(), ...(scanBudget ? [scanBudget] : [])];
+		const picked = pickFiles(item.files, ...budgets);
+		const files = await this.download(repo, sha, picked.entries, auth);
+		const more = await this.followReferences(repo, sha, item, files, budgets, auth);
+		return { files: [...files, ...more.files], truncated: picked.truncated || more.truncated };
+	}
+
+	/** The files of `item.extra` that the already downloaded `files` point at. */
+	private async followReferences(
+		repo: string,
+		sha: string,
+		item: DetectedItem,
+		downloaded: ScannedFile[],
+		budgets: Budget[],
+		auth?: GithubAuth,
+	): Promise<{ files: ScannedFile[]; truncated: boolean }> {
+		const files: ScannedFile[] = [];
+		let truncated = false;
+		let rest = item.extra ?? [];
+		let fresh = downloaded;
+		for (let round = 0; round < REFERENCE_ROUNDS && rest.length > 0; round++) {
+			const references = pluginReferences(
+				fresh.map((file) => ({
+					path: file.path,
+					content: Buffer.from(file.content_b64, 'base64').toString('utf8'),
+				})),
+			);
+			const wanted = rest.filter((entry) => {
+				const path = itemRelativePath(item, entry.path);
+				return references.some((ref) => path === ref || path.startsWith(`${ref}/`));
+			});
+			if (wanted.length === 0) break;
+			rest = rest.filter((entry) => !wanted.includes(entry));
+			const more = pickFiles(wanted, ...budgets);
+			truncated ||= more.truncated;
+			fresh = await this.download(repo, sha, more.entries, auth);
+			files.push(...fresh);
+		}
+		return { files, truncated };
 	}
 
 	async scan(repo: string, ref: string | undefined): Promise<ScanResult> {
@@ -420,10 +546,10 @@ export class GithubImporter {
 			`${API}/repos/${repo}/git/trees/${commit.sha}?recursive=1`,
 		);
 		const scanBudget = { files: MAX_TOTAL_FILES, bytes: MAX_SCAN_BYTES };
-		const picks = detectItems(tree.tree).map((item) => ({
-			item,
-			picked: pickFiles(item.files, scanBudget),
-		}));
+		const picks = detectItems(tree.tree).map((item) => {
+			const budgets = [itemBudget(), scanBudget];
+			return { item, budgets, picked: pickFiles(item.files, ...budgets) };
+		});
 		const all = await this.download(
 			repo,
 			commit.sha,
@@ -431,17 +557,20 @@ export class GithubImporter {
 		);
 		let offset = 0;
 		let scanBytes = 0;
-		const items: ScannedItem[] = picks.map(({ item, picked }) => {
-			const files = all.slice(offset, (offset += picked.entries.length));
+		const items: ScannedItem[] = [];
+		for (const { item, budgets, picked } of picks) {
+			const own = all.slice(offset, (offset += picked.entries.length));
+			const more = await this.followReferences(repo, commit.sha, item, own, budgets);
+			const files = [...own, ...more.files];
 			scanBytes += files.reduce((sum, file) => sum + file.size, 0);
-			return {
+			items.push({
 				kind: item.kind,
 				path: item.path,
 				name: item.name,
 				files,
-				truncated: tree.truncated === true || picked.truncated,
-			};
-		});
+				truncated: tree.truncated === true || picked.truncated || more.truncated,
+			});
+		}
 		const result = { repo, ref: resolvedRef, sha: commit.sha, items };
 		this.remember(key, result, scanBytes);
 		return result;
