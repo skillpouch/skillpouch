@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { AssistantIcon } from '@/components/ui/assistant-icon';
 import { ASSISTANTS } from '@/components/landing-content';
+import { DOCS_PAGES } from '@/lib/links';
 ---
 
 <section aria-labelledby="works-with" class="px-5 pt-6 pb-20">
@@ -16,4 +17,12 @@ import { ASSISTANTS } from '@/components/landing-content';
 			</li>
 		))}
 	</ul>
+	<p class="mt-6 text-center text-[13px] text-meta">
+		<a
+			class="text-fg underline underline-offset-4 hover:text-accent-text"
+			href={DOCS_PAGES.assistants}
+		>
+			See what syncs where
+		</a>
+	</p>
 </section>
