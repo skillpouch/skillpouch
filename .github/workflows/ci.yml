@@ -3,11 +3,15 @@
 # (unit + integration + end-to-end over a real socket) against Postgres 16,
 # a production build smoke test and the API image. It runs on pull requests
 # only: main changes through merged pull requests, so a second run after the
-# merge would test the same code again.
+# merge would test the same code again. Pull requests that only touch the
+# site or docs skip it: `site.yml` and `docs.yml` check those.
 name: ci
 
 on:
   pull_request:
+    paths-ignore:
+      - 'apps/site/**'
+      - 'apps/docs/**'
   workflow_dispatch:
 
 permissions:

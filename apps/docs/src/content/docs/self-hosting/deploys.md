@@ -16,7 +16,8 @@ description: Zero-downtime deploys, rollbacks, database migrations and everyday 
 | Back up                       | `deploy/scripts/backup.sh` ([Backups](/self-hosting/backups/))                                              |
 
 Pushes that only change the landing page, these docs, workflows or Markdown
-files don't redeploy the server.
+files don't redeploy the server. Pull requests that only change the landing
+page or these docs skip the main CI; their own workflows check them.
 
 ## What a deploy does
 
