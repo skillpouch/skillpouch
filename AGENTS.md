@@ -127,12 +127,13 @@ pnpm openapi --check
 
 ## Deploys
 
-- `ci.yml` checks the API, web app and packages on pull requests only; main
-  isn't re-checked after a merge. Pull requests that only touch `apps/site`
-  or `apps/docs` skip it. Site and docs are checked and deployed to
-  Cloudflare Pages by their own path-filtered workflows; app + API deploy to
-  the server via `deploy.yml` (self-hosted runner) on pushes to main that
-  touch more than the site or docs.
+- Every workflow runs only for its own paths (allow lists, not ignore
+  lists). `app-ci.yml` checks the API, web app and packages on pull requests
+  only; main isn't re-checked after a merge. `deploy.yml` ("app deploy")
+  deploys app + API to the server (self-hosted runner) on pushes to main that
+  change them. `site.yml` and `docs.yml` check and deploy the site and docs
+  to Cloudflare Pages. A new app folder must be added to the `paths` lists of
+  `app-ci.yml` and `deploy.yml`.
 - The self-hosted runner is restricted to `deploy.yml` on `main`. Never add
   workflows that run on it.
 - Server-side settings live in `deploy/env/*.env` and `deploy/secrets/` on the
