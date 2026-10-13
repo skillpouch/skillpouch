@@ -6,8 +6,8 @@
 #   - by hand (Actions → app deploy → Run workflow): a specific commit of
 #     main, or a rollback to the previous API color.
 # Only main is ever deployed and pull requests never reach the runner. The
-# site and docs deploy through their own workflows. The file keeps its name:
-# the self-hosted runner only accepts `deploy.yml`.
+# site and docs deploy through their own workflows. The self-hosted runner
+# group only accepts this file on main; renaming it means updating the group.
 name: app deploy
 
 on:
@@ -21,7 +21,7 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/app-deploy.yml'
   workflow_dispatch:
     inputs:
       action:
