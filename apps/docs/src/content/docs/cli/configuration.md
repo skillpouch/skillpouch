@@ -1,5 +1,7 @@
 ---
-title: Configuration
+title: CLI configuration
+sidebar:
+  label: Configuration
 description: The SkillPouch folder, config.toml and the environment variables the CLI reads.
 ---
 

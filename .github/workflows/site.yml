@@ -33,6 +33,9 @@ jobs:
       ASTRO_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history: sitemap dates come from git, IndexNow from the pushed range.
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
@@ -55,6 +58,7 @@ jobs:
           grep -q '^# SkillPouch' apps/site/dist/llms.txt
           grep -q 'Terms of Service' apps/site/dist/terms/index.html
           grep -q 'Privacy Policy' apps/site/dist/privacy/index.html
+          node apps/site/scripts/check-dist.mjs apps/site/dist https://skillpouch.net
       # Pull requests only build and test; deploys happen from main.
       - name: Cloudflare credentials
         if: github.event_name != 'pull_request' && (env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '')
@@ -68,3 +72,8 @@ jobs:
           # The first run creates the project; later runs only deploy.
           npx --yes wrangler@4 pages project create skillpouch-site --production-branch=main || true
           npx --yes wrangler@4 pages deploy "$GITHUB_WORKSPACE/apps/site/dist" --project-name=skillpouch-site --branch=main --commit-hash=${{ github.sha }}
+      # Bing and other IndexNow engines hear about changed pages; never fails the deploy.
+      - name: Notify IndexNow
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        continue-on-error: true
+        run: node apps/site/scripts/indexnow.mjs apps/site/dist https://skillpouch.net apps/site ${{ github.event.before }}

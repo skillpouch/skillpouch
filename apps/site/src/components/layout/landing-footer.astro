@@ -19,8 +19,17 @@ import SocialLinks from './social-links.astro';
 			class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted"
 		>
 			<SocialLinks />
+			<a class="hover:text-fg" href="/about/">
+				About
+			</a>
 			<a class="hover:text-fg" href={DOCS_URL}>
 				Docs
+			</a>
+			<a class="hover:text-fg" href="/faq/">
+				FAQ
+			</a>
+			<a class="hover:text-fg" href="/compare/">
+				Compare
 			</a>
 			<a class="hover:text-fg" href={DOCS_PAGES.security}>
 				Security
@@ -31,10 +40,10 @@ import SocialLinks from './social-links.astro';
 			<a class="hover:text-fg" href={SOURCE_URL}>
 				GitHub
 			</a>
-			<a class="hover:text-fg" href="/terms">
+			<a class="hover:text-fg" href="/terms/">
 				Terms
 			</a>
-			<a class="hover:text-fg" href="/privacy">
+			<a class="hover:text-fg" href="/privacy/">
 				Privacy
 			</a>
 			<a class="hover:text-fg" href={`mailto:${CONTACT_EMAIL}`}>

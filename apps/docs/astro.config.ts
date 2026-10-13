@@ -113,6 +113,7 @@ export default defineConfig({
 				{
 					label: 'Getting started',
 					items: [
+						'getting-started/overview',
 						'getting-started/install',
 						'getting-started/first-run',
 						'getting-started/choosing',
@@ -182,6 +183,7 @@ export default defineConfig({
 						'development',
 						'development/architecture',
 						'development/performance',
+						'development/discoverability',
 						'development/code-map',
 					],
 				},

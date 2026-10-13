@@ -1,2 +1,6 @@
+# The web app is behind sign-in; the public pages are on skillpouch.net and
+# docs.skillpouch.net. Only the public price list is open, for the tools that
+# skillpouch.net/llms.txt points at it.
 User-agent: *
+Allow: /v1/plans
 Disallow: /

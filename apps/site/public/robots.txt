@@ -1,3 +1,40 @@
+# SkillPouch publishes this site so people and the tools they ask can find
+# accurate answers about it. Everything here is public: the web app with
+# accounts lives on app.skillpouch.net, which has its own robots.txt.
+#
+# Policy (see docs.skillpouch.net/development/discoverability/):
+# - Search crawlers: allowed. They put pages in search and AI answers.
+# - User-triggered fetchers: allowed. They fetch a page because someone asked.
+# - Training crawlers: allowed. The content is public product documentation
+#   under the AGPL, and we want models to describe SkillPouch correctly.
+# A crawler that matches a named group below ignores the "*" group, so each
+# group carries its own rules.
+
+# Search crawlers
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: DuckDuckBot
+User-agent: Applebot
+User-agent: OAI-SearchBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+Allow: /
+
+# User-triggered fetchers
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Perplexity-User
+Allow: /
+
+# Training crawlers and AI-use controls
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+Allow: /
+
+# Everyone else
 User-agent: *
 Allow: /
 

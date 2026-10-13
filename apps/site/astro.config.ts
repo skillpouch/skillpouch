@@ -12,6 +12,9 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
 	site: 'https://skillpouch.net',
 	output: 'static',
+	// Pages are folders (`/terms/index.html`), which Cloudflare Pages serves at
+	// `/terms/` and redirects to from `/terms`; links and canonicals match.
+	trailingSlash: 'always',
 	integrations: [react()],
 	devToolbar: { enabled: false },
 	server: { port: Number(process.env.SITE_PORT ?? 4321) },

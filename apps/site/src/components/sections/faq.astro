@@ -14,7 +14,10 @@ import { CONTACT_EMAIL, FAQS } from '@/components/landing-content';
 				Questions, answered.
 			</h2>
 			<p class="mt-5 text-base leading-relaxed text-muted">
-				Anything else? Write to{' '}
+				<a href="/faq/" class="text-fg underline underline-offset-4 hover:text-accent-text">
+					All questions
+				</a>
+				, with links to the docs. Anything else? Write to{' '}
 				<a
 					href={`mailto:${CONTACT_EMAIL}`}
 					class="text-fg underline underline-offset-4 hover:text-accent-text"
@@ -25,7 +28,7 @@ import { CONTACT_EMAIL, FAQS } from '@/components/landing-content';
 			</p>
 		</div>
 		<div class="divide-y divide-border border-y border-border">
-			{FAQS.map((faq) => (
+			{FAQS.filter((faq) => faq.home).map((faq) => (
 				<details class="group">
 					<summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-left text-[15px] font-medium text-fg transition-colors hover:text-accent-text [&::-webkit-details-marker]:hidden">
 						{faq.question}

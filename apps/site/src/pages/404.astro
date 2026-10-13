@@ -1,0 +1,43 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/**
+ * Cloudflare Pages serves this with a 404 status for any unknown path.
+ * Without it, every unknown path got the home page with a 200.
+ */
+import LandingFooter from '@/components/layout/landing-footer.astro';
+import LandingNav from '@/components/layout/landing-nav.astro';
+import Page from '@/layouts/page.astro';
+import { DOCS_URL } from '@/lib/links';
+---
+
+<Page
+	title="Page not found · SkillPouch"
+	description="This page doesn't exist. SkillPouch syncs your AI coding setup across every computer."
+	path="/404/"
+	noindex
+>
+	<div class="landing flex min-h-dvh flex-col bg-bg text-fg">
+		<LandingNav />
+		<main class="mx-auto flex w-full max-w-[680px] flex-1 flex-col justify-center px-5 py-32">
+			<h1 class="landing-display text-4xl leading-[1.05] font-semibold sm:text-5xl">
+				Page not found
+			</h1>
+			<p class="mt-5 text-base leading-relaxed text-muted">
+				There's nothing here. Try the{' '}
+				<a class="text-fg underline underline-offset-4" href="/">
+					home page
+				</a>
+				, the{' '}
+				<a class="text-fg underline underline-offset-4" href="/faq/">
+					FAQ
+				</a>{' '}
+				or the{' '}
+				<a class="text-fg underline underline-offset-4" href={`${DOCS_URL}/`}>
+					documentation
+				</a>
+				.
+			</p>
+		</main>
+		<LandingFooter />
+	</div>
+</Page>

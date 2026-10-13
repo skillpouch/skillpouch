@@ -1,0 +1,5 @@
+# Cloudflare Pages redirects. The docs have their own host; people (and AI
+# tools) who guess skillpouch.net/docs get there too.
+/docs https://docs.skillpouch.net/ 301
+/docs/* https://docs.skillpouch.net/:splat 301
+/llms-full.txt https://docs.skillpouch.net/llms-full.txt 301
