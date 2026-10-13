@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Deploys to the self-hosted server (runner label `skillpouch-server`, see
 # docs.skillpouch.net/self-hosting/tunnel):
-#   - automatically, on every push to main (the pull request already passed CI);
+#   - automatically, on every push to main that touches more than the site or
+#     docs (the pull request already passed CI);
 #   - by hand (Actions → deploy → Run workflow): a specific commit of main,
 #     or a rollback to the previous API color.
 # Only main is ever deployed and pull requests never reach the runner.
@@ -10,6 +11,11 @@ name: deploy
 on:
   push:
     branches: [main]
+    # The site and docs deploy through their own workflows; content-only merges
+    # (e.g. the SEO bot's pull requests) must not redeploy the API.
+    paths-ignore:
+      - 'apps/site/**'
+      - 'apps/docs/**'
   workflow_dispatch:
     inputs:
       action:
