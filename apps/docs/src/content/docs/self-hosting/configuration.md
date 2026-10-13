@@ -1,5 +1,7 @@
 ---
-title: Configuration
+title: Server configuration
+sidebar:
+  label: Configuration
 description: The settings files, the secrets folder and how the server finds each secret.
 ---
 
