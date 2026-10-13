@@ -5,18 +5,20 @@ description: Zero-downtime deploys, rollbacks, database migrations and everyday 
 
 ## Everyday commands
 
-|                               | How                                                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Deploy                        | Merge a pull request into `main`; CI runs on the pull request and the merge deploys                         |
-| Watch a deploy                | GitHub → Actions → deploy                                                                                   |
-| Deploy now, or a given commit | Actions → deploy → Run workflow → `deploy` (optionally with a commit), or `deploy/tunnel/update.sh --force` |
-| Roll back the API             | Actions → deploy → Run workflow → `rollback`, or `deploy/scripts/rollback.sh`                               |
-| Stop automatic deploys        | Actions → deploy → ⋯ → Disable workflow                                                                     |
-| Logs                          | `cd deploy && docker compose --env-file env/stack.env logs -f api-blue api-green worker`                    |
-| Back up                       | `deploy/scripts/backup.sh` ([Backups](/self-hosting/backups/))                                              |
+|                               | How                                                                                                             |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Deploy                        | Merge a pull request into `main`; CI runs on the pull request and the merge deploys                             |
+| Watch a deploy                | GitHub → Actions → app deploy                                                                                   |
+| Deploy now, or a given commit | Actions → app deploy → Run workflow → `deploy` (optionally with a commit), or `deploy/tunnel/update.sh --force` |
+| Roll back the API             | Actions → app deploy → Run workflow → `rollback`, or `deploy/scripts/rollback.sh`                               |
+| Stop automatic deploys        | Actions → app deploy → ⋯ → Disable workflow                                                                     |
+| Logs                          | `cd deploy && docker compose --env-file env/stack.env logs -f api-blue api-green worker`                        |
+| Back up                       | `deploy/scripts/backup.sh` ([Backups](/self-hosting/backups/))                                                  |
 
-Pushes that only change the landing page, these docs, workflows or Markdown
-files don't redeploy the server.
+Only pushes that change the app (`apps/api`, `apps/web`, `packages`,
+`deploy`, dependencies) redeploy the server, and only pull requests that
+change it run app CI. The landing page and these docs are checked and
+deployed by their own workflows.
 
 ## What a deploy does
 

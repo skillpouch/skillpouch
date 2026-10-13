@@ -7,7 +7,7 @@
 
   <p>
     <a href="https://github.com/skillpouch/skillpouch/blob/main/LICENSE"><img alt="AGPL-3.0-only" src="https://img.shields.io/badge/license-AGPL--3.0--only-8442D9?style=flat-square"></a>
-    <a href="https://github.com/skillpouch/skillpouch/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/skillpouch/skillpouch/actions/workflows/ci.yml/badge.svg"></a>
+    <a href="https://github.com/skillpouch/skillpouch/actions/workflows/app-ci.yml"><img alt="App CI" src="https://github.com/skillpouch/skillpouch/actions/workflows/app-ci.yml/badge.svg"></a>
     <a href="https://discord.gg/u8eEJZEGhc"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2?style=flat-square&logo=discord"></a>
     <a href="https://skillpouch.net"><img alt="Website" src="https://img.shields.io/badge/website-skillpouch.net-8442D9?style=flat-square"></a>
   </p>

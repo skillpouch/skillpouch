@@ -1,13 +1,26 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# CI for the monorepo: static checks, the full test suite
-# (unit + integration + end-to-end over a real socket) against Postgres 16,
-# a production build smoke test and the API image. It runs on pull requests
-# only: main changes through merged pull requests, so a second run after the
-# merge would test the same code again.
-name: ci
+# CI for the app (API, web app and shared packages): static checks, the full
+# test suite (unit + integration + end-to-end over a real socket) against
+# Postgres 16, a production build smoke test and the API image. It runs on
+# pull requests only: main changes through merged pull requests, so a second
+# run after the merge would test the same code again. The site and docs have
+# their own workflows (`site.yml`, `docs.yml`).
+name: app ci
 
 on:
   pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'deploy/docker/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'eslint.config.js'
+      - '.prettierrc.json'
+      - '.github/workflows/app-ci.yml'
   workflow_dispatch:
 
 permissions:

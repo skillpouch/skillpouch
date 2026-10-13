@@ -78,7 +78,7 @@ Open your hostname in a browser. SkillPouch is running.
 
 ## 5. Deploy from GitHub Actions
 
-After CI passes on `main`, the `deploy` workflow runs on the server through
+After CI passes on `main`, the `app deploy` workflow runs on the server through
 a self-hosted runner. Install the runner once, as the same user that ran
 `setup.sh`:
 

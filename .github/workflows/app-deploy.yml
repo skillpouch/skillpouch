@@ -1,15 +1,27 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Deploys to the self-hosted server (runner label `skillpouch-server`, see
 # docs.skillpouch.net/self-hosting/tunnel):
-#   - automatically, on every push to main (the pull request already passed CI);
-#   - by hand (Actions → deploy → Run workflow): a specific commit of main,
-#     or a rollback to the previous API color.
-# Only main is ever deployed and pull requests never reach the runner.
-name: deploy
+#   - automatically, on pushes to main that change the app (the pull request
+#     already passed app ci);
+#   - by hand (Actions → app deploy → Run workflow): a specific commit of
+#     main, or a rollback to the previous API color.
+# Only main is ever deployed and pull requests never reach the runner. The
+# site and docs deploy through their own workflows. The self-hosted runner
+# group only accepts this file on main; renaming it means updating the group.
+name: app deploy
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'deploy/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/app-deploy.yml'
   workflow_dispatch:
     inputs:
       action:
