@@ -1,6 +1,6 @@
 ---
-title: A second computer
-description: Connect another computer to the same pouch.
+title: Sync Claude Code settings to a second computer
+description: Connect another computer to the same pouch so your Claude Code, Codex and Cursor settings, skills, instructions and MCP servers sync to it.
 ---
 
 Every computer connects the same way: [install the CLI](/getting-started/install/)
