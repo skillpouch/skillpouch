@@ -101,6 +101,20 @@ const ROWS = [
 	</section>
 
 	<section>
+		<h2>AGENTS.md vs CLAUDE.md</h2>
+		<p>
+			Same job, different files. Claude Code reads <code>CLAUDE.md</code>; Codex and OpenCode
+			read <code>AGENTS.md</code> in their own folders; Gemini CLI reads <code>GEMINI.md</code>;
+			Copilot CLI reads <code>copilot-instructions.md</code>; Qwen Code reads <code>QWEN.md</code>.
+			The content is usually the same, so keeping them in sync by hand means copying and editing
+			each file, and the copies drift apart. SkillPouch keeps one copy of each instruction and
+			writes it to every assistant that has an instructions file, in that assistant's format and
+			folder. See the{' '}
+			<a href={DOCS_PAGES.assistants}>assistant file map</a> for the full list.
+		</p>
+	</section>
+
+	<section>
 		<h2>Copying by hand</h2>
 		<p>
 			Fine for one assistant on two computers. It stops working when the same instructions

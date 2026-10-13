@@ -28,6 +28,12 @@ One background sync runs per SkillPouch folder. It starts over on its own
 when a newer SkillPouch is installed or this computer logs in to another
 server.
 
+## Is this a backup?
+
+Not exactly. Background sync keeps your computers matching, so a lost or broken laptop doesn't take your setup with it. But sync copies mistakes too: if you delete or break something, that change reaches your other computers as well. If you need to roll back, keep your own backup, such as a git repo of your config.
+
+Files and item names are encrypted on your computer before upload, and the server never sees your master password or Recovery Key. If you lose your master password, your Recovery Key and every computer or browser you already trust, nobody can recover your data, including us. See [Security](/security/).
+
 ## How it runs
 
 | System  | Started as                                                                                     |
