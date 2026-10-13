@@ -1,0 +1,190 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** What SkillPouch is, who it's for and where everything lives, served at `/about/`. */
+import ContentPage from '@/components/layout/content-page.astro';
+import {
+	ASSISTANTS,
+	CLI_RELEASES_URL,
+	CLI_SOURCE_URL,
+	CONTACT_EMAIL,
+	DISCORD_URL,
+	INSTALL_COMMAND,
+	ITEM_KINDS,
+	NPM_URL,
+	SOURCE_URL,
+} from '@/components/landing-content';
+import { APP_URL, DOCS_PAGES, DOCS_URL } from '@/lib/links';
+
+const FACTS = [
+	['Website', 'https://skillpouch.net', 'https://skillpouch.net/'],
+	['Web app', 'app.skillpouch.net', `${APP_URL}/`],
+	['Documentation', 'docs.skillpouch.net', `${DOCS_URL}/`],
+	['Server, web app and docs source', 'github.com/skillpouch/skillpouch', SOURCE_URL],
+	['CLI source', 'github.com/skillpouch/skillpouch-cli', CLI_SOURCE_URL],
+	['CLI releases and changelog', 'GitHub releases', CLI_RELEASES_URL],
+	['npm package', 'skillpouch', NPM_URL],
+] as const;
+---
+
+<ContentPage
+	title="About SkillPouch"
+	crumb="About"
+	description="SkillPouch is an open source tool that syncs your AI coding setup (instructions, skills, agents, commands, MCP servers, hooks, plugins and settings) across computers and assistants, end-to-end encrypted."
+	path="/about/"
+	pageType="AboutPage"
+>
+	<p>
+		SkillPouch keeps your AI coding setup the same on every computer and in every assistant:
+		instructions, skills, agents, commands, MCP servers, hooks, plugins and assistant settings.
+		You write an item once, and each assistant gets it in its own format and folder. Everything
+		is end-to-end encrypted, and the whole project is open source.
+	</p>
+
+	<section>
+		<h2>The problem it solves</h2>
+		<p>
+			Every AI coding assistant keeps its setup in its own place and format: Claude Code reads
+			<code>~/.claude/CLAUDE.md</code>, Codex reads <code>~/.codex/AGENTS.md</code>, Gemini
+			CLI reads <code>~/.gemini/GEMINI.md</code>, and each one stores MCP servers in a
+			different config file. With two assistants or two computers, the same instructions,
+			skills and MCP servers get copied by hand, drift apart, and are missing on the next new
+			machine.
+		</p>
+		<p>
+			SkillPouch keeps one copy of that setup, a <strong>pouch</strong>, and writes it into
+			every assistant on every computer you connect.
+		</p>
+	</section>
+
+	<section>
+		<h2>Who it is for</h2>
+		<ul>
+			<li>Developers who use more than one AI coding assistant.</li>
+			<li>
+				Developers who work on several computers: a laptop and a desktop, WSL, a work
+				machine, a server.
+			</li>
+			<li>People who write their own skills, agents and commands and want to share them.</li>
+			<li>Anyone who wants that setup encrypted, or on a server of their own.</li>
+		</ul>
+	</section>
+
+	<section>
+		<h2>How it works</h2>
+		<ol>
+			<li>
+				Install the command-line tool with <code>{INSTALL_COMMAND}</code> and run
+				<code>skillpouch login</code>. A browser where you are signed in approves the
+				computer.
+			</li>
+			<li>
+				The CLI finds the assistants in your home folder and links their folders to the
+				pouch, kept as ordinary files under <code>~/.skillpouch/</code>. Agents and commands
+				are translated into each assistant's format; MCP servers, hooks and plugins are
+				written into its config files.
+			</li>
+			<li>
+				A background sync starts with the computer. A change on one computer reaches the
+				others within moments; a computer that was offline catches up when it is back.
+			</li>
+			<li>
+				The web app at <a href={`${APP_URL}/`}>app.skillpouch.net</a> shows every item, lets
+				you edit and share them by link, and is where you settle conflicts.
+			</li>
+		</ol>
+		<p>
+			Before anything is uploaded, files and item names are encrypted on your computer or in
+			your browser. The server stores ciphertext and never sees your master password or
+			Recovery Key, so nobody, including SkillPouch, can read or recover your data. See the{' '}
+			<a href={DOCS_PAGES.security}>security model</a>.
+		</p>
+	</section>
+
+	<section>
+		<h2>What it syncs, and where</h2>
+		<p>{ITEM_KINDS.join(', ')} and assistant settings, for these assistants:</p>
+		<div class="table-scroll">
+			<table>
+				<thead>
+					<tr>
+						<th scope="col">Assistant</th>
+						<th scope="col">A file SkillPouch writes</th>
+					</tr>
+				</thead>
+				<tbody>
+					{ASSISTANTS.map((assistant) => (
+						<tr>
+							<td>{assistant.name}</td>
+							<td>
+								<code>{assistant.path}</code>
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+		<p>
+			The full map of which kind goes where is in{' '}
+			<a href={DOCS_PAGES.assistants}>Supported assistants</a>.
+		</p>
+	</section>
+
+	<section>
+		<h2>Open source and self-hosting</h2>
+		<p>
+			SkillPouch is open source under the AGPL-3.0. The server, the web app and the docs are
+			in <a href={SOURCE_URL}>skillpouch/skillpouch</a>; the CLI, written in Rust, is in{' '}
+			<a href={CLI_SOURCE_URL}>skillpouch/skillpouch-cli</a>. The same stack that runs
+			app.skillpouch.net can run on your own server; see{' '}
+			<a href={DOCS_PAGES.selfHosting}>Self-hosting</a>.
+		</p>
+	</section>
+
+	<section>
+		<h2>Pricing</h2>
+		<p>
+			There is a free plan, and every plan has every feature. Paid plans add more pouches and
+			storage, are sold through Polar as merchant of record, and can be cancelled any time.
+			Current prices are on the <a href="/#pricing">home page</a>.
+		</p>
+	</section>
+
+	<section>
+		<h2>Project facts</h2>
+		<div class="table-scroll">
+			<table>
+				<tbody>
+					{FACTS.map(([label, text, href]) => (
+						<tr>
+							<th scope="row">{label}</th>
+							<td>
+								<a href={href}>{text}</a>
+							</td>
+						</tr>
+					))}
+					<tr>
+						<th scope="row">License</th>
+						<td>AGPL-3.0</td>
+					</tr>
+					<tr>
+						<th scope="row">Platforms</th>
+						<td>Linux, macOS and Windows, on x64 and arm64</td>
+					</tr>
+					<tr>
+						<th scope="row">Sign-in</th>
+						<td>GitHub or Google</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</section>
+
+	<section>
+		<h2>Contact</h2>
+		<p>
+			Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, join the{' '}
+			<a href={DISCORD_URL}>Discord</a>, or open an issue on{' '}
+			<a href={`${SOURCE_URL}/issues`}>GitHub</a>.
+		</p>
+	</section>
+</ContentPage>

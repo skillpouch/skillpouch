@@ -2,18 +2,11 @@
 import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { PLANS_URL, SIGN_IN_URL } from '@/lib/links';
+import { SIGN_IN_URL } from '@/lib/links';
+import { loadPlans } from '@/lib/plans';
 import { formatPrice, planLines, type Plan } from '@/components/landing-content';
 import { PlanName, planStyle } from './plan-name';
 import { ButtonLink } from '@/components/ui/button-link';
-
-/** The public plans, read when the page loads so prices are always current. */
-async function loadPlans(): Promise<Plan[]> {
-	const response = await fetch(PLANS_URL, { credentials: 'omit' });
-	if (!response.ok) throw new Error(`plans: ${response.status}`);
-	const body = (await response.json()) as { data?: { plans?: Plan[] } };
-	return body.data?.plans ?? [];
-}
 
 function PlanColumn({ plan }: { plan: Plan }) {
 	const style = planStyle(plan.slug, plan.price_cents > 0);
@@ -59,12 +52,16 @@ function PlanColumn({ plan }: { plan: Plan }) {
 	);
 }
 
-export function Pricing() {
-	const [plans, setPlans] = useState<Plan[] | 'loading' | 'failed'>('loading');
+/**
+ * `initialPlans` are the plans at build time, so they're in the HTML; the
+ * browser reads them again when the page loads so prices are always current.
+ */
+export function Pricing({ initialPlans }: { initialPlans?: Plan[] | undefined }) {
+	const [plans, setPlans] = useState<Plan[] | 'loading' | 'failed'>(initialPlans ?? 'loading');
 	useEffect(() => {
 		loadPlans()
 			.then(setPlans)
-			.catch(() => setPlans('failed'));
+			.catch(() => setPlans((current) => (Array.isArray(current) ? current : 'failed')));
 	}, []);
 
 	return (

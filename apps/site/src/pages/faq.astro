@@ -1,0 +1,41 @@
+---
+// SPDX-License-Identifier: AGPL-3.0-only
+/** Every question about SkillPouch, answered on one page, served at `/faq/`. */
+import ContentPage from '@/components/layout/content-page.astro';
+import { CONTACT_EMAIL, FAQS } from '@/components/landing-content';
+import { faqEntities } from '@/lib/structured-data';
+
+/** Answers mark commands with backticks; odd parts are code. */
+const parts = (answer: string) => answer.split('`');
+---
+
+<ContentPage
+	title="Questions about SkillPouch"
+	documentTitle="SkillPouch FAQ: syncing AI coding assistant setups"
+	crumb="FAQ"
+	description="What SkillPouch is, which AI coding assistants it supports, how to install it, how the encryption works, what it costs and where the source code is."
+	path="/faq/"
+	pageType="FAQPage"
+	pageData={{ mainEntity: faqEntities(FAQS) }}
+>
+	{FAQS.map((faq) => (
+		<section>
+			<h2>{faq.question}</h2>
+			<p>
+				{parts(faq.answer).map((part, index) => (index % 2 ? <code>{part}</code> : part))}
+			</p>
+			{faq.more && (
+				<p>
+					<a href={faq.more.href}>{faq.more.label}</a>
+				</p>
+			)}
+		</section>
+	))}
+	<section>
+		<h2>Something else?</h2>
+		<p>
+			Write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, or read the{' '}
+			<a href="https://docs.skillpouch.net/">documentation</a>.
+		</p>
+	</section>
+</ContentPage>

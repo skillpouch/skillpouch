@@ -13,12 +13,22 @@ import { Pricing } from '@/components/sections/pricing/pricing';
 import ProductShot from '@/components/sections/product-shot/product-shot.astro';
 import SyncFlow from '@/components/sections/sync-flow/sync-flow.astro';
 import Page from '@/layouts/page.astro';
+import { buildTimePlans } from '@/lib/plans';
+import { organization, softwareApplication, webPage, website } from '@/lib/structured-data';
+
+const title = 'SkillPouch: your AI coding setup, on every computer';
+const description =
+	'Skills, agents, MCP servers and instructions sync across Claude Code, Codex, Cursor and more. End-to-end encrypted, open source.';
+const plans = await buildTimePlans();
+const structuredData = [
+	organization(),
+	website(),
+	softwareApplication(description, plans),
+	webPage('/', title, description),
+];
 ---
 
-<Page
-	title="SkillPouch: your AI coding setup, on every computer"
-	description="Skills, agents, MCP servers and instructions sync across Claude Code, Codex, Cursor and more. End-to-end encrypted, open source."
->
+<Page title={title} description={description} structuredData={structuredData}>
 	<div class="landing min-h-dvh bg-bg text-fg">
 		<LandingNav />
 		<main>
@@ -28,7 +38,7 @@ import Page from '@/layouts/page.astro';
 			<ProductShot />
 			<SyncFlow />
 			<FeatureBento />
-			<Pricing client:idle />
+			<Pricing client:idle initialPlans={plans} />
 			<Faq />
 			<ClosingCta />
 		</main>

@@ -5,30 +5,23 @@ import '@/styles/global.css';
 import '@fontsource-variable/bricolage-grotesque/wght.css';
 import '@/styles/landing.css';
 import bricolage from '@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2?url';
-import hero from '@/assets/landing/hero.webp';
 import logo from '@/assets/logo.svg';
+import { jsonLd } from '@/lib/structured-data';
 
 interface Props {
 	title: string;
 	description: string;
-	/** The page's own path, for the canonical URL. */
+	/** The page's own path, ending in a slash, for the canonical URL. */
 	path?: string;
+	/** schema.org nodes for this page; they must describe what it shows. */
+	structuredData?: Record<string, unknown>[];
+	/** Keep the page out of search results (the 404 page). */
+	noindex?: boolean;
 }
 
-const { title, description, path = '/' } = Astro.props;
-const home = path === '/';
+const { title, description, path = '/', structuredData = [], noindex = false } = Astro.props;
 const canonical = new URL(path, Astro.site).href;
 const ogImage = new URL('/og.jpg', Astro.site).href;
-const structuredData = {
-	'@context': 'https://schema.org',
-	'@type': 'SoftwareApplication',
-	name: 'SkillPouch',
-	url: canonical,
-	description,
-	applicationCategory: 'DeveloperApplication',
-	operatingSystem: 'macOS, Linux, Windows',
-	offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-};
 ---
 
 <!doctype html>
@@ -40,8 +33,8 @@ const structuredData = {
 		<meta name="referrer" content="no-referrer" />
 		<title>{title}</title>
 		<meta name="description" content={description} />
-		<meta name="robots" content="index, follow" />
-		<link rel="canonical" href={canonical} />
+		<meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
+		{!noindex && <link rel="canonical" href={canonical} />}
 		<link rel="icon" href="/favicon.ico" sizes="32x32" />
 		<link rel="icon" type="image/svg+xml" href={logo.src} />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -49,6 +42,7 @@ const structuredData = {
 
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content="SkillPouch" />
+		<meta property="og:locale" content="en_US" />
 		<meta property="og:url" content={canonical} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
@@ -65,11 +59,10 @@ const structuredData = {
 		<meta name="twitter:description" content={description} />
 		<meta name="twitter:image" content={ogImage} />
 
-		{home && (
-			<link rel="preload" as="image" type="image/webp" href={hero.src} fetchpriority="high" />
-		)}
 		<link rel="preload" as="font" type="font/woff2" href={bricolage} crossorigin />
-		{home && <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
+		{structuredData.length > 0 && (
+			<script type="application/ld+json" set:html={jsonLd(structuredData)} />
+		)}
 	</head>
 	<body>
 		<slot />
