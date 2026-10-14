@@ -6,7 +6,6 @@ coverage/
 packages/db/migrations/
 LICENSE
 packages/contracts/generated/
-apps/docs/src/content/docs/errors/
 tools/load/results/
 apps/web/interact.mjs
 apps/web/shot.mjs

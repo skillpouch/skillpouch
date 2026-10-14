@@ -1,9 +1,0 @@
----
-// SPDX-License-Identifier: AGPL-3.0-only
-/** Replaces Starlight's theme provider: always dark, like the site. */
----
-
-<script is:inline>
-	document.documentElement.dataset.theme = 'dark';
-	window.StarlightThemeProvider = { updatePickers() {} };
-</script>

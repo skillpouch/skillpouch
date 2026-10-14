@@ -30,8 +30,8 @@ export default tseslint.config(
 		},
 	},
 	{
-		// The web app and the site run in the browser and follow the rules of hooks.
-		files: ['apps/web/**/*.{ts,tsx}', 'apps/site/**/*.{ts,tsx}'],
+		// The web app runs in the browser and follow the rules of hooks.
+		files: ['apps/web/**/*.{ts,tsx}'],
 		languageOptions: { globals: { ...globals.browser } },
 		plugins: { 'react-hooks': reactHooks },
 		rules: {
