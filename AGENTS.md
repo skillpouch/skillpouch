@@ -11,16 +11,14 @@ servers, hooks, plugins, marketplaces) across computers and assistants,
 **end-to-end encrypted**: content is encrypted on the user's device and the
 server only stores and relays ciphertext.
 
-| Path                 | What                                                                                   | Served at                        |
-| -------------------- | -------------------------------------------------------------------------------------- | -------------------------------- |
-| `apps/api`           | Fastify API + background worker (`src/modules/<name>/<name>.routes.ts`/`.service.ts`)  | `app.skillpouch.net/v1`          |
-| `apps/web`           | React + Vite dashboard (`src/features`, `src/pages`, `src/components`)                 | `app.skillpouch.net`             |
-| `apps/site`          | Astro landing page, Terms, Privacy                                                     | `skillpouch.net` (CF Pages)      |
-| `apps/docs`          | Astro Starlight documentation                                                          | `docs.skillpouch.net` (CF Pages) |
-| `packages/contracts` | Zod schemas, error codes, generated OpenAPI — the API ↔ client contract                |                                  |
-| `packages/crypto`    | Client-side E2EE formats, keys, roster verification (shared test vectors with Rust)    |                                  |
-| `packages/db`        | Drizzle schema + plain SQL migrations (`migrations/NNNN_name.sql`)                     |                                  |
-| `deploy/`            | Self-hosting: Docker Compose, Caddy, Cloudflare Tunnel, deploy/backup/failover scripts |                                  |
+| Path                 | What                                                                                   | Served at               |
+| -------------------- | -------------------------------------------------------------------------------------- | ----------------------- |
+| `apps/api`           | Fastify API + background worker (`src/modules/<name>/<name>.routes.ts`/`.service.ts`)  | `app.skillpouch.net/v1` |
+| `apps/web`           | React + Vite dashboard (`src/features`, `src/pages`, `src/components`)                 | `app.skillpouch.net`    |
+| `packages/contracts` | Zod schemas, error codes, generated OpenAPI — the API ↔ client contract                |                         |
+| `packages/crypto`    | Client-side E2EE formats, keys, roster verification (shared test vectors with Rust)    |                         |
+| `packages/db`        | Drizzle schema + plain SQL migrations (`migrations/NNNN_name.sql`)                     |                         |
+| `deploy/`            | Self-hosting: Docker Compose, Caddy, Cloudflare Tunnel, deploy/backup/failover scripts |                         |
 
 `.engram/GRAPH_REPORT.md` is a code map of the repo; see
 [Code map](https://docs.skillpouch.net/development/code-map/).
@@ -42,13 +40,16 @@ to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,
 - **Only true claims** in user-facing copy (landing, docs, READMEs): no
   invented stats, users, testimonials or features. Verify against the code.
 - **Every behavior change gets a test.** Bug fixes get a regression test.
-- **Every user-visible change updates `apps/docs` in the same commit.** New or
+- **Every user-visible change updates the docs.** The website and docs
+  (docs.skillpouch.net) live in the private repo `skillpouch/skillpouch-site`,
+  checked out next to this one as `../skillpouch-site` (`apps/docs`). New or
   changed features, web app screens, settings, assistants, limits, env vars
-  and error hints (`apps/docs/scripts/gen-errors.mjs`). Error codes and the API
-  reference are generated, but a new code that users can hit needs a hint. If
-  nothing in the docs changes, say why in the commit body. A task isn't done
-  until its docs are.
-- **All documentation lives in `apps/docs`.** No other Markdown files in the
+  and error hints (`apps/docs/scripts/gen-errors.mjs` there) go in a docs
+  change alongside the code change. Error codes and the API reference are
+  generated from `packages/contracts` (the docs download them from `main`),
+  but a new code that users can hit needs a hint. A task isn't done until its
+  docs are.
+- **All documentation lives in the docs.** No other Markdown files in this
   repo besides `README.md`, `AGENTS.md` and `SECURITY.md` (and generated
   output like `.engram/`). Self-hosting, operations, services setup,
   architecture and maintainer notes are docs pages; link to them from code
@@ -67,8 +68,7 @@ to add`. Areas: `api`, `web`, `site`, `docs`, `db`, `crypto`, `contracts`,
 pnpm install
 pnpm dev:db            # Postgres for development (Docker)
 pnpm db:migrate
-pnpm dev               # API :8080, web :5173, site :4321
-pnpm --filter @skillpouch/docs dev   # docs :4322
+pnpm dev               # API :8080, web :5173
 ```
 
 Gates — all must pass before you commit (CI runs the same):
@@ -131,8 +131,7 @@ pnpm openapi --check
   lists). `app-ci.yml` checks the API, web app and packages on pull requests
   only; main isn't re-checked after a merge. `app-deploy.yml`
   deploys app + API to the server (self-hosted runner) on pushes to main that
-  change them. `site.yml` and `docs.yml` check and deploy the site and docs
-  to Cloudflare Pages. A new app folder must be added to the `paths` lists of
+  change them. The site and docs deploy from `skillpouch/skillpouch-site`. A new app folder must be added to the `paths` lists of
   `app-ci.yml` and `app-deploy.yml`.
 - The self-hosted runner is restricted to `app-deploy.yml` on `main`. Never add
   workflows that run on it.

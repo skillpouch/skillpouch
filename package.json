@@ -22,9 +22,8 @@
 		"contracts:generate": "pnpm --filter @skillpouch/contracts generate",
 		"openapi": "pnpm --filter @skillpouch/api openapi",
 		"engram": "engram update . --no-description --no-label",
-		"dev": "pnpm --parallel --filter @skillpouch/api --filter @skillpouch/web --filter @skillpouch/site dev",
-		"dev:web": "pnpm --filter @skillpouch/web dev",
-		"dev:site": "pnpm --filter @skillpouch/site dev"
+		"dev": "pnpm --parallel --filter @skillpouch/api --filter @skillpouch/web dev",
+		"dev:web": "pnpm --filter @skillpouch/web dev"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.5",
@@ -33,7 +32,6 @@
 		"eslint-plugin-react-hooks": "^7.1.1",
 		"globals": "^16.5.0",
 		"prettier": "^3.9.9",
-		"prettier-plugin-astro": "^1.1.1",
 		"tsx": "^4.23.15",
 		"turbo": "^2.11.7",
 		"typescript": "~6.0.3",

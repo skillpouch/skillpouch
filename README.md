@@ -50,13 +50,12 @@ The client encrypts pouch content before upload. The service stores and syncs ci
 
 ## This repository
 
-The web app and API live here; the native client has its [own repository](https://github.com/skillpouch/skillpouch-cli).
+The web app and API live here; the native client has its [own repository](https://github.com/skillpouch/skillpouch-cli). Documentation: [docs.skillpouch.net](https://docs.skillpouch.net).
 
 | Location             | Role                                                                  |
 | -------------------- | --------------------------------------------------------------------- |
 | `apps/api`           | Fastify API and background job worker                                 |
 | `apps/web`           | React dashboard for pouches, devices, account and conflict resolution |
-| `apps/site`          | Astro marketing site, deployed to Cloudflare Pages                    |
 | `packages/crypto`    | Client-side cryptographic formats, keys and verification helpers      |
 | `packages/contracts` | Shared API schemas and generated OpenAPI contract                     |
 | `packages/db`        | PostgreSQL schema, migrations and row-level security                  |
@@ -74,9 +73,9 @@ pnpm db:migrate
 pnpm dev
 ```
 
-The dashboard runs at [localhost:5173](http://localhost:5173), API at [localhost:8080](http://localhost:8080), and marketing site at [localhost:4321](http://localhost:4321). Use the dashboard's development sign-in for local work. The root `pnpm dev` starts API, web and site together.
+The dashboard runs at [localhost:5173](http://localhost:5173), API at [localhost:8080](http://localhost:8080). Use the dashboard's development sign-in for local work. The root `pnpm dev` starts the API and web app together.
 
-Useful scripts: `pnpm dev:api`, `pnpm dev:web`, `pnpm dev:site`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm format:check`. See [package.json](package.json) for the full list.
+Useful scripts: `pnpm dev:api`, `pnpm dev:web`, `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `pnpm format:check`. See [package.json](package.json) for the full list.
 
 ## Self-hosting
 

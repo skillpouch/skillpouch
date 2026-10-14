@@ -10,7 +10,7 @@
  *
  * Adding a code: add it here (grouped by module), give it a `details` schema in
  * `details.ts` if it carries details, and add a hint in
- * `apps/docs/scripts/gen-errors.mjs` if people need to act on it.
+ * `apps/docs/scripts/gen-errors.mjs` (skillpouch/skillpouch-site) if people need to act on it.
  */
 export interface ErrorDef {
 	readonly status: number;

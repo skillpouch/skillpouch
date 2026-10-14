@@ -4,10 +4,8 @@
 	"tabWidth": 4,
 	"singleQuote": true,
 	"trailingComma": "all",
-	"plugins": ["prettier-plugin-astro"],
 	"overrides": [
 		{ "files": ["*.yml", "*.yaml"], "options": { "useTabs": false, "tabWidth": 2 } },
-		{ "files": ["*.md"], "options": { "useTabs": false, "tabWidth": 2 } },
-		{ "files": ["*.astro"], "options": { "parser": "astro" } }
+		{ "files": ["*.md"], "options": { "useTabs": false, "tabWidth": 2 } }
 	]
 }
