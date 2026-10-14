@@ -9,7 +9,7 @@ import { FakeCli } from './fake-cli';
 import { createAccount, expect, test } from './fixtures';
 
 async function openConnectDialog(page: Page): Promise<string> {
-	await page.goto('/app/account/devices');
+	await page.goto('/account/devices');
 	await page.getByRole('button', { name: 'Connect CLI' }).first().click();
 	const install = page.getByTestId('install-command');
 	await expect(install).toHaveText('npm i -g skillpouch');

@@ -223,7 +223,7 @@ export function FreeUpSpaceDialog({
 									: `${formatBytes(selectedBytes)} selected`}
 								{me.account.entitlements.plan_slug === 'free' ? (
 									<Link
-										to="/app/account/billing"
+										to="/account/billing"
 										className="text-fg underline underline-offset-4"
 										onClick={() => onOpenChange(false)}
 									>

@@ -18,9 +18,14 @@ interface Target {
 	search?: Record<string, string>;
 }
 
+/** Pages inside the signed-in shell; `/app` is the old prefix, which redirects. */
+const SHELL_PREFIXES = ['/pouches', '/account', '/app'];
+const inShell = (path: string) =>
+	SHELL_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+
 /** Only in-app paths may be redirect targets. */
 function isAppPath(path: string): boolean {
-	return path.startsWith('/app') || path.startsWith('/cli/') || path.startsWith('/s/');
+	return inShell(path) || path.startsWith('/cli/') || path.startsWith('/s/');
 }
 
 /** Where a user in `state` belongs when the current page doesn't fit. */
@@ -33,7 +38,7 @@ function destination(state: SessionState, redirect: string): Target | null {
 		case 'locked':
 			return { to: '/unlock', search: { redirect } };
 		case 'unlocked': {
-			if (!isAppPath(redirect)) return { to: '/app' };
+			if (!isAppPath(redirect)) return { to: '/pouches' };
 			const url = new URL(redirect, location.origin);
 			return { to: url.pathname, search: Object.fromEntries(url.searchParams) };
 		}
@@ -45,7 +50,7 @@ function destination(state: SessionState, redirect: string): Target | null {
 /** While the session is resolved or a redirect runs: the frame of where the user is going. */
 export function FullPageSpinner() {
 	const { pathname } = useLocation();
-	return pathname.startsWith('/app') ? <ShellSkeleton /> : <AuthSkeleton />;
+	return inShell(pathname) ? <ShellSkeleton /> : <AuthSkeleton />;
 }
 
 export function SessionGate({
@@ -64,7 +69,7 @@ export function SessionGate({
 	const here = `${location.pathname}${location.searchStr}`;
 	// Pages that are themselves a step (sign-in, unlock) forward to the saved target.
 	const saved = new URLSearchParams(location.searchStr).get('redirect');
-	const wanted = require === 'unlocked' ? here : saved && isAppPath(saved) ? saved : '/app';
+	const wanted = require === 'unlocked' ? here : saved && isAppPath(saved) ? saved : '/pouches';
 	const target = destination(session, wanted);
 	if (!target || target.to === location.pathname) return <FullPageSpinner />;
 	return (

@@ -125,7 +125,7 @@ export function PublicSharePage() {
 					/>
 					<Button variant="primary" asChild>
 						<Link
-							to="/app/p/$pouchId/$kind"
+							to="/pouches/$pouchId/$kind"
 							params={{ pouchId: imported.pouch.id, kind: kind?.slug ?? 'skills' }}
 						>
 							Open in pouch

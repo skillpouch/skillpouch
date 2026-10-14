@@ -3,7 +3,7 @@
 	"short_name": "SkillPouch",
 	"description": "Your AI coding setup, on every computer.",
 	"id": "/app",
-	"start_url": "/app",
+	"start_url": "/pouches",
 	"scope": "/",
 	"display": "standalone",
 	"theme_color": "#000000",

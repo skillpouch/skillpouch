@@ -52,7 +52,7 @@ export function Sidebar({
 			 * collapsed column. Collapsing only clips and fades text, so nothing moves.
 			 */}
 			<div className="flex h-14 shrink-0 items-center justify-between overflow-hidden whitespace-nowrap px-[8px]">
-				<Link to="/app" onClick={onNavigate} aria-label="All pouches">
+				<Link to="/pouches" onClick={onNavigate} aria-label="All pouches">
 					<Logo wordmarkClassName={fade(collapsed)} />
 				</Link>
 				{headerAside}

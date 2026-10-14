@@ -93,7 +93,7 @@ export function AdminLayout() {
 								label="Back to SkillPouch"
 								onClick={() => {
 									onNavigate?.();
-									void navigate({ to: '/app' });
+									void navigate({ to: '/pouches' });
 								}}
 								collapsed={collapsed}
 							/>

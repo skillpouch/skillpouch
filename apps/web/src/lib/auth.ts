@@ -126,7 +126,7 @@ export function lastDevEmail(): string | null {
 /** Only same-app paths; never an absolute URL (open-redirect protection). */
 export function safeRedirect(value: string | null | undefined): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
-		return '/app';
+		return '/pouches';
 	}
 	return value;
 }

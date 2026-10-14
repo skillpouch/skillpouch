@@ -51,17 +51,17 @@ const labels = (text: string, input = sources) =>
 describe('searchEverything', () => {
 	it('finds global items only', () => {
 		const [pdf] = searchEverything(sources, 'pdf');
-		expect(pdf).toMatchObject({ group: 'Items', href: '/app/p/p1/skills?item=i1' });
+		expect(pdf).toMatchObject({ group: 'Items', href: '/pouches/p1/skills?item=i1' });
 		expect(labels('agents.md')).toEqual([]);
 	});
 
 	it('finds devices, browsers and invoices, but not revoked devices', () => {
 		expect(labels('laptop')).toEqual(['work-laptop']);
 		expect(searchEverything(sources, 'browser')).toContainEqual(
-			expect.objectContaining({ group: 'Browsers', href: '/app/account/devices' }),
+			expect.objectContaining({ group: 'Browsers', href: '/account/devices' }),
 		);
 		expect(searchEverything(sources, 'invoice')).toContainEqual(
-			expect.objectContaining({ group: 'Invoices', href: '/app/account/billing' }),
+			expect.objectContaining({ group: 'Invoices', href: '/account/billing' }),
 		);
 	});
 

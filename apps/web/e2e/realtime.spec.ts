@@ -61,7 +61,7 @@ test.describe('live updates', () => {
 		await unlock(second, PASSWORD);
 		await expect(second.getByRole('heading', { name: 'Pouches' })).toBeVisible();
 
-		await page.goto('/app/account/devices');
+		await page.goto('/account/devices');
 		const browsers = page.getByRole('region', { name: 'Browsers' });
 		await expect(browsers.getByRole('listitem')).toHaveCount(2);
 		await browsers

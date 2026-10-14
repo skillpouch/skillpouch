@@ -54,7 +54,7 @@ export function NewPouchDialog({
 		const id = await create.mutateAsync(value).catch(() => null);
 		if (!id) return;
 		close(false);
-		await navigate({ to: '/app/p/$pouchId', params: { pouchId: id } });
+		await navigate({ to: '/pouches/$pouchId', params: { pouchId: id } });
 	};
 
 	return (
@@ -68,7 +68,7 @@ export function NewPouchDialog({
 						<>
 							<Button onClick={() => close(false)}>Close</Button>
 							<Button variant="primary" asChild>
-								<Link to="/app/account/billing" onClick={() => close(false)}>
+								<Link to="/account/billing" onClick={() => close(false)}>
 									See plans
 								</Link>
 							</Button>

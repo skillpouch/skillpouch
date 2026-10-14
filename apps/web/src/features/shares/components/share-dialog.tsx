@@ -57,7 +57,7 @@ export function ShareDialog({
 						<>
 							<Button variant="ghost" asChild>
 								<Link
-									to="/app/p/$pouchId/shared"
+									to="/pouches/$pouchId/shared"
 									params={{ pouchId }}
 									onClick={onClose}
 								>

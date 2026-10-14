@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/account/devices` — every computer and browser that can open the
+ * `/account/devices` — every computer and browser that can open the
  * pouches. Revoking signs it out immediately and rotates the pouch keys.
  */
 import { useQuery } from '@tanstack/react-query';

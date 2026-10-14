@@ -24,7 +24,7 @@ export type IngredientKind =
 
 export interface KindDefinition {
 	kind: IngredientKind;
-	/** URL segment: `/app/p/:pouchId/skills`. */
+	/** URL segment: `/pouches/:pouchId/skills`. */
 	slug: string;
 	label: string;
 	singular: string;

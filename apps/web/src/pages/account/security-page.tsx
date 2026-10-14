@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/account/security` — master password, Recovery Key, passkeys, how
+ * `/account/security` — master password, Recovery Key, passkeys, how
  * long a trusted browser stays trusted, and the account's security events.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

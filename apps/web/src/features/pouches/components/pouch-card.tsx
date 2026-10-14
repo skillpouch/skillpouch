@@ -60,7 +60,7 @@ export function PouchCard({
 				<div className="min-w-0 flex-1">
 					<div className="flex items-center gap-2">
 						<Link
-							to="/app/p/$pouchId"
+							to="/pouches/$pouchId"
 							params={{ pouchId: pouch.id }}
 							className="truncate text-sm font-medium text-fg after:absolute after:inset-0 after:content-['']"
 						>
@@ -82,7 +82,7 @@ export function PouchCard({
 						Make active
 					</Button>
 					<Button size="sm" variant="ghost" asChild>
-						<Link to="/app/p/$pouchId" params={{ pouchId: pouch.id }}>
+						<Link to="/pouches/$pouchId" params={{ pouchId: pouch.id }}>
 							Open (read-only)
 						</Link>
 					</Button>
@@ -115,7 +115,7 @@ function PouchSummary({ pouch }: { pouch: PouchView }) {
 					<span>{plural(computers.length, 'computer')}</span>
 					{conflicts.data?.length ? (
 						<Link
-							to="/app/p/$pouchId/conflicts"
+							to="/pouches/$pouchId/conflicts"
 							params={{ pouchId: pouch.id }}
 							className="relative z-10 hover:underline"
 						>

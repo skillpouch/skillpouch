@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/p/:pouchId/marketplaces` — browse skills.sh, the MCP Registry and your
+ * `/pouches/:pouchId/marketplaces` — browse skills.sh, the MCP Registry and your
  * GitHub repositories, and add what you pick to this pouch. The selected
  * marketplace lives in the URL (`?m=`).
  */
@@ -32,7 +32,7 @@ export function MarketplacesPage() {
 	if (!pouch) return <PageSkeleton variant="list" />;
 	const select = (id: string | undefined) =>
 		void navigate({
-			to: '/app/p/$pouchId/marketplaces',
+			to: '/pouches/$pouchId/marketplaces',
 			params: { pouchId },
 			search: id ? { m: id } : {},
 			replace: true,

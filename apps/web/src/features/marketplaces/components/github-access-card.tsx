@@ -41,7 +41,7 @@ export function GithubAccessCard({
 						repositories here.
 					</p>
 					<Button size="sm" variant="outline" asChild>
-						<Link to="/app/account" hash={SIGN_IN_METHODS_ID}>
+						<Link to="/account" hash={SIGN_IN_METHODS_ID}>
 							<GitHubIcon /> Link GitHub on your profile
 						</Link>
 					</Button>

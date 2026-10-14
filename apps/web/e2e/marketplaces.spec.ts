@@ -35,7 +35,7 @@ test.describe('marketplaces', () => {
 			.getByLabel('Private repositories')
 			.getByRole('link', { name: 'Link GitHub on your profile' })
 			.click();
-		await expect(page).toHaveURL(/\/app\/account#sign-in-methods$/);
+		await expect(page).toHaveURL(/\/account#sign-in-methods$/);
 		await expect(page.getByRole('region', { name: 'Sign-in methods' })).toBeVisible();
 	});
 

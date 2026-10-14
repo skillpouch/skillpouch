@@ -26,7 +26,7 @@ test.describe('security', () => {
 		browser,
 	}) => {
 		const account = await createAccount(page);
-		await page.goto('/app/account/security');
+		await page.goto('/account/security');
 		await page.getByRole('button', { name: 'Change', exact: true }).click();
 		const dialog = page.getByRole('dialog', { name: 'Change master password' });
 		await dialog.getByLabel('Master password').fill(NEW_PASSWORD);
@@ -45,7 +45,7 @@ test.describe('security', () => {
 
 	test('a new Recovery Key replaces the old one', async ({ page, browser }) => {
 		const account = await createAccount(page);
-		await page.goto('/app/account/security');
+		await page.goto('/account/security');
 		await page.getByRole('button', { name: 'Create new key' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Create a new Recovery Key' });
 		const replace = dialog.getByRole('button', { name: 'Replace Recovery Key' });
@@ -74,7 +74,7 @@ test.describe('layout and controls', () => {
 		page,
 	}) => {
 		await createAccount(page);
-		await page.goto('/app/account');
+		await page.goto('/account');
 		const sidebar = page.getByRole('navigation', { name: 'Main' });
 		await expect(sidebar).toBeVisible();
 		for (const [link, heading] of [
@@ -92,7 +92,7 @@ test.describe('layout and controls', () => {
 
 	test('buttons show a pointer cursor', async ({ page }) => {
 		await createAccount(page);
-		await page.goto('/app/account/security');
+		await page.goto('/account/security');
 		const cursor = await page
 			.getByRole('button', { name: 'Change', exact: true })
 			.evaluate((element) => getComputedStyle(element).cursor);
@@ -101,7 +101,7 @@ test.describe('layout and controls', () => {
 
 	test('the trust window changes at once and stays changed', async ({ page }) => {
 		await createAccount(page);
-		await page.goto('/app/account/security');
+		await page.goto('/account/security');
 		const group = page.getByRole('radiogroup', { name: 'Trust window' });
 		const sixty = group.getByRole('radio', { name: '60d' });
 		await sixty.click();
@@ -119,7 +119,7 @@ test.describe('layout and controls', () => {
 test.describe('account', () => {
 	test('deleting the account can be cancelled within the undo window', async ({ page }) => {
 		await createAccount(page);
-		await page.goto('/app/account');
+		await page.goto('/account');
 		await page.getByRole('button', { name: 'Delete account' }).click();
 		await page
 			.getByRole('dialog', { name: 'Delete your account?' })
@@ -135,7 +135,7 @@ test.describe('account', () => {
 
 	test('billing shows the current plan and usage, and follows plan changes', async ({ page }) => {
 		await createAccount(page);
-		await page.goto('/app/account/billing');
+		await page.goto('/account/billing');
 		const plans = page.getByRole('region', { name: 'Plans' });
 		await expect(plans.getByRole('article', { name: 'Free' })).toContainText('Current plan');
 		await expect(plans.getByRole('article', { name: 'Supporter' })).toContainText('3 pouches');
@@ -160,7 +160,7 @@ test.describe('account', () => {
 		page,
 	}) => {
 		await createAccount(page);
-		await page.goto('/app/account/billing');
+		await page.goto('/account/billing');
 		const plans = page.getByRole('region', { name: 'Plans' });
 		await expect(plans.getByRole('article', { name: 'Supporter' })).toBeVisible();
 		await expect(plans.getByRole('article', { name: 'Friends Pass' })).toHaveCount(0);

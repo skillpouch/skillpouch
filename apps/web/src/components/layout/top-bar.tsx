@@ -38,11 +38,11 @@ export function TopBar({ onOpenMenu, showLogo = false, leading, onSearch }: TopB
 			) : null}
 			{showLogo ? (
 				// sm:-ml-[5px] puts the logo where the sidebar shows it (16 px from the edge).
-				<Link to="/app" aria-label="All pouches" className="mr-2 sm:-ml-[5px]">
+				<Link to="/pouches" aria-label="All pouches" className="mr-2 sm:-ml-[5px]">
 					<Logo />
 				</Link>
 			) : onOpenMenu ? (
-				<Link to="/app" aria-label="All pouches" className="md:hidden">
+				<Link to="/pouches" aria-label="All pouches" className="md:hidden">
 					<Logo withWordmark={false} />
 				</Link>
 			) : null}

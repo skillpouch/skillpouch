@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `/app` — every pouch of the account, plus "New pouch". */
+/** `/pouches` — every pouch of the account, plus "New pouch". */
 import { Link } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -63,7 +63,7 @@ export function PouchesPage() {
 					</p>
 					{isFree ? (
 						<Button variant="primary" size="sm" asChild>
-							<Link to="/app/account/billing">Upgrade</Link>
+							<Link to="/account/billing">Upgrade</Link>
 						</Button>
 					) : null}
 				</div>
@@ -91,7 +91,7 @@ export function PouchesPage() {
 							{isFree ? (
 								<>
 									{' · '}
-									<Link to="/app/account/billing" className="text-fg underline">
+									<Link to="/account/billing" className="text-fg underline">
 										Upgrade
 									</Link>
 								</>

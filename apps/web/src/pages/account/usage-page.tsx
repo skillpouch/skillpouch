@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/account/usage` — tokens your assistants used on every connected
+ * `/account/usage` — tokens your assistants used on every connected
  * computer: totals, a year of days and where this month's went.
  */
 import { Activity } from 'lucide-react';

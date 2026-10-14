@@ -39,7 +39,7 @@ export function PouchSwitcher({ pouchId }: { pouchId: string }) {
 							key={pouch.id}
 							onSelect={() =>
 								void navigate({
-									to: '/app/p/$pouchId',
+									to: '/pouches/$pouchId',
 									params: { pouchId: pouch.id },
 								})
 							}
@@ -54,7 +54,7 @@ export function PouchSwitcher({ pouchId }: { pouchId: string }) {
 					<DropdownMenuItem onSelect={() => setCreating(true)}>
 						<Plus /> New pouch
 					</DropdownMenuItem>
-					<DropdownMenuItem onSelect={() => void navigate({ to: '/app' })}>
+					<DropdownMenuItem onSelect={() => void navigate({ to: '/pouches' })}>
 						All pouches
 					</DropdownMenuItem>
 				</DropdownMenuContent>

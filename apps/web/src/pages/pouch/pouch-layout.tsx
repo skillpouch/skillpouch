@@ -53,15 +53,21 @@ export function PouchLayout() {
 		{
 			id: 'overview',
 			items: [
-				{ to: '/app/p/$pouchId', params, label: 'Overview', icon: LayoutGrid, exact: true },
 				{
-					to: '/app/p/$pouchId/marketplaces',
+					to: '/pouches/$pouchId',
+					params,
+					label: 'Overview',
+					icon: LayoutGrid,
+					exact: true,
+				},
+				{
+					to: '/pouches/$pouchId/marketplaces',
 					params,
 					label: 'Marketplaces',
 					icon: Store,
 				},
 				{
-					to: '/app/p/$pouchId/trash',
+					to: '/pouches/$pouchId/trash',
 					params,
 					label: 'Trash',
 					icon: Trash2,
@@ -71,7 +77,7 @@ export function PouchLayout() {
 				...(conflicts.data?.length
 					? [
 							{
-								to: '/app/p/$pouchId/conflicts',
+								to: '/pouches/$pouchId/conflicts',
 								params,
 								label: 'Conflicts',
 								icon: GitMerge,
@@ -84,7 +90,7 @@ export function PouchLayout() {
 		{
 			id: 'ingredients',
 			items: KINDS.map((kind) => ({
-				to: '/app/p/$pouchId/$kind',
+				to: '/pouches/$pouchId/$kind',
 				params: { pouchId, kind: kind.slug },
 				label: kind.label,
 				icon: kind.icon,
@@ -105,7 +111,7 @@ export function PouchLayout() {
 							tone="warn"
 							action={
 								<Button size="sm" asChild>
-									<Link to="/app/p/$pouchId/conflicts" params={params}>
+									<Link to="/pouches/$pouchId/conflicts" params={params}>
 										Pick versions
 									</Link>
 								</Button>
@@ -121,7 +127,7 @@ export function PouchLayout() {
 							tone="locked"
 							action={
 								<Button size="sm" asChild>
-									<Link to="/app">Manage pouches</Link>
+									<Link to="/pouches">Manage pouches</Link>
 								</Button>
 							}
 						>
@@ -158,7 +164,7 @@ export function PouchLayout() {
 						<>
 							<SidebarLink
 								item={{
-									to: '/app/p/$pouchId/shared',
+									to: '/pouches/$pouchId/shared',
 									params,
 									label: 'Shared links',
 									icon: Share2,
@@ -168,7 +174,7 @@ export function PouchLayout() {
 							/>
 							<SidebarLink
 								item={{
-									to: '/app/p/$pouchId/settings',
+									to: '/pouches/$pouchId/settings',
 									params,
 									label: 'Pouch settings',
 									icon: Settings,

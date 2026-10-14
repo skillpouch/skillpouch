@@ -43,12 +43,12 @@ describe('format', () => {
 
 describe('safeRedirect', () => {
 	it.each([
-		[undefined, '/app'],
-		['/app/account', '/app/account'],
-		['https://evil.example', '/app'],
-		['//evil.example', '/app'],
-		['/\\evil.example', '/app'],
-		['javascript:alert(1)', '/app'],
+		[undefined, '/pouches'],
+		['/account', '/account'],
+		['https://evil.example', '/pouches'],
+		['//evil.example', '/pouches'],
+		['/\\evil.example', '/pouches'],
+		['javascript:alert(1)', '/pouches'],
 	])('%s → %s', (input, expected) => {
 		expect(safeRedirect(input)).toBe(expected);
 	});
