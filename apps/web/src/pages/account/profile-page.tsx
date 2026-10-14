@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `/app/account` — who you're signed in as, and deleting the account. */
+/** `/account` — who you're signed in as, and deleting the account. */
 import { useState } from 'react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';

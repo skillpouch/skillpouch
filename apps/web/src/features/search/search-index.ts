@@ -68,7 +68,7 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		label: 'All pouches',
 		hint: 'Go to',
 		icon: Package,
-		href: '/app',
+		href: '/pouches',
 		keywords: 'home dashboard',
 	},
 	{
@@ -77,7 +77,7 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		label: 'Profile',
 		hint: 'Account',
 		icon: User,
-		href: '/app/account',
+		href: '/account',
 		keywords: 'account name email avatar delete',
 	},
 	{
@@ -86,7 +86,7 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		label: 'Devices',
 		hint: 'Account',
 		icon: MonitorSmartphone,
-		href: '/app/account/devices',
+		href: '/account/devices',
 		keywords: 'computers browsers cli sessions revoke',
 	},
 	{
@@ -95,7 +95,7 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		label: 'Usage',
 		hint: 'Account',
 		icon: Activity,
-		href: '/app/account/usage',
+		href: '/account/usage',
 		keywords: 'tokens usage claude codex opencode models stats',
 	},
 	{
@@ -104,7 +104,7 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		label: 'Security',
 		hint: 'Account',
 		icon: Shield,
-		href: '/app/account/security',
+		href: '/account/security',
 		keywords: 'master password recovery key passkeys events trust',
 	},
 	{
@@ -113,13 +113,13 @@ const ACCOUNT_PAGES: SearchResult[] = [
 		label: 'Billing',
 		hint: 'Account',
 		icon: CreditCard,
-		href: '/app/account/billing',
+		href: '/account/billing',
 		keywords: 'plan subscription upgrade invoices receipts payment',
 	},
 ];
 
 function pouchPages(pouchId: string): SearchResult[] {
-	const base = `/app/p/${pouchId}`;
+	const base = `/pouches/${pouchId}`;
 	return [
 		{
 			id: 'page-overview',
@@ -170,7 +170,7 @@ function query(params: Record<string, string>): string {
 }
 
 function pouchResults(pouch: NonNullable<SearchSources['pouch']>): SearchResult[] {
-	const base = `/app/p/${pouch.id}`;
+	const base = `/pouches/${pouch.id}`;
 	const items = inScope(pouch.ingredients).map<SearchResult>((item) => {
 		const kind = kindDefinition(item.kind)!;
 		return {
@@ -186,7 +186,7 @@ function pouchResults(pouch: NonNullable<SearchSources['pouch']>): SearchResult[
 }
 
 function accountResults(sources: SearchSources): SearchResult[] {
-	const devicesPage = '/app/account/devices';
+	const devicesPage = '/account/devices';
 	const pouches = sources.pouches
 		.filter((pouch) => pouch.state !== 'deleted' && pouch.id !== sources.pouch?.id)
 		.map<SearchResult>((pouch) => ({
@@ -195,7 +195,7 @@ function accountResults(sources: SearchSources): SearchResult[] {
 			label: pouch.name,
 			hint: pouch.state === 'locked' ? 'Pouch · locked' : 'Pouch',
 			icon: Package,
-			href: `/app/p/${pouch.id}`,
+			href: `/pouches/${pouch.id}`,
 			keywords: pouch.description,
 		}));
 	const computers = (sources.devices?.devices ?? [])
@@ -226,7 +226,7 @@ function accountResults(sources: SearchSources): SearchResult[] {
 		label: `${invoice.description} · ${formatMoney(invoice.amount_cents, invoice.currency)}`,
 		hint: formatDate(invoice.created_at),
 		icon: FileText,
-		href: '/app/account/billing',
+		href: '/account/billing',
 		keywords: `invoice receipt payment billing ${invoice.status}`,
 	}));
 	return [...pouches, ...ACCOUNT_PAGES, ...computers, ...browsers, ...invoices];

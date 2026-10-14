@@ -9,10 +9,10 @@ const SOURCE = 'a'.repeat(32);
 test.describe('token usage', () => {
 	test('shows nothing until a computer reports, then the sums', async ({ page }) => {
 		await createAccount(page);
-		await page.goto('/app/account/usage');
+		await page.goto('/account/usage');
 		await expect(page.getByText('No token usage yet')).toBeVisible();
 
-		await page.goto('/app/account/devices');
+		await page.goto('/account/devices');
 		await page.getByRole('button', { name: 'Connect CLI' }).first().click();
 		const command = await page.getByTestId('connect-command').getAttribute('data-command');
 		const token = command?.match(/sp_lt_[A-Za-z0-9_-]{32}/)?.[0];
@@ -34,7 +34,7 @@ test.describe('token usage', () => {
 		// Sending the same day again replaces it instead of adding to it.
 		await report([{ ...row, assistant: 'claude-code', model: 'claude-opus' }]);
 
-		await page.goto('/app/account/usage');
+		await page.goto('/account/usage');
 		const totals = page.getByRole('region', { name: 'Totals' });
 		await expect(totals).toContainText('Today');
 		await expect(totals).toContainText('1.5K');

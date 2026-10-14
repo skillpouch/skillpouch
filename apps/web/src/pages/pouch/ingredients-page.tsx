@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/p/:pouchId/:kind` — the global items of one ingredient type. The open
+ * `/pouches/:pouchId/:kind` — the global items of one ingredient type. The open
  * panel lives in the URL, so it survives reloads and search results can link
  * straight to an item.
  */
@@ -40,7 +40,7 @@ export function IngredientsPage() {
 	const readOnly = pouch.state !== 'active';
 	const setPanel = (next: IngredientsSearch) =>
 		void navigate({
-			to: '/app/p/$pouchId/$kind',
+			to: '/pouches/$pouchId/$kind',
 			params: { pouchId, kind: kind.slug },
 			search: next,
 			replace: true,

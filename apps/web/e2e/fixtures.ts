@@ -52,7 +52,7 @@ export async function completeSetup(
 		await trust.click();
 	}
 	await page.getByRole('button', { name: 'Finish setup' }).click();
-	await expect(page).toHaveURL(/\/app\/?$/, { timeout: 30_000 });
+	await expect(page).toHaveURL(/\/pouches\/?$/, { timeout: 30_000 });
 	return words.join(' ');
 }
 
@@ -101,12 +101,12 @@ export async function openFirstPouch(page: Page, name = 'Personal'): Promise<voi
 		.getByRole('link', { name: new RegExp(name) })
 		.first()
 		.click();
-	await expect(page).toHaveURL(/\/app\/p\/[0-9a-f-]+\/?$/);
+	await expect(page).toHaveURL(/\/pouches\/[0-9a-f-]+\/?$/);
 }
 
 /**
  * Moves the signed-in account to another plan through the dev-only API
- * (`free`, `supporter`). The page must be inside the app (`/app…`).
+ * (`free`, `supporter`). The page must be inside the app (`/pouches…` or `/account…`).
  */
 export async function setPlan(page: Page, planSlug: string): Promise<void> {
 	await page.waitForFunction(() => window.__skillpouchDev !== undefined);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `/app/p/:pouchId` — a short summary of the pouch and the account. */
+/** `/pouches/:pouchId` — a short summary of the pouch and the account. */
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { Link, useParams } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
@@ -45,7 +45,7 @@ export function OverviewPage() {
 				aria-label="Summary"
 			>
 				<Stat label="Computers">
-					<Link to="/app/account/devices" className="hover:underline">
+					<Link to="/account/devices" className="hover:underline">
 						{computers.length === 0
 							? 'None yet'
 							: `${synced.length} of ${computers.length} synced`}
@@ -65,7 +65,7 @@ export function OverviewPage() {
 				{KINDS.map((kind) => (
 					<Link
 						key={kind.kind}
-						to="/app/p/$pouchId/$kind"
+						to="/pouches/$pouchId/$kind"
 						params={{ pouchId, kind: kind.slug }}
 						className="hover:text-fg"
 					>
@@ -89,7 +89,7 @@ export function OverviewPage() {
 							return (
 								<li key={item.id}>
 									<Link
-										to="/app/p/$pouchId/$kind"
+										to="/pouches/$pouchId/$kind"
 										params={{ pouchId, kind: kind.slug }}
 										search={{ item: item.id }}
 										className="flex items-center gap-3 px-4 py-3 text-[13px] hover:bg-surface"

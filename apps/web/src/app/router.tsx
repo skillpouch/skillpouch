@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
  * The route tree. Every page states the session it needs through
- * `SessionGate`; layouts (`/app/p/:pouchId`, `/app/account`) own their
+ * `SessionGate`; layouts (`/pouches/:pouchId`, `/account`) own their
  * navigation and render children through `<Outlet />`.
  *
  *   /sign-in                 GitHub / Google
  *   /setup                   first-time onboarding (master password, Recovery Key)
  *   /unlock                  new or lapsed browser
- *   /app                     pouches
- *   /app/p/:pouchId          overview, /:kind lists, /shared, /conflicts, /settings
- *   /app/account             profile, /devices, /usage, /security, /billing
- *   /app/p/:pouchId/marketplaces  skills.sh, MCP Registry, GitHub repositories
- *   /app/p/:pouchId/trash    deleted items, restorable for 7 days
+ *   /pouches                 every pouch of the account
+ *   /pouches/:pouchId        overview, /:kind lists, /shared, /conflicts, /settings
+ *   /pouches/:pouchId/marketplaces  skills.sh, MCP Registry, GitHub repositories
+ *   /pouches/:pouchId/trash  deleted items, restorable for 7 days
+ *   /account                 profile, /devices, /usage, /security, /billing
+ *   /app/...                 old links (CLI, emails, bookmarks): redirect to the paths above
  *   /cli/authorize           approve a `skillpouch login`
  *   /github/connected        return from installing the GitHub App
  *   /s/:shareId              public share link
@@ -38,6 +39,7 @@ import { AccountLayout } from '@/pages/account/account-layout';
 import { AdminLayout } from '@/pages/admin/admin-layout';
 import { PouchLayout } from '@/pages/pouch/pouch-layout';
 import { PouchesPage } from '@/pages/pouches/pouches-page';
+import { fromLegacyPath } from '@/lib/legacy-paths';
 import { RootLayout, UnlockedRoot } from './root';
 
 // Layouts are part of the main bundle, so the sidebar and top bar never
@@ -201,7 +203,7 @@ const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/',
 	beforeLoad: () => {
-		throw redirect({ to: '/app', replace: true });
+		throw redirect({ to: '/pouches', replace: true });
 	},
 });
 
@@ -260,9 +262,34 @@ const shareRoute = createRoute({
 	component: PublicSharePage,
 });
 
-const appRoute = createRoute({
+const legacyRedirect = ({
+	location,
+}: {
+	location: { pathname: string; searchStr: string; hash: string };
+}) => {
+	const to = fromLegacyPath(location.pathname) ?? '/pouches';
+	throw redirect({
+		href: `${to}${location.searchStr}${location.hash ? `#${location.hash}` : ''}`,
+		replace: true,
+	});
+};
+
+const legacyAppRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: '/app',
+	beforeLoad: legacyRedirect,
+});
+
+const legacyAppSplatRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: '/app/$',
+	beforeLoad: legacyRedirect,
+});
+
+/** The signed-in shell around the pouch list, a pouch and the account (no path of its own). */
+const appRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	id: 'shell',
 	component: gated('unlocked', () => (
 		<UnlockedRoot>
 			<Outlet />
@@ -272,13 +299,13 @@ const appRoute = createRoute({
 
 const pouchesRoute = createRoute({
 	getParentRoute: () => appRoute,
-	path: '/',
+	path: '/pouches',
 	component: PouchesPage,
 });
 
 const pouchRoute = createRoute({
 	getParentRoute: () => appRoute,
-	path: '/p/$pouchId',
+	path: '/pouches/$pouchId',
 	component: PouchLayout,
 });
 
@@ -443,6 +470,8 @@ const routeTree = rootRoute.addChildren([
 	cliAuthorizeRoute,
 	githubConnectedRoute,
 	shareRoute,
+	legacyAppRoute,
+	legacyAppSplatRoute,
 	appRoute.addChildren([
 		pouchesRoute,
 		pouchRoute.addChildren([

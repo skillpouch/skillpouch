@@ -48,7 +48,7 @@ export function PlanCard() {
 					</p>
 				</div>
 				<Button variant={isFree ? 'primary' : 'outline'} size="sm" asChild>
-					<Link to="/app/account/billing">{isFree ? 'Upgrade' : 'Manage'}</Link>
+					<Link to="/account/billing">{isFree ? 'Upgrade' : 'Manage'}</Link>
 				</Button>
 			</div>
 			<div className="mt-5 grid gap-4 sm:grid-cols-2">

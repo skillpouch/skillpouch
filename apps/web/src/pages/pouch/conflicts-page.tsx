@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/p/:pouchId/conflicts`: items changed in two places at once, each
+ * `/pouches/:pouchId/conflicts`: items changed in two places at once, each
  * with both versions side by side and a button to keep one. The CLI sends
  * people here (`skillpouch conflicts`, `c` in the TUI).
  */

@@ -11,7 +11,7 @@ export function NotFoundPage() {
 				This page doesn’t exist, or it belongs to a pouch you can’t open.
 			</p>
 			<Button asChild className="mt-2">
-				<Link to="/app">Back to pouches</Link>
+				<Link to="/pouches">Back to pouches</Link>
 			</Button>
 		</div>
 	);

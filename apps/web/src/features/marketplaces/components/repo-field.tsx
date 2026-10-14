@@ -72,7 +72,7 @@ export function RepoError({ error }: { error: unknown }) {
 					{' '}
 					<span className="text-muted">If it’s a private repository, </span>
 					<Link
-						to="/app/account"
+						to="/account"
 						hash={SIGN_IN_METHODS_ID}
 						className="text-fg underline underline-offset-4 hover:text-accent-text"
 					>

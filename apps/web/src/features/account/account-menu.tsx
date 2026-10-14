@@ -59,20 +59,20 @@ export function AccountMenu() {
 						<DropdownMenuSeparator />
 					</>
 				) : null}
-				<DropdownMenuItem onSelect={() => go('/app/account')}>
+				<DropdownMenuItem onSelect={() => go('/account')}>
 					<User /> Account
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => go('/app/account/devices')}>
+				<DropdownMenuItem onSelect={() => go('/account/devices')}>
 					<MonitorSmartphone /> Devices
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => go('/app/account/usage')}>
+				<DropdownMenuItem onSelect={() => go('/account/usage')}>
 					<Activity /> Usage
 					<MonthTokens />
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => go('/app/account/security')}>
+				<DropdownMenuItem onSelect={() => go('/account/security')}>
 					<Shield /> Security
 				</DropdownMenuItem>
-				<DropdownMenuItem onSelect={() => go('/app/account/billing')}>
+				<DropdownMenuItem onSelect={() => go('/account/billing')}>
 					<CreditCard /> Billing
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />

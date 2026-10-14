@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/account/billing` — the plans synced from the billing provider. Paid
+ * `/account/billing` — the plans synced from the billing provider. Paid
  * plans only add room (pouches, storage); every feature is free for everyone.
  * Plan names always come from the API.
  */

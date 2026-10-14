@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `/app/p/:pouchId/settings` — rename, describe or delete the pouch. */
+/** `/pouches/:pouchId/settings` — rename, describe or delete the pouch. */
 import { PageSkeleton } from '@/components/ui/page-skeleton';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -107,7 +107,7 @@ export function PouchSettingsPage() {
 				onConfirm={async () => {
 					await remove.mutateAsync({});
 					toast.success(`“${pouch.name}” deleted. You can restore it from Pouches.`);
-					await navigate({ to: '/app' });
+					await navigate({ to: '/pouches' });
 				}}
 			/>
 		</div>

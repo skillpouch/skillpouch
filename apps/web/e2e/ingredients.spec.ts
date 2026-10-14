@@ -279,15 +279,15 @@ test.describe('ingredients', () => {
 	});
 
 	test('search works on account pages and finds settings and this browser', async ({ page }) => {
-		await page.goto('/app/account');
+		await page.goto('/account');
 		await page.getByRole('button', { name: 'Search' }).click();
 		await page.keyboard.type('recovery key');
 		await page.keyboard.press('Enter');
-		await expect(page).toHaveURL(/\/app\/account\/security$/);
+		await expect(page).toHaveURL(/\/account\/security$/);
 		await page.keyboard.press('ControlOrMeta+k');
 		await page.keyboard.type('this browser');
 		await expect(page.getByRole('option', { name: /this browser/ })).toBeVisible();
 		await page.keyboard.press('Enter');
-		await expect(page).toHaveURL(/\/app\/account\/devices$/);
+		await expect(page).toHaveURL(/\/account\/devices$/);
 	});
 });

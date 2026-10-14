@@ -57,7 +57,7 @@ export function GithubConnectedPage() {
 	}, [code, state, invalidate, navigate]);
 
 	const retry = () => {
-		if (list.data) startGithubConnect(list.data.github, '/app', 'authorize');
+		if (list.data) startGithubConnect(list.data.github, '/pouches', 'authorize');
 	};
 
 	return (

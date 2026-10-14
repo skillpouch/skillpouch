@@ -19,7 +19,7 @@ test.describe('pouches', () => {
 		await expect(dialog.getByText(/Free includes 1 pouch/)).toBeVisible();
 		await expect(dialog.getByLabel('Name')).toHaveCount(0);
 		await dialog.getByRole('link', { name: 'See plans' }).click();
-		await expect(page).toHaveURL(/\/app\/account\/billing$/);
+		await expect(page).toHaveURL(/\/account\/billing$/);
 	});
 
 	test('Supporter creates a pouch with a validated, encrypted name', async ({ page }) => {
@@ -38,9 +38,9 @@ test.describe('pouches', () => {
 		await dialog.getByLabel('Description').fill('Things for the day job');
 		await expect(preview).toContainText('WorkThings for the day job');
 		await dialog.getByRole('button', { name: 'Create pouch' }).click();
-		await expect(page).toHaveURL(/\/app\/p\/[0-9a-f-]+\/?$/);
+		await expect(page).toHaveURL(/\/pouches\/[0-9a-f-]+\/?$/);
 
-		await page.goto('/app');
+		await page.goto('/pouches');
 		await expect(page.getByRole('article', { name: 'Work' })).toContainText(
 			'Things for the day job',
 		);
@@ -62,7 +62,7 @@ test.describe('pouches', () => {
 		await page.getByLabel('Name').fill('Home setup');
 		await save.click();
 		await expect(page.getByText('Pouch updated')).toBeVisible();
-		await page.goto('/app');
+		await page.goto('/pouches');
 		await expect(page.getByRole('article', { name: 'Home setup' })).toBeVisible();
 	});
 
@@ -81,15 +81,15 @@ test.describe('pouches', () => {
 		const dialog = page.getByRole('dialog', { name: 'New pouch' });
 		await dialog.getByLabel('Name').fill('Work');
 		await dialog.getByRole('button', { name: 'Create pouch' }).click();
-		await expect(page).toHaveURL(/\/app\/p\/[0-9a-f-]+\/?$/);
+		await expect(page).toHaveURL(/\/pouches\/[0-9a-f-]+\/?$/);
 
 		const remove = async () => {
-			await page.goto('/app');
+			await page.goto('/pouches');
 			await page.getByRole('link', { name: 'Personal' }).click();
 			await page.getByRole('link', { name: 'Pouch settings' }).click();
 			await page.getByRole('button', { name: 'Delete pouch' }).click();
 			await page.getByRole('dialog').getByRole('button', { name: 'Delete pouch' }).click();
-			await expect(page).toHaveURL(/\/app\/?$/);
+			await expect(page).toHaveURL(/\/pouches\/?$/);
 		};
 		await remove();
 		const deleted = page.getByRole('article', { name: 'Personal (deleted)' });
@@ -116,8 +116,8 @@ test.describe('pouches', () => {
 		const dialog = page.getByRole('dialog', { name: 'New pouch' });
 		await dialog.getByLabel('Name').fill('Work');
 		await dialog.getByRole('button', { name: 'Create pouch' }).click();
-		await expect(page).toHaveURL(/\/app\/p\//);
-		await page.goto('/app');
+		await expect(page).toHaveURL(/\/pouches\//);
+		await page.goto('/pouches');
 
 		await setPlan(page, 'free');
 		await expect(page.getByText('1 pouch is locked')).toBeVisible();
@@ -133,7 +133,7 @@ test.describe('pouches', () => {
 			.click();
 		await expect(page.getByRole('button', { name: 'Add skill' })).toHaveCount(0);
 
-		await page.goto('/app');
+		await page.goto('/pouches');
 		await page
 			.getByRole('article', { name: 'Work' })
 			.getByRole('button', { name: 'Make active' })
@@ -202,7 +202,7 @@ test.describe('pouches', () => {
 
 	test('the account sidebar offers Connect CLI', async ({ page }) => {
 		await createAccount(page);
-		await page.goto('/app/account');
+		await page.goto('/account');
 		await page.getByRole('complementary').getByRole('button', { name: 'Connect CLI' }).click();
 		await expect(page.getByRole('dialog')).toBeVisible();
 	});

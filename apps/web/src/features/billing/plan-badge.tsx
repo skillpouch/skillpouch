@@ -46,7 +46,7 @@ export function PlanPill() {
 	if (!style) return null;
 	return (
 		<Link
-			to="/app/account/billing"
+			to="/account/billing"
 			className={cn('plan-badge plan-badge-compact plan-shimmer', style.className)}
 			aria-label={`${plan_name} plan, open billing`}
 		>

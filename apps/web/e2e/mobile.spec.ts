@@ -24,7 +24,7 @@ test.describe('phone @mobile', () => {
 			await expectNoSidewaysScroll(page);
 		}
 		for (const path of ['', '/devices', '/security', '/billing']) {
-			await page.goto(`/app/account${path}`);
+			await page.goto(`/account${path}`);
 			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 			await expectNoSidewaysScroll(page);
 		}

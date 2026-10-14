@@ -307,7 +307,7 @@ export function takeGithubReturn(state: string | null): string | null {
 	sessionStorage.removeItem(STATE_KEY);
 	sessionStorage.removeItem(RETURN_KEY);
 	if (!state || !expected || state !== expected) return null;
-	return returnTo ?? '/app';
+	return returnTo ?? '/pouches';
 }
 
 export function connectGithub(code: string) {

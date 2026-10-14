@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-/** `/app/p/:pouchId/shared` — share links created from this pouch. */
+/** `/pouches/:pouchId/shared` — share links created from this pouch. */
 import { useParams } from '@tanstack/react-router';
 import { Share2 } from 'lucide-react';
 import { useState } from 'react';

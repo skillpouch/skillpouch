@@ -173,7 +173,7 @@ describe('GitHub connect state', () => {
 				authorize_url: null,
 				connections: [],
 			},
-			'/app/p/1/marketplaces',
+			'/pouches/1/marketplaces',
 		);
 		const state = new URL(sentTo).searchParams.get('state');
 		expect(takeGithubReturn('forged')).toBeNull();
@@ -184,11 +184,11 @@ describe('GitHub connect state', () => {
 				authorize_url: null,
 				connections: [],
 			},
-			'/app/p/1/marketplaces',
+			'/pouches/1/marketplaces',
 		);
 		const fresh = new URL(sentTo).searchParams.get('state');
 		expect(state).not.toBe(fresh);
-		expect(takeGithubReturn(fresh)).toBe('/app/p/1/marketplaces');
+		expect(takeGithubReturn(fresh)).toBe('/pouches/1/marketplaces');
 		expect(takeGithubReturn(fresh)).toBeNull();
 		Object.defineProperty(window, 'location', { value: { ...window.location, assign } });
 	});

@@ -22,11 +22,11 @@ const SECTIONS = [
 		id: 'account',
 		label: 'Account',
 		items: [
-			{ to: '/app/account', label: 'Profile', icon: User, exact: true },
-			{ to: '/app/account/devices', label: 'Devices', icon: MonitorSmartphone },
-			{ to: '/app/account/usage', label: 'Usage', icon: Activity },
-			{ to: '/app/account/security', label: 'Security', icon: Shield },
-			{ to: '/app/account/billing', label: 'Billing', icon: CreditCard },
+			{ to: '/account', label: 'Profile', icon: User, exact: true },
+			{ to: '/account/devices', label: 'Devices', icon: MonitorSmartphone },
+			{ to: '/account/usage', label: 'Usage', icon: Activity },
+			{ to: '/account/security', label: 'Security', icon: Shield },
+			{ to: '/account/billing', label: 'Billing', icon: CreditCard },
 		],
 	},
 ];

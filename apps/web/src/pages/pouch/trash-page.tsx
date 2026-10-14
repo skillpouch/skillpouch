@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * `/app/p/:pouchId/trash` — deleted items, restorable for 7 days. Restoring
+ * `/pouches/:pouchId/trash` — deleted items, restorable for 7 days. Restoring
  * over a name a live item took in the meantime asks for a new name first.
  */
 import { useParams } from '@tanstack/react-router';

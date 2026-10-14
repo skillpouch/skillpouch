@@ -14,9 +14,9 @@ import {
 
 test.describe('signed out', () => {
 	test('dashboard pages send you to sign-in, keeping where you were going', async ({ page }) => {
-		await page.goto('/app');
+		await page.goto('/pouches');
 		await expect(page).toHaveURL(/\/sign-in/);
-		await page.goto('/app/account/devices');
+		await page.goto('/account/devices');
 		await expect(page).toHaveURL(/\/sign-in\?redirect=%2Fapp%2Faccount%2Fdevices/);
 		await expect(page.getByRole('heading', { name: 'Sign in to SkillPouch' })).toBeVisible();
 		await expect(page.getByRole('button', { name: /GitHub/ })).toBeVisible();
@@ -94,7 +94,7 @@ test.describe('onboarding', () => {
 	test('a set-up account never sees onboarding again', async ({ page }) => {
 		await createAccount(page);
 		await page.goto('/setup');
-		await expect(page).toHaveURL(/\/app/);
+		await expect(page).toHaveURL(/\/pouches/);
 	});
 });
 
@@ -162,6 +162,6 @@ test('signing out from the account menu returns to sign-in', async ({ page }) =>
 	await page.getByRole('button', { name: /account menu/i }).click();
 	await page.getByRole('menuitem', { name: 'Sign out' }).click();
 	await expect(page).toHaveURL(/\/sign-in/);
-	await page.goto('/app');
+	await page.goto('/pouches');
 	await expect(page).toHaveURL(/\/sign-in/);
 });
