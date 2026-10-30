@@ -67,6 +67,32 @@ export async function applySubscription(
 		return false;
 	}
 	const storageAccountId = sub.storageAccountId;
+	try {
+		await upsertSubscription(deps, provider, sub, storageAccountId);
+	} catch (error) {
+		if (!isMissingAccount(error)) throw error;
+		// The account was deleted after checkout; its events can never apply.
+		deps.log.warn(
+			{ subscription: sub.externalSubscriptionId, storageAccountId },
+			'billing: subscription for an account that no longer exists',
+		);
+		return false;
+	}
+	return true;
+}
+
+/** A foreign-key violation on the subscription's account (Postgres 23503). */
+function isMissingAccount(error: unknown): boolean {
+	const cause = (error as { cause?: { code?: string; constraint?: string } }).cause;
+	return cause?.code === '23503' && cause.constraint === 'subscriptions_storage_account_id_fkey';
+}
+
+async function upsertSubscription(
+	deps: Deps,
+	provider: string,
+	sub: NormalizedSubscription,
+	storageAccountId: string,
+) {
 	await withTenantTx(deps.db.app, storageAccountId, async (tx) => {
 		const [plan] = sub.productId
 			? await tx
@@ -115,7 +141,6 @@ export async function applySubscription(
 			details: { status: sub.status, plan_id: plan?.id ?? null },
 		});
 	});
-	return true;
 }
 
 /** A product was created or edited in the provider: its plan follows right away. */
@@ -178,14 +203,23 @@ export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 			paymentsSynced ??= await syncPaymentsForEvent(deps);
 			if (!paymentsSynced) continue;
 		} else if (row.type.startsWith('subscription.') && payload.data) {
-			if (
-				await applySubscription(
-					deps,
-					row.provider,
-					normalizePolarSubscription(payload.data),
+			try {
+				if (
+					await applySubscription(
+						deps,
+						row.provider,
+						normalizePolarSubscription(payload.data),
+					)
 				)
-			)
-				applied += 1;
+					applied += 1;
+			} catch (error) {
+				// Stays pending for the next run without holding back the events after it.
+				deps.log.error(
+					{ err: error, event: row.externalId },
+					'billing: applying a stored event failed',
+				);
+				continue;
+			}
 		}
 		await markBillingEventProcessed(deps, row.provider, row.externalId);
 	}

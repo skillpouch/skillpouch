@@ -463,6 +463,35 @@ describe('billing and admin', () => {
 			// Finished canceled subscriptions are not polled again.
 			expect(await reconcileSubscriptions(h.deps)).toBe(0);
 		});
+
+		it('drops events for a deleted account without holding back the ones after it', async () => {
+			const ghost = '01a1199b-9363-7871-9a8b-45bd1b7076a9';
+			const ghostEvent = subscriptionEvent('subscription.active', {
+				id: 'sub_ghost',
+				customer: { external_id: ghost },
+			});
+			const webhookReply = await webhook(ghostEvent, { id: 'evt_ghost_live' });
+			expect(webhookReply.statusCode).toBe(200);
+
+			// A row stored before the fix, still pending, ahead of another one.
+			await h.owner.query(
+				`INSERT INTO billing_events (provider, external_id, type, payload, created_at)
+				 VALUES ('polar', 'evt_ghost', 'subscription.active', $1, now() - interval '2 minutes'),
+				        ('polar', 'evt_after_ghost', 'checkout.updated', '{}', now() - interval '1 minute')`,
+				[JSON.stringify(ghostEvent)],
+			);
+			await applyPendingBillingEvents(h.deps);
+			const { rows } = await h.owner.query(
+				`SELECT external_id FROM billing_events
+				 WHERE external_id IN ('evt_ghost_live', 'evt_ghost', 'evt_after_ghost')
+				   AND processed_at IS NULL`,
+			);
+			expect(rows).toEqual([]);
+			const subs = await h.owner.query(
+				`SELECT 1 FROM subscriptions WHERE external_subscription_id = 'sub_ghost'`,
+			);
+			expect(subs.rows).toHaveLength(0);
+		});
 	});
 
 	describe('admin dashboard', () => {
