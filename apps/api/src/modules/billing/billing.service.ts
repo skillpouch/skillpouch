@@ -71,10 +71,11 @@ export async function applySubscription(
 		await upsertSubscription(deps, provider, sub, storageAccountId);
 	} catch (error) {
 		if (!isMissingAccount(error)) throw error;
-		// The account was deleted after checkout; its events can never apply.
+		// Deleted, or created on another instance sharing the Polar
+		// organization: its events can never apply, so retrying is pointless.
 		deps.log.warn(
 			{ subscription: sub.externalSubscriptionId, storageAccountId },
-			'billing: subscription for an account that no longer exists',
+			'billing: subscription for an unknown account',
 		);
 		return false;
 	}
@@ -191,6 +192,7 @@ export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 		.orderBy(asc(billingEvents.createdAt))
 		.limit(200);
 	let applied = 0;
+	let failed = 0;
 	// One sync covers every pending product (or order) event.
 	let plansSynced: boolean | null = null;
 	let paymentsSynced: boolean | null = null;
@@ -218,11 +220,15 @@ export async function applyPendingBillingEvents(deps: Deps): Promise<number> {
 					{ err: error, event: row.externalId },
 					'billing: applying a stored event failed',
 				);
+				failed += 1;
 				continue;
 			}
 		}
 		await markBillingEventProcessed(deps, row.provider, row.externalId);
 	}
+	// The run still fails, so a stuck event shows on the admin dashboard.
+	if (failed > 0)
+		throw new AppError('internal_error', { reason: 'billing events left pending', failed });
 	return applied;
 }
 

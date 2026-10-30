@@ -464,7 +464,7 @@ describe('billing and admin', () => {
 			expect(await reconcileSubscriptions(h.deps)).toBe(0);
 		});
 
-		it('drops events for a deleted account without holding back the ones after it', async () => {
+		it('drops events for an unknown account without holding back the ones after it', async () => {
 			const ghost = '01a1199b-9363-7871-9a8b-45bd1b7076a9';
 			const ghostEvent = subscriptionEvent('subscription.active', {
 				id: 'sub_ghost',
